@@ -1,7 +1,7 @@
 {
-  "name": "Spendly — Expense Tracker",
+  "name": "Spendly — Smart Expense Tracker",
   "short_name": "Spendly",
-  "description": "Smart monthly expense tracker with category analytics",
+  "description": "Track expenses, budgets and debts intelligently",
   "start_url": "/index.html",
   "display": "standalone",
   "background_color": "#0a0f1e",
