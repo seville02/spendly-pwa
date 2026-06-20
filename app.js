@@ -487,6 +487,31 @@ function renderAISummarySection() {
   document.getElementById('ai-summary-section').style.display=show?'block':'none';
 }
 
+function generateLocalSummary(txs, totalSpent, budget) {
+  const catTotals = {};
+  txs.forEach(t => { catTotals[t.category] = (catTotals[t.category] || 0) + t.amount; });
+  const sorted = Object.entries(catTotals).sort((a,b) => b[1]-a[1]);
+  
+  let summary = `For this month, you have spent a total of ${fmtFull(totalSpent)}. `;
+  if (budget > 0) {
+    const diff = budget - totalSpent;
+    summary += diff >= 0 
+      ? `You are currently under your budget by ${fmtFull(diff)}.` 
+      : `You have exceeded your monthly budget by ${fmtFull(Math.abs(diff))}! Try to scale back.`;
+  } else {
+    summary += `Consider setting a monthly budget to track your spending limits.`;
+  }
+  
+  if (sorted.length > 0) {
+    const [topCat, topAmt] = sorted[0];
+    const pct = Math.round((topAmt / totalSpent) * 100);
+    summary += ` Your top spending category is <strong>${topCat}</strong>, accounting for ${fmtFull(topAmt)} (${pct}% of your total spending).`;
+  }
+  
+  summary += ` Tip: Review your transactions regularly to identify areas where you can save.`;
+  return summary;
+}
+
 async function generateAISummary() {
   const txs=getMonthTx().filter(t=>t.type==='expense');
   if (!txs.length) { showToast('No expenses to summarise'); return; }
@@ -498,6 +523,18 @@ async function generateAISummary() {
 
   const totalSpent=txs.reduce((s,t)=>s+t.amount,0);
   const budget=appData.budgets[currentKey()]||0;
+
+  // Local fallback if no Gemini key is provided
+  if (!GEMINI_KEY || GEMINI_KEY.trim() === '') {
+    const text = generateLocalSummary(txs, totalSpent, budget);
+    const s = getLocalSettings();
+    s['aiSummary_' + currentKey()] = text;
+    saveLocalSettings(s);
+    body.innerHTML = text;
+    btn.style.display = 'none';
+    return;
+  }
+
   const catTotals={};
   txs.forEach(t=>{ catTotals[t.category]=(catTotals[t.category]||0)+t.amount; });
   const catSummary=Object.entries(catTotals).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`${k}: ${fmtFull(v)}`).join(', ');
@@ -535,8 +572,10 @@ Write in plain conversational text, no markdown, no bullet points.`;
     body.innerHTML=text.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>');
     btn.style.display='none';
   } catch(e) {
-    body.innerHTML='Could not connect to Gemini. Check your API key in config.js.';
-    btn.style.display='flex';
+    console.warn('Gemini API call failed, generating local summary fallback', e);
+    const text = generateLocalSummary(txs, totalSpent, budget);
+    body.innerHTML = text + `<br><small style="color:var(--text3);margin-top:6px;display:block">⚠️ Offline local summary (Gemini unavailable)</small>`;
+    btn.style.display = 'none';
   }
 }
 
