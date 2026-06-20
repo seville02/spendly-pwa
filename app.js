@@ -1065,10 +1065,12 @@ function openSetBudget(){
 async function saveBudget(){
   const val=parseFloat(document.getElementById('input-budget').value);
   if(!val||val<=0){showToast('Enter a valid budget');return;}
+  // Optimistically update in-memory state first so renderHome() sees the new value
+  // regardless of whether the DB call succeeds (same pattern as saveCatBudget)
+  appData.budgets[currentKey()]=val;
   setSyncing('syncing');
   try {
     await dbSaveBudget(currentUser.id, currentKey(), val);
-    appData.budgets[currentKey()]=val;
     setSyncing('ok');
   } catch(e) { setSyncing('error'); }
   closeModal('modal-budget'); showToast(`Budget: ${fmtFull(val)}`);
