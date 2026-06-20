@@ -325,6 +325,16 @@ function navigate(screen) {
   if (screen==='profile')      renderProfile();
 }
 
+function focusSearch() {
+  navigate('transactions');
+  setTimeout(() => {
+    const input = document.getElementById('search-input');
+    if (input) {
+      input.focus();
+    }
+  }, 150);
+}
+
 function handleEnter(e, nextId) {
   if (e.key !== 'Enter') return;
   e.preventDefault();
