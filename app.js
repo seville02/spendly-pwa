@@ -806,7 +806,11 @@ function renderProfile(){
   document.getElementById('profile-display-name').textContent=p.name||currentUser?.email||'My Account';
   document.getElementById('profile-email').textContent=currentUser?.email||'';
   document.getElementById('profile-avatar').textContent=p.name?p.name[0].toUpperCase():'💼';
-  const day=p.budget_day||6, sfx=day===1?'st':day===2?'nd':day===3?'rd':'th';
+  const day=p.budget_day||6;
+  let sfx='th';
+  if(day%10===1 && day!==11) sfx='st';
+  else if(day%10===2 && day!==12) sfx='nd';
+  else if(day%10===3 && day!==13) sfx='rd';
   document.getElementById('profile-sub').textContent=`Budget resets on the ${day}${sfx} · ${getResetMonthLabel()}`;
   document.getElementById('budget-day-label').textContent=day+sfx;
   document.getElementById('profile-budget-val').textContent=(appData.budgets[currentKey()]||0)>0?fmtFull(appData.budgets[currentKey()])+' / month':'Not set';
@@ -833,7 +837,7 @@ function renderCatBudgetSettings(){
 async function autoSaveProfile(){
   const p={
     name: document.getElementById('profile-name-input').value.trim(),
-    budget_day: parseInt(document.getElementById('profile-day-input').value)||6,
+    budget_day: Math.max(1, Math.min(28, parseInt(document.getElementById('profile-day-input').value)||6)),
     settings: appData.profile?.settings||{}
   };
   const s=getLocalSettings();

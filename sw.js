@@ -1,5 +1,15 @@
 const CACHE = 'spendly-v4-2';
-const ASSETS = ['/', '/index.html', '/style.css', '/app.js', '/manifest.json'];
+const ASSETS = [
+  './',
+  './index.html',
+  './style.css',
+  './app.js',
+  './db.js',
+  './config.js',
+  './manifest.json',
+  './icons/icon-192.png',
+  './icons/icon-512.png'
+];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)));
@@ -16,6 +26,9 @@ self.addEventListener('activate', e => {
 });
 
 self.addEventListener('fetch', e => {
+  // Only intercept GET requests
+  if (e.request.method !== 'GET') return;
+
   // Always network-first for HTML and JS so updates come through
   if (e.request.url.includes('.html') || e.request.url.includes('.js') || e.request.url.endsWith('/')) {
     e.respondWith(
