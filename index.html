@@ -417,7 +417,7 @@
     </div>
     <div class="form-group">
       <label class="form-label">Amount</label>
-      <div class="amount-wrap"><span class="amount-prefix">₹</span><input class="form-input with-prefix" type="number" id="input-amount" placeholder="0" inputmode="decimal" min="0" onkeydown="handleEnter(event,'input-desc')"></div>
+      <div class="amount-wrap"><span class="amount-prefix">₹</span><input class="form-input with-prefix" type="number" id="input-amount" placeholder="0" inputmode="decimal" min="0" step="any" onkeydown="handleEnter(event,'input-desc')"></div>
     </div>
     <div class="quick-amounts">
       <div class="quick-amt" onclick="setQuickAmt(100)">₹100</div>
@@ -469,7 +469,7 @@
     <div class="sheet-title">Set Monthly Budget</div>
     <div class="form-group">
       <label class="form-label">Total Budget</label>
-      <div class="amount-wrap"><span class="amount-prefix">₹</span><input class="form-input with-prefix" type="number" id="input-budget" placeholder="0" inputmode="decimal" onkeydown="if(event.key==='Enter')saveBudget()"></div>
+      <div class="amount-wrap"><span class="amount-prefix">₹</span><input class="form-input with-prefix" type="number" id="input-budget" placeholder="0" inputmode="decimal" step="any" onkeydown="if(event.key==='Enter')saveBudget()"></div>
     </div>
     <div style="font-size:12px;color:var(--text3);margin-bottom:14px;line-height:1.6">Resets on the <strong style="color:var(--accent)" id="budget-day-label">6th</strong> of every month.</div>
     <button class="submit-btn" onclick="saveBudget()">Save Budget</button>
@@ -519,7 +519,7 @@
       <div class="type-btn" id="debt-type-lent" onclick="setDebtType('lent')">💪 I Lent</div>
     </div>
     <div class="form-group"><label class="form-label">Person</label><input class="form-input" type="text" id="debt-person" placeholder="Name" onkeydown="handleEnter(event,'debt-amount')"></div>
-    <div class="form-group"><label class="form-label">Amount</label><div class="amount-wrap"><span class="amount-prefix">₹</span><input class="form-input with-prefix" type="number" id="debt-amount" placeholder="0" inputmode="decimal" onkeydown="handleEnter(event,'debt-note')"></div></div>
+    <div class="form-group"><label class="form-label">Amount</label><div class="amount-wrap"><span class="amount-prefix">₹</span><input class="form-input with-prefix" type="number" id="debt-amount" placeholder="0" inputmode="decimal" step="any" onkeydown="handleEnter(event,'debt-note')"></div></div>
     <div class="form-group"><label class="form-label">Note</label><input class="form-input" type="text" id="debt-note" placeholder="What for?" onkeydown="if(event.key==='Enter')submitDebt()"></div>
     <button class="submit-btn" onclick="submitDebt()">Save</button>
     <div style="height:12px"></div>

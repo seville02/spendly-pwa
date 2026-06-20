@@ -901,7 +901,7 @@ function renderCatBudgetSettings(){
     const c=CATEGORIES.find(x=>x.id===cat)||{icon:'📌'};
     return `<div class="edit-field" style="margin-bottom:8px">
       <span class="edit-field-label" style="width:120px">${c.icon} ${cat}</span>
-      <input type="number" placeholder="No limit" value="${cb[cat]||''}" style="flex:1;background:none;border:none;outline:none;padding:11px 0;font-size:13px;font-family:var(--font);color:var(--text)" onblur="saveCatBudget('${cat}',this.value)" onkeydown="if(event.key==='Enter')this.blur()">
+      <input type="number" placeholder="No limit" step="any" value="${cb[cat]||''}" style="flex:1;background:none;border:none;outline:none;padding:11px 0;font-size:13px;font-family:var(--font);color:var(--text)" onblur="saveCatBudget('${cat}',this.value)" onkeydown="if(event.key==='Enter')this.blur()">
     </div>`;
   }).join('');
 }
