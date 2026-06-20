@@ -1021,6 +1021,33 @@ async function processRecurring(){
 // ─────────────────────────────────────────────────────
 // EXPORT / IMPORT
 // ─────────────────────────────────────────────────────
+async function handleFileExport(blob, filename, title, text, successMsg) {
+  const file = new File([blob], filename, { type: blob.type });
+  
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    const shareChoice = confirm(`Do you want to Email / Share this report?\n\nClick OK to share via Email, WhatsApp, or other apps.\nClick Cancel to download directly to your device.`);
+    if (shareChoice) {
+      try {
+        await navigator.share({
+          files: [file],
+          title: title,
+          text: text
+        });
+        showToast('Shared successfully!');
+        return;
+      } catch (e) {
+        if (e.name !== 'AbortError') {
+          console.error('Error sharing file', e);
+        }
+      }
+    }
+  }
+
+  const url=URL.createObjectURL(blob), a=document.createElement('a');
+  a.href=url; a.download=filename; a.click();
+  URL.revokeObjectURL(url);
+  showToast(successMsg);
+}
 function exportJSON(){
   const curMonthLabel = getMonthLabel();
   const exportAll = !confirm(`Do you want to export only the data for ${curMonthLabel}?\n\nClick OK for ${curMonthLabel} only.\nClick Cancel for a Full Backup.`);
@@ -1040,10 +1067,8 @@ function exportJSON(){
   }
   
   const blob=new Blob([JSON.stringify(dataToExport,null,2)],{type:'application/json'});
-  const url=URL.createObjectURL(blob), a=document.createElement('a');
-  a.href=url; a.download=filename; a.click();
-  URL.revokeObjectURL(url);
-  showToast(exportAll ? 'Full JSON backup downloaded' : `${curMonthLabel} JSON downloaded`);
+  const successMsg = exportAll ? 'Full JSON backup downloaded' : `${curMonthLabel} JSON downloaded`;
+  handleFileExport(blob, filename, 'Spendly Backup JSON', 'Here is my Spendly backup file.', successMsg);
 }
 function exportCSV(){
   const curMonthLabel = getMonthLabel();
@@ -1064,10 +1089,8 @@ function exportCSV(){
   });
   const csv=rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
   const blob=new Blob([csv],{type:'text/csv'});
-  const url=URL.createObjectURL(blob), a=document.createElement('a');
-  a.href=url; a.download=filename; a.click();
-  URL.revokeObjectURL(url);
-  showToast(exportAll ? 'All-time CSV downloaded' : `${curMonthLabel} CSV downloaded`);
+  const successMsg = exportAll ? 'All-time CSV downloaded' : `${curMonthLabel} CSV downloaded`;
+  handleFileExport(blob, filename, 'Spendly Expense Report CSV', 'Here is my Spendly expense report.', successMsg);
 }
 async function importData(e){
   const file=e.target.files[0]; if(!file) return;
