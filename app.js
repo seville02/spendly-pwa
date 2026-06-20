@@ -383,8 +383,9 @@ function renderHome() {
     const daysInCurrentMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
     daysLeft = (daysInCurrentMonth - today.getDate() + 1) + (budgetDay - 1);
   }
+  const isCurrentMonth = (viewYear === today.getFullYear() && viewMonth === today.getMonth());
   const pill     = document.getElementById('daily-limit-pill');
-  if (budget>0 && remaining>0 && daysLeft>0) {
+  if (isCurrentMonth && budget>0 && remaining>0 && daysLeft>0) {
     pill.style.display = 'inline-flex';
     document.getElementById('daily-limit-text').textContent = fmt(remaining/daysLeft)+'/day left';
   } else { pill.style.display='none'; }
