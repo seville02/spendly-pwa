@@ -23,6 +23,7 @@ const CATEGORIES = [
 let currentUser   = null;
 let appData       = { transactions:[], budgets:{}, catBudgets:{}, debts:[], profile:{} };
 let localSettings = { theme:'dark', pinEnabled:false, pinHash:'', currency:'₹', summaryDismissed:'' };
+let editingTxId   = null;
 
 let viewYear      = new Date().getFullYear();
 let viewMonth     = new Date().getMonth();
@@ -915,11 +916,14 @@ async function saveCatBudget(cat, val){
 // ADD TRANSACTION
 // ─────────────────────────────────────────────────────
 function openAddExpense(){
+  editingTxId = null;
   const now=new Date(), local=new Date(now.getTime()-now.getTimezoneOffset()*60000);
   document.getElementById('input-datetime').value=local.toISOString().slice(0,16);
   ['input-amount','input-desc','input-notes'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('input-recur').value='none';
   setType('expense'); selectedCat='Food'; renderCatGrid();
+  document.querySelector('#modal-add .sheet-title').textContent = 'Add Transaction';
+  document.querySelector('#modal-add .submit-btn').textContent = 'Add Transaction';
   openModal('modal-add');
   setTimeout(()=>document.getElementById('input-amount').focus(),350);
 }
@@ -945,6 +949,37 @@ async function submitTransaction(){
   if(!amount||amount<=0){showToast('Enter a valid amount');return;}
   if(!datetime){showToast('Select date & time');return;}
   const d=new Date(datetime), key=monthKey(d.getFullYear(),d.getMonth());
+
+  if (editingTxId) {
+    const tx = appData.transactions.find(t => t.id === editingTxId);
+    if (!tx) return;
+    tx.type = selectedType;
+    tx.amount = amount;
+    tx.description = desc || (selectedType === 'income' ? 'Income' : selectedCat);
+    tx.category = selectedType === 'income' ? 'Income' : selectedCat;
+    tx.datetime = datetime;
+    tx.monthKey = key;
+    tx.notes = notes;
+    tx.recur = recur;
+
+    setSyncing('syncing');
+    try {
+      await dbUpdateTransaction(currentUser.id, editingTxId, tx);
+      setSyncing('ok');
+    } catch(e) { 
+      setSyncing('error'); 
+      showToast('Sync error — saved locally'); 
+      updateLocalCache(currentUser.id, 'update_tx', { id: editingTxId, updates: tx });
+    }
+    closeModal('modal-add');
+    if(navigator.vibrate) navigator.vibrate(50);
+    showToast('Transaction updated');
+    viewYear=d.getFullYear(); viewMonth=d.getMonth();
+    updateMonthLabels(); renderHome();
+    editingTxId = null;
+    return;
+  }
+
   const tx={
     id:uid(), type:selectedType, amount,
     description:desc||(selectedType==='income'?'Income':selectedCat),
@@ -1026,8 +1061,36 @@ function showDetail(id){
     <div style="background:var(--surface2);border-radius:14px;padding:4px 14px;margin-bottom:14px">
       ${rows.map(([l,v],i,a)=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;${i<a.length-1?'border-bottom:1px solid var(--border)':''}"><span style="color:var(--text3);font-size:12px">${l}</span><span style="font-size:13px;font-weight:500;text-align:right">${v}</span></div>`).join('')}
     </div>
+    <button class="submit-btn" style="margin-bottom:8px" onclick="editTransaction('${tx.id}')">Edit Transaction</button>
     <button class="submit-btn danger" onclick="deleteTransaction('${tx.id}')">Delete Transaction</button>`;
   openModal('modal-detail');
+}
+
+function editTransaction(id) {
+  const tx = appData.transactions.find(t => t.id === id);
+  if (!tx) return;
+  
+  editingTxId = tx.id;
+  closeModal('modal-detail');
+  
+  document.getElementById('input-amount').value = tx.amount;
+  document.getElementById('input-desc').value = tx.description;
+  document.getElementById('input-notes').value = tx.notes || '';
+  
+  const d = new Date(tx.datetime);
+  const localISO = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+  document.getElementById('input-datetime').value = localISO;
+  
+  document.getElementById('input-recur').value = tx.recur || 'none';
+  
+  setType(tx.type);
+  selectedCat = tx.category;
+  renderCatGrid();
+  
+  document.querySelector('#modal-add .sheet-title').textContent = 'Edit Transaction';
+  document.querySelector('#modal-add .submit-btn').textContent = 'Save Changes';
+  
+  openModal('modal-add');
 }
 
 async function deleteTransaction(id){

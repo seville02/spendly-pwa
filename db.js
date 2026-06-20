@@ -59,6 +59,9 @@ function updateLocalCache(userId, action, data) {
     case 'delete_tx':
       cache.transactions = (cache.transactions || []).filter(t => t.id !== data.id);
       break;
+    case 'update_tx':
+      cache.transactions = (cache.transactions || []).map(t => t.id === data.id ? { ...t, ...data.updates } : t);
+      break;
     case 'save_budget':
       cache.budgets = cache.budgets || {};
       cache.budgets[data.monthKey] = data.amount;
@@ -118,6 +121,9 @@ async function attemptSync(userId) {
             break;
           case 'delete_tx':
             await _dbDeleteTransactionRaw(userId, op.id);
+            break;
+          case 'update_tx':
+            await _dbUpdateTransactionRaw(userId, op.id, op.updates);
             break;
           case 'save_budget':
             await _dbSaveBudgetRaw(userId, op.monthKey, op.amount);
@@ -353,6 +359,36 @@ async function _dbDeleteTransactionRaw(userId, txId) {
   const { error } = await _sb
     .from('transactions')
     .delete()
+    .eq('id', txId)
+    .eq('user_id', userId);
+  if (error) throw error;
+}
+
+async function dbUpdateTransaction(userId, txId, updates) {
+  updateLocalCache(userId, 'update_tx', { id: txId, updates });
+  if (useLocalDB) return;
+  try {
+    await _dbUpdateTransactionRaw(userId, txId, updates);
+  } catch (e) {
+    console.warn('Supabase update transaction failed, queueing', e);
+    queueSyncOperation(userId, { type: 'update_tx', id: txId, updates });
+  }
+}
+
+async function _dbUpdateTransactionRaw(userId, txId, updates) {
+  const { error } = await _sb
+    .from('transactions')
+    .update({
+      type:         updates.type,
+      amount:       updates.amount,
+      description:  updates.description || '',
+      category:     updates.category || '',
+      notes:        updates.notes || '',
+      recur:        updates.recur || 'none',
+      recur_parent: updates.recurParent || '',
+      month_key:    updates.monthKey,
+      datetime:     updates.datetime,
+    })
     .eq('id', txId)
     .eq('user_id', userId);
   if (error) throw error;
