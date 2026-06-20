@@ -1330,29 +1330,8 @@ async function handleFileExport(blob, filename, title, text, successMsg) {
   URL.revokeObjectURL(url);
   showToast(successMsg);
 }
-function exportJSON(){
-  const curMonthLabel = getMonthLabel();
-  const exportAll = !confirm(`Do you want to export only the data for ${curMonthLabel}?\n\nClick OK for ${curMonthLabel} only.\nClick Cancel for a Full Backup.`);
-  
-  let dataToExport = appData;
-  let filename = `spendly-backup-${new Date().toISOString().slice(0,10)}.json`;
-  
-  if (!exportAll) {
-    dataToExport = {
-      transactions: appData.transactions.filter(t => t.monthKey === currentKey()),
-      budgets: { [currentKey()]: appData.budgets[currentKey()] || 0 },
-      catBudgets: appData.catBudgets,
-      debts: appData.debts,
-      profile: appData.profile
-    };
-    filename = `spendly-backup-${currentKey()}-${new Date().toISOString().slice(0,10)}.json`;
-  }
-  
-  const blob=new Blob([JSON.stringify(dataToExport,null,2)],{type:'application/json'});
-  const successMsg = exportAll ? 'Full JSON backup downloaded' : `${curMonthLabel} JSON downloaded`;
-  handleFileExport(blob, filename, 'Spendly Backup JSON', 'Here is my Spendly backup file.', successMsg);
-}
 function exportCSV(){
+
   const curMonthLabel = getMonthLabel();
   const exportAll = !confirm(`Do you want to export only the transactions for ${curMonthLabel}?\n\nClick OK for ${curMonthLabel} only.\nClick Cancel for All Time.`);
   
