@@ -17,6 +17,44 @@ const CATEGORIES = [
   {id:'Investment',icon:'📈',color:'#4fd1c5'},{id:'Other',icon:'📌',color:'#8896b3'},
 ];
 
+const CURRENCIES = [
+  {code:'INR', symbol:'₹',   name:'Indian Rupee',         flag:'🇮🇳'},
+  {code:'USD', symbol:'$',   name:'US Dollar',             flag:'🇺🇸'},
+  {code:'EUR', symbol:'€',   name:'Euro',                  flag:'🇪🇺'},
+  {code:'GBP', symbol:'£',   name:'British Pound',         flag:'🇬🇧'},
+  {code:'AED', symbol:'د.إ', name:'UAE Dirham',            flag:'🇦🇪'},
+  {code:'SAR', symbol:'﷼',  name:'Saudi Riyal',           flag:'🇸🇦'},
+  {code:'QAR', symbol:'﷼',  name:'Qatari Riyal',          flag:'🇶🇦'},
+  {code:'KWD', symbol:'KD',  name:'Kuwaiti Dinar',         flag:'🇰🇼'},
+  {code:'SGD', symbol:'S$',  name:'Singapore Dollar',      flag:'🇸🇬'},
+  {code:'MYR', symbol:'RM',  name:'Malaysian Ringgit',     flag:'🇲🇾'},
+  {code:'AUD', symbol:'A$',  name:'Australian Dollar',     flag:'🇦🇺'},
+  {code:'CAD', symbol:'C$',  name:'Canadian Dollar',       flag:'🇨🇦'},
+  {code:'HKD', symbol:'HK$', name:'Hong Kong Dollar',      flag:'🇭🇰'},
+  {code:'TWD', symbol:'NT$', name:'New Taiwan Dollar',     flag:'🇹🇼'},
+  {code:'JPY', symbol:'¥',   name:'Japanese Yen',          flag:'🇯🇵'},
+  {code:'CNY', symbol:'¥',   name:'Chinese Yuan',          flag:'🇨🇳'},
+  {code:'KRW', symbol:'₩',   name:'South Korean Won',      flag:'🇰🇷'},
+  {code:'THB', symbol:'฿',   name:'Thai Baht',             flag:'🇹🇭'},
+  {code:'IDR', symbol:'Rp',  name:'Indonesian Rupiah',     flag:'🇮🇩'},
+  {code:'PHP', symbol:'₱',   name:'Philippine Peso',       flag:'🇵🇭'},
+  {code:'PKR', symbol:'₨',   name:'Pakistani Rupee',       flag:'🇵🇰'},
+  {code:'BDT', symbol:'৳',   name:'Bangladeshi Taka',      flag:'🇧🇩'},
+  {code:'LKR', symbol:'Rs',  name:'Sri Lankan Rupee',      flag:'🇱🇰'},
+  {code:'NPR', symbol:'रू', name:'Nepalese Rupee',         flag:'🇳🇵'},
+  {code:'BRL', symbol:'R$',  name:'Brazilian Real',        flag:'🇧🇷'},
+  {code:'MXN', symbol:'MX$', name:'Mexican Peso',          flag:'🇲🇽'},
+  {code:'ZAR', symbol:'R',   name:'South African Rand',    flag:'🇿🇦'},
+  {code:'NGN', symbol:'₦',   name:'Nigerian Naira',        flag:'🇳🇬'},
+  {code:'EGP', symbol:'E£',  name:'Egyptian Pound',        flag:'🇪🇬'},
+  {code:'TRY', symbol:'₺',   name:'Turkish Lira',          flag:'🇹🇷'},
+  {code:'RUB', symbol:'₽',   name:'Russian Ruble',         flag:'🇷🇺'},
+  {code:'CHF', symbol:'Fr',  name:'Swiss Franc',           flag:'🇨🇭'},
+  {code:'SEK', symbol:'kr',  name:'Swedish Krona',         flag:'🇸🇪'},
+  {code:'NOK', symbol:'kr',  name:'Norwegian Krone',       flag:'🇳🇴'},
+  {code:'DKK', symbol:'kr',  name:'Danish Krone',          flag:'🇩🇰'},
+];
+
 // ─────────────────────────────────────────────────────
 // STATE
 // ─────────────────────────────────────────────────────
@@ -901,7 +939,11 @@ function renderProfile(){
   const p=appData.profile||{}, s=getLocalSettings();
   document.getElementById('profile-name-input').value=p.name||'';
   document.getElementById('profile-day-input').value=p.budget_day||1;
-  document.getElementById('profile-currency-input').value=s.currency||detectCurrency();
+  // Currency display — show flag + name
+  const curSym = s.currency || detectCurrency();
+  const curObj = CURRENCIES.find(c=>c.symbol===curSym);
+  const curLabel = curObj ? `${curObj.flag} ${curObj.name} (${curSym})` : curSym;
+  document.getElementById('profile-currency-display').textContent = curLabel;
   document.getElementById('profile-display-name').textContent=p.name||currentUser?.email||'My Account';
   document.getElementById('profile-email').textContent=currentUser?.email||'';
   document.getElementById('profile-avatar').textContent=p.name?p.name[0].toUpperCase():'💼';
@@ -939,15 +981,56 @@ async function autoSaveProfile(){
     budget_day: Math.max(1, Math.min(28, parseInt(document.getElementById('profile-day-input').value)||1)),
     settings: appData.profile?.settings||{}
   };
-  const s=getLocalSettings();
-  s.currency=document.getElementById('profile-currency-input').value.trim()||detectCurrency();
-  saveLocalSettings(s); localSettings=s;
+  // Currency is saved separately by selectCurrency() — don't overwrite it here
   appData.profile={...appData.profile,...p};
   setSyncing('syncing');
   try { await dbSaveProfile(currentUser.id, p); setSyncing('ok'); } catch(e) { setSyncing('error'); }
   document.getElementById('profile-display-name').textContent=p.name||currentUser?.email||'My Account';
   document.getElementById('profile-avatar').textContent=p.name?p.name[0].toUpperCase():'💼';
   showToast('Saved ✓');
+}
+
+// ─────────────────────────────────────────────────────
+// CURRENCY PICKER
+// ─────────────────────────────────────────────────────
+function openCurrencyPicker() {
+  const searchEl = document.getElementById('currency-search');
+  if (searchEl) searchEl.value = '';
+  renderCurrencyList();
+  openModal('modal-currency');
+}
+
+function renderCurrencyList() {
+  const search = (document.getElementById('currency-search')?.value || '').toLowerCase().trim();
+  const current = getCurrencySymbol();
+  const filtered = search
+    ? CURRENCIES.filter(c => c.name.toLowerCase().includes(search) || c.code.toLowerCase().includes(search) || c.symbol.includes(search))
+    : CURRENCIES;
+  const checkSvg = `<svg fill="none" stroke="var(--accent)" stroke-width="2.5" viewBox="0 0 24 24" width="18" height="18"><polyline points="20 6 9 17 4 12"/></svg>`;
+  document.getElementById('currency-list').innerHTML = filtered.length === 0
+    ? `<div class="empty-state"><div class="empty-icon">🔍</div><div class="empty-title">No results</div></div>`
+    : filtered.map(c => `
+      <div class="settings-item" onclick="selectCurrency('${c.symbol.replace(/'/g, "\\'")}',' ${c.name}')" style="${c.symbol===current?'background:var(--surface2)':''};border-radius:12px;margin-bottom:2px">
+        <div class="settings-left">
+          <div class="settings-icon" style="font-size:20px">${c.flag}</div>
+          <div>
+            <div class="settings-label" style="${c.symbol===current?'color:var(--accent)':''}">${c.name}</div>
+            <div class="settings-val">${c.code} &nbsp;·&nbsp; ${c.symbol}</div>
+          </div>
+        </div>
+        ${c.symbol===current ? checkSvg : ''}
+      </div>`).join('');
+}
+
+function selectCurrency(symbol, name) {
+  const s = getLocalSettings();
+  s.currency = symbol;
+  saveLocalSettings(s);
+  localSettings = s;
+  closeModal('modal-currency');
+  renderProfile();
+  renderHome();
+  showToast(`Currency set to ${symbol.trim()} ${name.trim()}`);
 }
 
 async function saveCatBudget(cat, val){

@@ -339,9 +339,12 @@
       <span class="edit-field-label">Budget Day</span>
       <input type="number" id="profile-day-input" placeholder="1" min="1" max="28" onblur="autoSaveProfile()" onkeydown="if(event.key==='Enter'){autoSaveProfile();this.blur()}">
     </div>
-    <div class="edit-field">
+    <div class="edit-field" onclick="openCurrencyPicker()" style="cursor:pointer">
       <span class="edit-field-label">Currency</span>
-      <input type="text" id="profile-currency-input" placeholder="₹" maxlength="4" onblur="autoSaveProfile()" onkeydown="if(event.key==='Enter'){autoSaveProfile();this.blur()}">
+      <div style="display:flex;align-items:center;gap:6px;flex:1;justify-content:flex-end">
+        <span id="profile-currency-display" style="font-size:13px;color:var(--text2);text-align:right">&#x20B9; Indian Rupee</span>
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+      </div>
     </div>
   </div>
   <div class="settings-list">
@@ -562,6 +565,22 @@
     <button class="submit-btn danger" id="disable-pin-btn" onclick="disablePin()" style="display:none">Disable PIN Lock</button>
     <div style="height:6px"></div>
     <button class="submit-btn secondary" onclick="closeModal('modal-pin');resetSetupPin()">Cancel</button>
+    <div style="height:12px"></div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: CURRENCY PICKER ═══ -->
+<div class="modal-overlay" id="modal-currency">
+  <div class="modal-sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Select Currency</div>
+    <div class="search-bar" style="margin-bottom:6px;padding:0">
+      <div class="search-input-wrap">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input class="search-input" type="text" id="currency-search" placeholder="Search by name or code…" oninput="renderCurrencyList()">
+      </div>
+    </div>
+    <div id="currency-list" style="max-height:55vh;overflow-y:auto;padding:0 2px"></div>
     <div style="height:12px"></div>
   </div>
 </div>
