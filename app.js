@@ -1360,19 +1360,74 @@ async function importData(e){
   const reader=new FileReader();
   reader.onload=async ev=>{
     try{
-      const imp=JSON.parse(ev.target.result);
-      if(!imp.transactions) throw new Error();
-      const ids=new Set(appData.transactions.map(t=>t.id));
-      const newTxs=imp.transactions.filter(t=>!ids.has(t.id));
-      await dbBulkInsertTransactions(currentUser.id, newTxs);
+      const text=ev.target.result.trim();
+      const lines=text.split(/\r?\n/).filter(l=>l.trim());
+      if(lines.length<2){ showToast('CSV is empty'); return; }
+
+      // Validate header row matches our export format
+      const header=parseCSVRow(lines[0]).map(h=>h.toLowerCase());
+      const expected=['date','time','type','amount','category','description','notes','recurring','month'];
+      const isOurCSV=expected.every((h,i)=>header[i]===h);
+      if(!isOurCSV){ showToast('Unrecognised CSV format'); return; }
+
+      const newTxs=[];
+      for(let i=1;i<lines.length;i++){
+        const cols=parseCSVRow(lines[i]);
+        if(cols.length<5) continue;
+        const [dateStr,timeStr,type,amount,category,description='',notes='',recur='none',mKey='']= cols;
+        const n=parseFloat(amount);
+        if(!n||n<=0) continue;
+        const datetime=parseDateFromCSV(dateStr,timeStr);
+        const d=parseDate(datetime);
+        const key=mKey||monthKey(d.getFullYear(),d.getMonth());
+        newTxs.push({
+          id:uid(), type:type==='income'?'income':'expense', amount:n,
+          description:description||category, category:category||'Other',
+          notes:notes||'', recur:recur==='none'?'none':(recur||'none'),
+          recurParent:'', monthKey:key, datetime,
+        });
+      }
+
+      if(!newTxs.length){ showToast('No valid transactions found in CSV'); return; }
+      await dbBulkInsertTransactions(currentUser.id,newTxs);
       appData.transactions=[...appData.transactions,...newTxs];
-      if(imp.budgets) { for(const[k,v] of Object.entries(imp.budgets)){await dbSaveBudget(currentUser.id,k,v);appData.budgets[k]=v;} }
-      showToast(`Imported ${newTxs.length} transactions`);
+      showToast(`Imported ${newTxs.length} transaction${newTxs.length>1?'s':''} ✅`);
       renderHome();
-    }catch(err){showToast('Invalid backup file');}
+    }catch(err){ console.error(err); showToast('Import failed — check file format'); }
   };
   reader.readAsText(file); e.target.value='';
 }
+
+// Parse a single CSV line, respecting quoted fields and escaped double-quotes
+function parseCSVRow(line){
+  const cols=[]; let cur='', inQ=false;
+  for(let i=0;i<line.length;i++){
+    const ch=line[i];
+    if(ch==='"'){
+      if(inQ&&line[i+1]==='"'){cur+='"';i++;} else inQ=!inQ;
+    } else if(ch===','&&!inQ){
+      cols.push(cur.trim()); cur='';
+    } else { cur+=ch; }
+  }
+  cols.push(cur.trim());
+  return cols;
+}
+
+// Convert "DD/MM/YYYY" + "12:21:00 am" back to ISO datetime string
+function parseDateFromCSV(dateStr,timeStr){
+  const dm=dateStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  const base=dm?`${dm[3]}-${dm[2].padStart(2,'0')}-${dm[1].padStart(2,'0')}`:new Date().toISOString().slice(0,10);
+  if(!timeStr) return base;
+  const tm=timeStr.trim().match(/^(\d{1,2}):(\d{2})(?::\d{2})?\s*(am|pm)$/i);
+  if(!tm) return base;
+  let h=parseInt(tm[1]);
+  const period=tm[3].toLowerCase();
+  if(period==='am'&&h===12) h=0;
+  if(period==='pm'&&h!==12) h+=12;
+  return `${base}T${String(h).padStart(2,'0')}:${tm[2]}`;
+}
+
+
 
 // ─────────────────────────────────────────────────────
 // MODALS + ANDROID BACK

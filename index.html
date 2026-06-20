@@ -369,7 +369,7 @@
       <svg class="chevron" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
     </div>
     <div class="settings-item" onclick="document.getElementById('import-file').click()">
-      <div class="settings-left"><div class="settings-icon">📥</div><div><div class="settings-label">Import Backup</div><div class="settings-val">Restore from JSON</div></div></div>
+      <div class="settings-left"><div class="settings-icon">📥</div><div><div class="settings-label">Import Backup</div><div class="settings-val">Restore from CSV export</div></div></div>
       <svg class="chevron" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
     </div>
     <div class="settings-item" onclick="clearAllData()">
@@ -381,7 +381,7 @@
       <svg class="chevron" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
     </div>
   </div>
-  <input type="file" id="import-file" accept=".json" style="display:none" onchange="importData(event)">
+  <input type="file" id="import-file" accept=".csv" style="display:none" onchange="importData(event)">
   <div style="height:10px"></div>
   <div style="padding:0 16px;font-size:11px;color:var(--text3);text-align:center;line-height:1.7">Spendly v4.0 · Synced via Supabase · Data encrypted</div>
 </div>
