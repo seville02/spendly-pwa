@@ -94,6 +94,10 @@ function fmtFull(n) {
   return getCurrencySymbol()+Number(n).toLocaleString('en-IN',{maximumFractionDigits:2});
 }
 function uid() { return Date.now().toString(36)+Math.random().toString(36).slice(2); }
+function parseDate(str) {
+  if (!str) return new Date();
+  return new Date(str.includes('T') ? str : str + 'T12:00');
+}
 
 function hashPin(p) {
   let h=0; for(let i=0;i<p.length;i++){h=((h<<5)-h)+p.charCodeAt(i);h|=0;} return h.toString(36);
@@ -396,7 +400,7 @@ function renderHome() {
   renderCatBudgetHome(txs);
   renderAISummarySection();
 
-  const recent = [...txs].sort((a,b)=>new Date(b.datetime)-new Date(a.datetime)).slice(0,5);
+  const recent = [...txs].sort((a,b)=>parseDate(b.datetime)-parseDate(a.datetime)).slice(0,5);
   document.getElementById('recent-list').innerHTML = recent.length===0
     ? `<div class="empty-state"><div class="empty-icon">💸</div><div class="empty-title">No transactions yet</div><div class="empty-sub">Tap + to add your first expense</div></div>`
     : recent.map(t=>txHTML(t,false)).join('');
@@ -600,9 +604,11 @@ function loadCachedAISummary() {
 // ─────────────────────────────────────────────────────
 function txHTML(tx, showSwipe=true) {
   const cat = CATEGORIES.find(c=>c.id===tx.category)||{icon:'📌',color:'#8896b3'};
-  const d   = new Date(tx.datetime);
+  const hasTime = tx.datetime && tx.datetime.includes('T');
+  const d   = parseDate(tx.datetime);
   const ds  = d.toLocaleDateString('en-IN',{day:'numeric',month:'short'});
-  const ts  = d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true});
+  const ts  = hasTime ? d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true}) : '';
+  const timeStr = ts ? `, ${ts}` : '';
   const note= tx.notes ? ` · ${tx.notes}` : '';
   const recur= tx.recur&&tx.recur!=='none' ? `<span class="tx-recur-badge">🔄 ${tx.recur}</span>` : '';
   const inner = `
@@ -610,7 +616,7 @@ function txHTML(tx, showSwipe=true) {
       <div class="tx-icon" style="background:${cat.color}22;color:${cat.color}">${cat.icon}</div>
       <div class="tx-info">
         <div class="tx-desc">${tx.description||tx.category}</div>
-        <div class="tx-meta">${tx.category} · ${ds}, ${ts}${note}</div>
+        <div class="tx-meta">${tx.category} · ${ds}${timeStr}${note}</div>
       </div>
       <div class="tx-right">
         <div class="tx-amount ${tx.type}">${tx.type==='expense'?'-':'+'}${fmt(tx.amount)}</div>
@@ -654,7 +660,7 @@ function initSwipe(container) {
 function renderTransactions() {
   const search = (document.getElementById('search-input')?.value||'').toLowerCase().trim();
   const dataset = filterTimeScope === 'all' ? [...appData.transactions] : getMonthTx();
-  let txs = [...dataset].sort((a,b)=>new Date(b.datetime)-new Date(a.datetime));
+  let txs = [...dataset].sort((a,b)=>parseDate(b.datetime)-parseDate(a.datetime));
 
   const labelEl = document.getElementById('nav-month-label-2');
   if (labelEl) {
@@ -695,7 +701,7 @@ function renderTransactions() {
   }
   const groups={};
   txs.forEach(tx=>{
-    const k=new Date(tx.datetime).toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short'});
+    const k=parseDate(tx.datetime).toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short'});
     if(!groups[k])groups[k]=[];groups[k].push(tx);
   });
   container.innerHTML=Object.entries(groups).map(([date,items])=>{
@@ -766,7 +772,7 @@ function renderStats(){
   }
   if(activeStatsTab==='daily'){
     const dt={};for(let i=1;i<=daysInMonth;i++)dt[i]=0;
-    expenses.forEach(t=>{const d=new Date(t.datetime).getDate();dt[d]=(dt[d]||0)+t.amount;});
+    expenses.forEach(t=>{const d=parseDate(t.datetime).getDate();dt[d]=(dt[d]||0)+t.amount;});
     const days=Object.keys(dt).map(Number), vals=Object.values(dt);
     destroyChart('bar');
     charts.bar=new Chart(document.getElementById('bar-chart').getContext('2d'),{type:'bar',data:{labels:days,datasets:[{data:vals,backgroundColor:'rgba(79,209,197,.3)',borderColor:'rgba(79,209,197,.8)',borderWidth:1,borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${fmt(c.raw)}`}}},scales:{x:{ticks:{color:'var(--text3)',font:{size:9}},grid:{display:false}},y:{ticks:{color:'var(--text3)',font:{size:9},callback:v=>fmt(v)},grid:{color:'var(--border)'}}}}});
@@ -933,8 +939,22 @@ async function saveCatBudget(cat, val){
 // ─────────────────────────────────────────────────────
 function openAddExpense(){
   editingTxId = null;
-  const now=new Date(), local=new Date(now.getTime()-now.getTimezoneOffset()*60000);
-  document.getElementById('input-datetime').value=local.toISOString().slice(0,16);
+  const now = new Date();
+  let defaultDate = new Date();
+  if (viewYear !== now.getFullYear() || viewMonth !== now.getMonth()) {
+    const daysInSelMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+    const day = Math.min(now.getDate(), daysInSelMonth);
+    defaultDate = new Date(viewYear, viewMonth, day, now.getHours(), now.getMinutes());
+  }
+  const yyyy = defaultDate.getFullYear();
+  const mm = String(defaultDate.getMonth() + 1).padStart(2, '0');
+  const dd = String(defaultDate.getDate()).padStart(2, '0');
+  document.getElementById('input-date').value = `${yyyy}-${mm}-${dd}`;
+  
+  const hh = String(defaultDate.getHours()).padStart(2, '0');
+  const min = String(defaultDate.getMinutes()).padStart(2, '0');
+  document.getElementById('input-time').value = `${hh}:${min}`;
+
   ['input-amount','input-desc','input-notes'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('input-recur').value='none';
   setType('expense'); selectedCat='Food'; renderCatGrid();
@@ -960,11 +980,16 @@ async function submitTransaction(){
   const amount=parseFloat(document.getElementById('input-amount').value);
   const desc=document.getElementById('input-desc').value.trim();
   const notes=document.getElementById('input-notes').value.trim();
-  const datetime=document.getElementById('input-datetime').value;
+  const dateVal=document.getElementById('input-date').value;
+  const timeVal=document.getElementById('input-time').value;
   const recur=document.getElementById('input-recur').value;
+  
   if(!amount||amount<=0){showToast('Enter a valid amount');return;}
-  if(!datetime){showToast('Select date & time');return;}
-  const d=new Date(datetime), key=monthKey(d.getFullYear(),d.getMonth());
+  if(!dateVal){showToast('Select a date');return;}
+  
+  const datetime = timeVal ? `${dateVal}T${timeVal}` : dateVal;
+  const d = parseDate(datetime);
+  const key = monthKey(d.getFullYear(), d.getMonth());
 
   if (editingTxId) {
     const tx = appData.transactions.find(t => t.id === editingTxId);
@@ -1065,8 +1090,13 @@ function selectMonth(y,m){
 function showDetail(id){
   const tx=appData.transactions.find(t=>t.id===id); if(!tx) return;
   const cat=CATEGORIES.find(c=>c.id===tx.category)||{icon:'📌',color:'#8896b3'};
-  const d=new Date(tx.datetime), isExp=tx.type==='expense';
-  const rows=[['Date',d.toLocaleDateString('en-IN',{day:'numeric',month:'long',year:'numeric'})],['Time',d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true})],['Category',tx.category],['Type',`<span style="color:${isExp?'var(--red)':'var(--green)'}">${isExp?'Expense':'Income'}</span>`]];
+  const hasTime = tx.datetime && tx.datetime.includes('T');
+  const d=parseDate(tx.datetime), isExp=tx.type==='expense';
+  const rows=[['Date',d.toLocaleDateString('en-IN',{day:'numeric',month:'long',year:'numeric'})]];
+  if (hasTime) {
+    rows.push(['Time',d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true})]);
+  }
+  rows.push(['Category',tx.category],['Type',`<span style="color:${isExp?'var(--red)':'var(--green)'}">${isExp?'Expense':'Income'}</span>`]);
   if(tx.notes) rows.push(['Notes',tx.notes]);
   if(tx.recur&&tx.recur!=='none') rows.push(['Recurring',tx.recur]);
   document.getElementById('detail-content').innerHTML=`
@@ -1094,9 +1124,14 @@ function editTransaction(id) {
   document.getElementById('input-desc').value = tx.description;
   document.getElementById('input-notes').value = tx.notes || '';
   
-  const d = new Date(tx.datetime);
-  const localISO = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
-  document.getElementById('input-datetime').value = localISO;
+  if (tx.datetime.includes('T')) {
+    const parts = tx.datetime.split('T');
+    document.getElementById('input-date').value = parts[0];
+    document.getElementById('input-time').value = parts[1] || '';
+  } else {
+    document.getElementById('input-date').value = tx.datetime;
+    document.getElementById('input-time').value = '';
+  }
   
   document.getElementById('input-recur').value = tx.recur || 'none';
   
@@ -1132,7 +1167,7 @@ async function processRecurring(){
     if(t.recur==='monthly'){
       const alreadyExists=appData.transactions.some(x=>x.recurParent===t.id&&x.monthKey===key);
       if(!alreadyExists&&t.monthKey!==key){
-        const orig=new Date(t.datetime);
+        const orig=parseDate(t.datetime);
         const newDate=new Date(now.getFullYear(),now.getMonth(),Math.min(orig.getDate(),new Date(now.getFullYear(),now.getMonth()+1,0).getDate()));
         if(newDate<=now){
           newTxs.push({...t,id:uid(),monthKey:key,datetime:newDate.toISOString().slice(0,16),recur:'none',recurParent:t.id});
@@ -1213,8 +1248,10 @@ function exportCSV(){
   
   const rows=[['Date','Time','Type','Amount','Category','Description','Notes','Recurring','Month']];
   txs.forEach(t=>{
-    const d=new Date(t.datetime);
-    rows.push([d.toLocaleDateString('en-IN'),d.toLocaleTimeString('en-IN',{hour12:true}),t.type,t.amount,t.category,t.description||'',t.notes||'',t.recur||'none',t.monthKey]);
+    const hasTime = t.datetime && t.datetime.includes('T');
+    const d=parseDate(t.datetime);
+    const timeVal = hasTime ? d.toLocaleTimeString('en-IN',{hour12:true}) : '';
+    rows.push([d.toLocaleDateString('en-IN'),timeVal,t.type,t.amount,t.category,t.description||'',t.notes||'',t.recur||'none',t.monthKey]);
   });
   const csv=rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
   const blob=new Blob([csv],{type:'text/csv'});
