@@ -277,6 +277,25 @@ async function signOut() {
   showToast('Signed out');
 }
 
+async function clearAllData() {
+  if (!confirm('⚠️ Clear ALL data?\n\nThis will permanently delete all your transactions, budgets, and debts.\n\nYour profile settings will be kept.')) return;
+  if (!confirm('Are you absolutely sure? This cannot be undone.')) return;
+  setSyncing('syncing');
+  try {
+    await dbClearAllData(currentUser.id);
+    setSyncing('ok');
+  } catch(e) {
+    setSyncing('error');
+    showToast('Sync error — local data cleared, remote may need retry');
+  }
+  // Reset in-memory state (keep profile)
+  const profile = appData.profile;
+  appData = { transactions:[], budgets:{}, catBudgets:{}, debts:[], profile };
+  navigate('home');
+  renderProfile();
+  showToast('All data cleared 🗑️');
+}
+
 // ─────────────────────────────────────────────────────
 // LOAD DATA
 // ─────────────────────────────────────────────────────

@@ -594,6 +594,36 @@ async function _dbDeleteDebtRaw(userId, debtId) {
 }
 
 // ─────────────────────────────────────────────────────
+// CLEAR ALL DATA (transactions, budgets, catBudgets, debts — keeps profile)
+// ─────────────────────────────────────────────────────
+
+async function dbClearAllData(userId) {
+  // Always wipe local cache first
+  const cached = localStorage.getItem(`spendly_data_${userId}`);
+  const profile = cached ? (JSON.parse(cached).profile || {}) : {};
+  const empty = { transactions: [], budgets: {}, catBudgets: {}, debts: [], profile };
+  localStorage.setItem(`spendly_data_${userId}`, JSON.stringify(empty));
+  // Clear sync queue too
+  syncQueue = [];
+  saveSyncQueue(userId);
+
+  if (useLocalDB) return;
+
+  // Delete all rows for this user in each table (Supabase)
+  try {
+    await Promise.all([
+      _sb.from('transactions').delete().eq('user_id', userId),
+      _sb.from('budgets').delete().eq('user_id', userId),
+      _sb.from('cat_budgets').delete().eq('user_id', userId),
+      _sb.from('debts').delete().eq('user_id', userId),
+    ]);
+  } catch (e) {
+    console.warn('Supabase clear all data failed (local cache was wiped)', e);
+    throw e;
+  }
+}
+
+// ─────────────────────────────────────────────────────
 // LOAD ALL DATA for a user (called on login)
 // Returns everything in one parallel fetch
 // ─────────────────────────────────────────────────────
