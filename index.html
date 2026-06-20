@@ -372,7 +372,7 @@
       <div class="settings-left"><div class="settings-icon">📊</div><div><div class="settings-label">Export CSV</div><div class="settings-val">Open in Excel / Sheets</div></div></div>
       <svg class="chevron" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
     </div>
-    <div class="settings-item" onclick="document.getElementById('import-file').click()">
+    <div class="settings-item" onclick="openModal('modal-import-confirm')">
       <div class="settings-left"><div class="settings-icon">📥</div><div><div class="settings-label">Import Backup</div><div class="settings-val">Restore from CSV export</div></div></div>
       <svg class="chevron" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
     </div>
@@ -614,6 +614,27 @@
     <button class="submit-btn danger" id="disable-pin-btn" onclick="disablePin()" style="display:none">Disable PIN Lock</button>
     <div style="height:6px"></div>
     <button class="submit-btn secondary" onclick="closeModal('modal-pin');resetSetupPin()">Cancel</button>
+    <div style="height:12px"></div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: IMPORT CONFIRM ═══ -->
+<div class="modal-overlay" id="modal-import-confirm">
+  <div class="modal-sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">📥 Import Backup</div>
+    <div style="font-size:13px;color:var(--text2);line-height:1.65;margin-bottom:20px">
+      This will import transactions from a <strong style="color:var(--text)">Spendly CSV export</strong> file and add them to your existing data.
+      <br><br>
+      ℹ️ Your current data will <strong style="color:var(--text)">not</strong> be deleted — imported entries are added on top.
+    </div>
+    <button class="submit-btn" onclick="closeModal('modal-import-confirm');document.getElementById('import-file').click()">
+      📂 Choose CSV File
+    </button>
+    <div style="height:8px"></div>
+    <button class="submit-btn" style="background:var(--surface2);color:var(--text2)" onclick="closeModal('modal-import-confirm')">
+      Cancel
+    </button>
     <div style="height:12px"></div>
   </div>
 </div>
