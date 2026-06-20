@@ -374,8 +374,15 @@ function renderHome() {
   document.getElementById('stat-income').textContent = fmt(income);
 
   // Daily limit
-  const today    = new Date();
-  const daysLeft = new Date(viewYear,viewMonth+1,0).getDate() - today.getDate() + 1;
+  const today = new Date();
+  const budgetDay = appData.profile?.budget_day || 1;
+  let daysLeft = 0;
+  if (today.getDate() < budgetDay) {
+    daysLeft = budgetDay - today.getDate();
+  } else {
+    const daysInCurrentMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+    daysLeft = (daysInCurrentMonth - today.getDate() + 1) + (budgetDay - 1);
+  }
   const pill     = document.getElementById('daily-limit-pill');
   if (budget>0 && remaining>0 && daysLeft>0) {
     pill.style.display = 'inline-flex';
@@ -873,12 +880,12 @@ async function deleteDebt(id){
 function renderProfile(){
   const p=appData.profile||{}, s=getLocalSettings();
   document.getElementById('profile-name-input').value=p.name||'';
-  document.getElementById('profile-day-input').value=p.budget_day||6;
+  document.getElementById('profile-day-input').value=p.budget_day||1;
   document.getElementById('profile-currency-input').value=s.currency||detectCurrency();
   document.getElementById('profile-display-name').textContent=p.name||currentUser?.email||'My Account';
   document.getElementById('profile-email').textContent=currentUser?.email||'';
   document.getElementById('profile-avatar').textContent=p.name?p.name[0].toUpperCase():'💼';
-  const day=p.budget_day||6;
+  const day=p.budget_day||1;
   let sfx='th';
   if(day%10===1 && day!==11) sfx='st';
   else if(day%10===2 && day!==12) sfx='nd';
@@ -909,7 +916,7 @@ function renderCatBudgetSettings(){
 async function autoSaveProfile(){
   const p={
     name: document.getElementById('profile-name-input').value.trim(),
-    budget_day: Math.max(1, Math.min(28, parseInt(document.getElementById('profile-day-input').value)||6)),
+    budget_day: Math.max(1, Math.min(28, parseInt(document.getElementById('profile-day-input').value)||1)),
     settings: appData.profile?.settings||{}
   };
   const s=getLocalSettings();
