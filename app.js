@@ -939,7 +939,13 @@ async function saveCatBudget(cat, val){
     if(n>0) appData.catBudgets[cat]=n; else delete appData.catBudgets[cat];
     setSyncing('ok');
     showToast(n>0?`${cat} budget: ${fmt(n)}`:`${cat} budget removed`);
-  } catch(e) { setSyncing('error'); showToast('Sync error'); }
+  } catch(e) { 
+    setSyncing('error'); 
+    showToast('Sync error'); 
+    if(n>0) appData.catBudgets[cat]=n; else delete appData.catBudgets[cat];
+  }
+  renderHome();
+  renderProfile();
 }
 
 // ─────────────────────────────────────────────────────
