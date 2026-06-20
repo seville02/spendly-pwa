@@ -30,6 +30,7 @@ let viewMonth     = new Date().getMonth();
 let selectedType  = 'expense';
 let selectedCat   = 'Food';
 let filterCategory= 'all';
+let filterTimeScope= 'month';
 let activeStatsTab= 'overview';
 let debtType      = 'owe';
 let charts        = { donut:null, bar:null, line:null, compare:null };
@@ -652,7 +653,21 @@ function initSwipe(container) {
 // ─────────────────────────────────────────────────────
 function renderTransactions() {
   const search = (document.getElementById('search-input')?.value||'').toLowerCase().trim();
-  let txs = getMonthTx().sort((a,b)=>new Date(b.datetime)-new Date(a.datetime));
+  const dataset = filterTimeScope === 'all' ? [...appData.transactions] : getMonthTx();
+  let txs = [...dataset].sort((a,b)=>new Date(b.datetime)-new Date(a.datetime));
+
+  const labelEl = document.getElementById('nav-month-label-2');
+  if (labelEl) {
+    labelEl.textContent = filterTimeScope === 'all' ? 'All Time' : getMonthLabel();
+  }
+
+  // Rebuild chips
+  const usedCats=[...new Set(dataset.map(t=>t.category))];
+  const hasRecur=dataset.some(t=>t.recur&&t.recur!=='none');
+
+  if (filterCategory !== 'all' && filterCategory !== 'expense' && filterCategory !== 'income' && filterCategory !== 'recurring' && !usedCats.includes(filterCategory)) {
+    filterCategory = 'all';
+  }
 
   if (filterCategory==='expense')   txs=txs.filter(t=>t.type==='expense');
   else if (filterCategory==='income')    txs=txs.filter(t=>t.type==='income');
@@ -661,12 +676,12 @@ function renderTransactions() {
 
   if (search) txs=txs.filter(t=>(t.description||'').toLowerCase().includes(search)||(t.category||'').toLowerCase().includes(search)||(t.notes||'').toLowerCase().includes(search)||String(t.amount).includes(search));
 
-  // Rebuild chips
-  const usedCats=[...new Set(getMonthTx().map(t=>t.category))];
-  const hasRecur=getMonthTx().some(t=>t.recur&&t.recur!=='none');
   const catChips=CATEGORIES.filter(c=>usedCats.includes(c.id)).map(c=>
     `<div class="cat-chip ${filterCategory===c.id?'active':''}" onclick="filterCat(this,'${c.id}')">${c.icon} ${c.id}</div>`).join('');
   document.getElementById('filter-chips').innerHTML=`
+    <div class="cat-chip ${filterTimeScope==='month'?'active':''}" onclick="setTimeScope('month')">📋 This Month</div>
+    <div class="cat-chip ${filterTimeScope==='all'?'active':''}" onclick="setTimeScope('all')">📅 All Time</div>
+    <div class="filter-divider"></div>
     <div class="cat-chip ${filterCategory==='all'?'active':''}" onclick="filterCat(this,'all')">📋 All</div>
     <div class="cat-chip ${filterCategory==='expense'?'active':''}" onclick="filterCat(this,'expense')">📤 Expenses</div>
     <div class="cat-chip ${filterCategory==='income'?'active':''}" onclick="filterCat(this,'income')">💰 Income</div>
@@ -691,6 +706,7 @@ function renderTransactions() {
 }
 
 function filterCat(el,cat){filterCategory=cat;renderTransactions();}
+function setTimeScope(scope){filterTimeScope=scope;renderTransactions();}
 
 // ─────────────────────────────────────────────────────
 // STATS
@@ -1036,6 +1052,7 @@ function openMonthSelector(){
 }
 function selectMonth(y,m){
   viewYear=y; viewMonth=m; updateMonthLabels(); closeModal('modal-month');
+  filterTimeScope = 'month';
   const a=document.querySelector('.screen.active');
   if(a.id==='screen-home') renderHome();
   if(a.id==='screen-transactions') renderTransactions();
