@@ -1022,22 +1022,52 @@ async function processRecurring(){
 // EXPORT / IMPORT
 // ─────────────────────────────────────────────────────
 function exportJSON(){
-  const blob=new Blob([JSON.stringify(appData,null,2)],{type:'application/json'});
+  const curMonthLabel = getMonthLabel();
+  const exportAll = !confirm(`Do you want to export only the data for ${curMonthLabel}?\n\nClick OK for ${curMonthLabel} only.\nClick Cancel for a Full Backup.`);
+  
+  let dataToExport = appData;
+  let filename = `spendly-backup-${new Date().toISOString().slice(0,10)}.json`;
+  
+  if (!exportAll) {
+    dataToExport = {
+      transactions: appData.transactions.filter(t => t.monthKey === currentKey()),
+      budgets: { [currentKey()]: appData.budgets[currentKey()] || 0 },
+      catBudgets: appData.catBudgets,
+      debts: appData.debts,
+      profile: appData.profile
+    };
+    filename = `spendly-backup-${currentKey()}-${new Date().toISOString().slice(0,10)}.json`;
+  }
+  
+  const blob=new Blob([JSON.stringify(dataToExport,null,2)],{type:'application/json'});
   const url=URL.createObjectURL(blob), a=document.createElement('a');
-  a.href=url; a.download=`spendly-backup-${new Date().toISOString().slice(0,10)}.json`; a.click();
-  URL.revokeObjectURL(url); showToast('JSON backup downloaded');
+  a.href=url; a.download=filename; a.click();
+  URL.revokeObjectURL(url);
+  showToast(exportAll ? 'Full JSON backup downloaded' : `${curMonthLabel} JSON downloaded`);
 }
 function exportCSV(){
+  const curMonthLabel = getMonthLabel();
+  const exportAll = !confirm(`Do you want to export only the transactions for ${curMonthLabel}?\n\nClick OK for ${curMonthLabel} only.\nClick Cancel for All Time.`);
+  
+  let txs = appData.transactions;
+  let filename = `spendly-all-${new Date().toISOString().slice(0,10)}.csv`;
+  
+  if (!exportAll) {
+    txs = txs.filter(t => t.monthKey === currentKey());
+    filename = `spendly-${currentKey()}-${new Date().toISOString().slice(0,10)}.csv`;
+  }
+  
   const rows=[['Date','Time','Type','Amount','Category','Description','Notes','Recurring','Month']];
-  appData.transactions.forEach(t=>{
+  txs.forEach(t=>{
     const d=new Date(t.datetime);
     rows.push([d.toLocaleDateString('en-IN'),d.toLocaleTimeString('en-IN',{hour12:true}),t.type,t.amount,t.category,t.description||'',t.notes||'',t.recur||'none',t.monthKey]);
   });
   const csv=rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
   const blob=new Blob([csv],{type:'text/csv'});
   const url=URL.createObjectURL(blob), a=document.createElement('a');
-  a.href=url; a.download=`spendly-${new Date().toISOString().slice(0,10)}.csv`; a.click();
-  URL.revokeObjectURL(url); showToast('CSV downloaded');
+  a.href=url; a.download=filename; a.click();
+  URL.revokeObjectURL(url);
+  showToast(exportAll ? 'All-time CSV downloaded' : `${curMonthLabel} CSV downloaded`);
 }
 async function importData(e){
   const file=e.target.files[0]; if(!file) return;
