@@ -665,3 +665,38 @@ async function dbLoadAll(userId) {
     throw e;
   }
 }
+
+// ─────────────────────────────────────────────────────
+// EVENTS (localStorage-only — isolated from main data)
+// ─────────────────────────────────────────────────────
+
+function dbGetEvents(userId) {
+  try { return JSON.parse(localStorage.getItem(`spendly_events_${userId}`) || '[]'); } catch(e) { return []; }
+}
+
+function dbSaveEvent(userId, event) {
+  const events = dbGetEvents(userId);
+  const idx = events.findIndex(e => e.id === event.id);
+  if (idx >= 0) events[idx] = event; else events.unshift(event);
+  localStorage.setItem(`spendly_events_${userId}`, JSON.stringify(events));
+}
+
+function dbDeleteEvent(userId, eventId) {
+  localStorage.setItem(`spendly_events_${userId}`, JSON.stringify(dbGetEvents(userId).filter(e => e.id !== eventId)));
+  localStorage.setItem(`spendly_event_items_${userId}`, JSON.stringify(dbGetEventItems(userId).filter(i => i.eventId !== eventId)));
+}
+
+function dbGetEventItems(userId) {
+  try { return JSON.parse(localStorage.getItem(`spendly_event_items_${userId}`) || '[]'); } catch(e) { return []; }
+}
+
+function dbSaveEventItem(userId, item) {
+  const items = dbGetEventItems(userId);
+  const idx = items.findIndex(i => i.id === item.id);
+  if (idx >= 0) items[idx] = item; else items.unshift(item);
+  localStorage.setItem(`spendly_event_items_${userId}`, JSON.stringify(items));
+}
+
+function dbDeleteEventItem(userId, itemId) {
+  localStorage.setItem(`spendly_event_items_${userId}`, JSON.stringify(dbGetEventItems(userId).filter(i => i.id !== itemId)));
+}

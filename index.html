@@ -352,6 +352,10 @@
       <div class="settings-left"><div class="settings-icon">🤝</div><div><div class="settings-label">Debt Tracker</div><div class="settings-val" id="debt-tracker-val">Track who owes who</div></div></div>
       <svg class="chevron" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
     </div>
+    <div class="settings-item" onclick="navigateEvents()">
+      <div class="settings-left"><div class="settings-icon">🎉</div><div><div class="settings-label">Event Planner</div><div class="settings-val" id="ev-profile-val">Plan &amp; track event costs</div></div></div>
+      <svg class="chevron" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+    </div>
     <div class="settings-item" onclick="openSetBudget()">
       <div class="settings-left"><div class="settings-icon">🎯</div><div><div class="settings-label">Monthly Budget</div><div class="settings-val" id="profile-budget-val">Not set</div></div></div>
       <svg class="chevron" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
@@ -384,6 +388,55 @@
   <input type="file" id="import-file" accept=".csv" style="display:none" onchange="importData(event)">
   <div style="height:10px"></div>
   <div style="padding:0 16px;font-size:11px;color:var(--text3);text-align:center;line-height:1.7">Spendly v4.0 · Synced via Supabase · Data encrypted</div>
+</div>
+
+<!-- ═══ SCREEN: EVENTS ═══ -->
+<div class="screen" id="screen-events">
+  <div class="header">
+    <div class="header-row">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="icon-btn" onclick="navigate('profile')" style="flex-shrink:0">
+          <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" width="20" height="20"><polyline points="15 18 9 12 15 6"/></svg>
+        </div>
+        <span style="font-size:17px;font-weight:700">Event Planner</span>
+      </div>
+      <div class="icon-btn" onclick="openAddEvent()">
+        <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" width="22" height="22"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </div>
+    </div>
+  </div>
+  <div id="events-list" style="padding:4px 16px 20px"></div>
+</div>
+
+<!-- ═══ SCREEN: EVENT DETAIL ═══ -->
+<div class="screen" id="screen-event-detail">
+  <div class="header">
+    <div class="header-row">
+      <div style="display:flex;align-items:center;gap:10px;min-width:0">
+        <div class="icon-btn" onclick="navigateEvents()" style="flex-shrink:0">
+          <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" width="20" height="20"><polyline points="15 18 9 12 15 6"/></svg>
+        </div>
+        <div style="min-width:0">
+          <div id="ev-detail-name" style="font-size:16px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></div>
+          <div id="ev-detail-date" style="font-size:11px;color:var(--text3)"></div>
+        </div>
+      </div>
+      <div style="display:flex;gap:6px;flex-shrink:0">
+        <div class="icon-btn" onclick="openEditEvent()" title="Edit event">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="18" height="18"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div style="padding:0 16px">
+    <div id="ev-summary"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <div style="font-size:12px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--text3)">Expenses</div>
+      <button onclick="openAddEventItem()" style="background:var(--accent-dim);color:var(--accent);border:1px solid var(--accent);border-radius:20px;padding:5px 14px;font-size:12px;font-weight:600;font-family:var(--font);cursor:pointer">+ Add</button>
+    </div>
+    <div id="ev-items-list"></div>
+  </div>
+  <div style="height:20px"></div>
 </div>
 
 <!-- BOTTOM NAV -->
@@ -561,6 +614,63 @@
     <button class="submit-btn danger" id="disable-pin-btn" onclick="disablePin()" style="display:none">Disable PIN Lock</button>
     <div style="height:6px"></div>
     <button class="submit-btn secondary" onclick="closeModal('modal-pin');resetSetupPin()">Cancel</button>
+    <div style="height:12px"></div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: ADD EVENT ═══ -->
+<div class="modal-overlay" id="modal-add-event">
+  <div class="modal-sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">New Event</div>
+    <div class="form-group">
+      <label class="form-label">Event Name</label>
+      <input class="form-input" type="text" id="input-event-name" placeholder="e.g. Wedding, Goa Trip, Birthday Party…">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Estimated Total Budget <span style="color:var(--text3);font-weight:400;font-size:10px">(optional)</span></label>
+      <div class="amount-wrap"><span class="amount-prefix">₹</span><input class="form-input with-prefix" type="number" id="input-event-budget" placeholder="Leave blank if unsure" step="any" inputmode="decimal"></div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Target Date <span style="color:var(--text3);font-weight:400;font-size:10px">(optional)</span></label>
+      <input class="form-input" type="date" id="input-event-date">
+    </div>
+    <button class="submit-btn" id="ev-submit-btn" onclick="submitEvent()">Create Event</button>
+    <div style="height:6px"></div>
+    <button class="submit-btn" id="ev-delete-btn" onclick="deleteEvent()" style="display:none;background:var(--red-dim);color:var(--red);border:1px solid var(--red)">Delete Event</button>
+    <div style="height:6px"></div>
+    <button class="submit-btn" style="background:var(--surface2);color:var(--text2)" onclick="closeModal('modal-add-event')">Cancel</button>
+    <div style="height:12px"></div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: ADD EVENT ITEM ═══ -->
+<div class="modal-overlay" id="modal-add-event-item">
+  <div class="modal-sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Add Expense</div>
+    <div class="form-group">
+      <label class="form-label">Vendor / Item</label>
+      <input class="form-input" type="text" id="input-ei-name" placeholder="e.g. Hall, MC, Catering, Band…">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Amount Paid So Far</label>
+      <div class="amount-wrap"><span class="amount-prefix">₹</span><input class="form-input with-prefix" type="number" id="input-ei-paid" placeholder="0" step="any" inputmode="decimal"></div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Total Cost <span style="color:var(--text3);font-weight:400;font-size:10px">(optional — if full amount is known)</span></label>
+      <div class="amount-wrap"><span class="amount-prefix">₹</span><input class="form-input with-prefix" type="number" id="input-ei-total" placeholder="e.g. 1,00,000 if total is 1 lakh" step="any" inputmode="decimal"></div>
+      <div style="font-size:11px;color:var(--text3);margin-top:5px">Remaining balance = Total Cost − Amount Paid</div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Notes <span style="color:var(--text3);font-weight:400;font-size:10px">(optional)</span></label>
+      <input class="form-input" type="text" id="input-ei-notes" placeholder="e.g. Balance due by Dec 10, call to confirm…">
+    </div>
+    <button class="submit-btn" id="ei-submit-btn" onclick="submitEventItem()">Add</button>
+    <div style="height:6px"></div>
+    <button class="submit-btn" id="ei-delete-btn" onclick="deleteEventItem()" style="display:none;background:var(--red-dim);color:var(--red);border:1px solid var(--red)">Remove</button>
+    <div style="height:6px"></div>
+    <button class="submit-btn" style="background:var(--surface2);color:var(--text2)" onclick="closeModal('modal-add-event-item')">Cancel</button>
     <div style="height:12px"></div>
   </div>
 </div>

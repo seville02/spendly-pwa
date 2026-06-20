@@ -70,8 +70,11 @@ let selectedCat   = 'Food';
 let filterCategory= 'all';
 let filterTimeScope= 'month';
 let activeStatsTab= 'overview';
-let debtType      = 'owe';
-let charts        = { donut:null, bar:null, line:null, compare:null };
+let debtType          = 'owe';
+let charts            = { donut:null, bar:null, line:null, compare:null };
+let currentEventId    = null;
+let editingEventId    = null;
+let editingEventItemId= null;
 
 const MONTHS      = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const MONTHS_FULL = ['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -1493,3 +1496,210 @@ function showToast(msg){
   updateMonthLabels();
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
 })();
+
+// ═══════════════════════════════════════════════════════
+// EVENT PLANNER MODULE
+// ═══════════════════════════════════════════════════════
+
+function navigateEvents() {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('screen-events').classList.add('active');
+  renderEvents();
+}
+
+function renderEvents() {
+  const events = dbGetEvents(currentUser.id);
+  const allItems = dbGetEventItems(currentUser.id);
+  const container = document.getElementById('events-list');
+  if (!events.length) {
+    container.innerHTML = `<div class="empty-state" style="padding-top:60px"><div class="empty-icon">🎯</div><div class="empty-title">No events yet</div><div class="empty-sub">Tap + to plan your first event</div></div>`;
+    return;
+  }
+  const cur = getCurrencySymbol();
+  container.innerHTML = events.map(ev => {
+    const items = allItems.filter(i => i.eventId === ev.id);
+    const totalPaid = items.reduce((s,i) => s + (i.amountPaid||0), 0);
+    const totalItemEst = items.reduce((s,i) => s + (i.totalCost||0), 0);
+    const budget = ev.estimatedBudget || totalItemEst;
+    const pct = budget > 0 ? Math.min((totalPaid/budget)*100, 100) : 0;
+    const stillOwed = items.reduce((s,i) => s + Math.max(0,(i.totalCost||0)-(i.amountPaid||0)), 0);
+    return `<div class="event-card" onclick="navigateEventDetail('${ev.id}')">
+      <div class="ev-card-row">
+        <div class="ev-card-name">${ev.name}</div>
+        <span class="ev-badge">${items.length} item${items.length!==1?'s':''}</span>
+      </div>
+      ${ev.targetDate ? `<div class="ev-date">📅 ${new Date(ev.targetDate+'T12:00').toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}</div>` : ''}
+      <div class="ev-stats-row">
+        <div><div class="ev-stat-val green">${fmt(totalPaid)}</div><div class="ev-stat-lbl">Paid</div></div>
+        ${stillOwed>0 ? `<div><div class="ev-stat-val red">${fmt(stillOwed)}</div><div class="ev-stat-lbl">Still owed</div></div>` : ''}
+        ${budget>0 ? `<div><div class="ev-stat-val accent">${fmt(budget)}</div><div class="ev-stat-lbl">${ev.estimatedBudget?'Est. budget':'Items est.'}</div></div>` : ''}
+      </div>
+      ${budget>0 ? `<div class="progress-bar" style="margin-top:10px"><div class="progress-fill${pct>80?' warn':''}" style="width:${pct}%"></div></div>
+      <div style="font-size:11px;color:var(--text3);text-align:right;margin-top:4px">${Math.round(pct)}% funded</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function navigateEventDetail(eventId) {
+  currentEventId = eventId;
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-event-detail').classList.add('active');
+  renderEventDetail();
+}
+
+function renderEventDetail() {
+  const ev = dbGetEvents(currentUser.id).find(e => e.id === currentEventId);
+  if (!ev) { navigateEvents(); return; }
+  const items = dbGetEventItems(currentUser.id).filter(i => i.eventId === currentEventId);
+  const totalPaid = items.reduce((s,i) => s + (i.amountPaid||0), 0);
+  const totalOwed = items.reduce((s,i) => s + Math.max(0,(i.totalCost||0)-(i.amountPaid||0)), 0);
+  const budget = ev.estimatedBudget || items.reduce((s,i) => s + (i.totalCost||0), 0);
+  const pct = budget > 0 ? Math.min((totalPaid/budget)*100,100) : 0;
+
+  document.getElementById('ev-detail-name').textContent = ev.name;
+  document.getElementById('ev-detail-date').textContent = ev.targetDate
+    ? `📅 ${new Date(ev.targetDate+'T12:00').toLocaleDateString('en-IN',{day:'numeric',month:'long',year:'numeric'})}`
+    : '';
+
+  document.getElementById('ev-summary').innerHTML = `
+    <div class="ev-hero-stats">
+      <div class="ev-hero-card">
+        <div class="ev-hero-val green">${fmt(totalPaid)}</div>
+        <div class="ev-hero-lbl">Paid</div>
+      </div>
+      ${totalOwed > 0 ? `<div class="ev-hero-card">
+        <div class="ev-hero-val red">${fmt(totalOwed)}</div>
+        <div class="ev-hero-lbl">Still owed</div>
+      </div>` : ''}
+      ${budget > 0 ? `<div class="ev-hero-card">
+        <div class="ev-hero-val accent">${fmt(budget)}</div>
+        <div class="ev-hero-lbl">${ev.estimatedBudget?'Est. budget':'Items est.'}</div>
+      </div>` : ''}
+    </div>
+    ${budget > 0 ? `
+      <div class="progress-bar" style="margin:14px 0 4px">
+        <div class="progress-fill${pct>80?' warn':''}" style="width:${pct}%"></div>
+      </div>
+      <div style="font-size:11px;color:var(--text3);text-align:right;margin-bottom:6px">${Math.round(pct)}% funded</div>
+    ` : ''}`;
+
+  document.getElementById('ev-items-list').innerHTML = items.length === 0
+    ? `<div class="empty-state"><div class="empty-icon">📋</div><div class="empty-title">No expenses yet</div><div class="empty-sub">Tap "Add Expense" to start tracking</div></div>`
+    : items.map(item => {
+        const rem = item.totalCost > 0 ? Math.max(0, item.totalCost - (item.amountPaid||0)) : 0;
+        const ipct = item.totalCost > 0 ? Math.min(((item.amountPaid||0)/item.totalCost)*100, 100) : 0;
+        return `<div class="ev-item-card" onclick="openEditEventItem('${item.id}')">
+          <div class="ev-item-row">
+            <div class="ev-item-name">${item.name}</div>
+            <div style="text-align:right;flex-shrink:0">
+              <div style="font-size:15px;font-weight:600;font-family:var(--mono);color:var(--green)">${fmt(item.amountPaid||0)}</div>
+              ${item.totalCost>0 ? `<div style="font-size:10px;color:var(--text3)">of ${fmt(item.totalCost)}</div>` : `<div style="font-size:10px;color:var(--text3)">paid</div>`}
+            </div>
+          </div>
+          ${item.totalCost > 0 ? `
+            <div class="progress-bar" style="margin:8px 0 5px">
+              <div class="progress-fill${ipct>80?' warn':''}" style="width:${ipct}%"></div>
+            </div>
+            ${rem > 0 ? `<div style="font-size:11px;color:var(--red)">⏳ ${fmt(rem)} remaining</div>`
+                      : `<div style="font-size:11px;color:var(--green)">✅ Fully paid</div>`}
+          ` : ''}
+          ${item.notes ? `<div style="font-size:11px;color:var(--text3);margin-top:6px">💬 ${item.notes}</div>` : ''}
+        </div>`;
+      }).join('');
+}
+
+// ─── Add / Edit Event ─────────────────────────────────
+function openAddEvent() {
+  editingEventId = null;
+  document.getElementById('input-event-name').value = '';
+  document.getElementById('input-event-budget').value = '';
+  document.getElementById('input-event-date').value = '';
+  document.getElementById('modal-add-event').querySelector('.sheet-title').textContent = 'New Event';
+  document.getElementById('ev-submit-btn').textContent = 'Create Event';
+  document.getElementById('ev-delete-btn').style.display = 'none';
+  openModal('modal-add-event');
+  setTimeout(()=>document.getElementById('input-event-name').focus(), 350);
+}
+
+function openEditEvent() {
+  const ev = dbGetEvents(currentUser.id).find(e => e.id === currentEventId);
+  if (!ev) return;
+  editingEventId = currentEventId;
+  document.getElementById('input-event-name').value = ev.name;
+  document.getElementById('input-event-budget').value = ev.estimatedBudget || '';
+  document.getElementById('input-event-date').value = ev.targetDate || '';
+  document.getElementById('modal-add-event').querySelector('.sheet-title').textContent = 'Edit Event';
+  document.getElementById('ev-submit-btn').textContent = 'Save Changes';
+  document.getElementById('ev-delete-btn').style.display = 'block';
+  openModal('modal-add-event');
+}
+
+function submitEvent() {
+  const name = document.getElementById('input-event-name').value.trim();
+  if (!name) { showToast('Enter an event name'); return; }
+  const budget = parseFloat(document.getElementById('input-event-budget').value) || 0;
+  const targetDate = document.getElementById('input-event-date').value;
+  const event = { id: editingEventId||uid(), name, estimatedBudget: budget, targetDate, createdAt: new Date().toISOString() };
+  dbSaveEvent(currentUser.id, event);
+  closeModal('modal-add-event');
+  if (editingEventId) { renderEventDetail(); showToast('Event updated'); }
+  else { navigateEventDetail(event.id); showToast(`"${name}" created 🎉`); }
+}
+
+function deleteEvent() {
+  const ev = dbGetEvents(currentUser.id).find(e => e.id === currentEventId);
+  if (!ev || !confirm(`Delete "${ev.name}" and all its expenses?`)) return;
+  dbDeleteEvent(currentUser.id, currentEventId);
+  closeModal('modal-add-event');
+  navigateEvents();
+  showToast('Event deleted');
+}
+
+// ─── Add / Edit Event Item ────────────────────────────
+function openAddEventItem() {
+  editingEventItemId = null;
+  ['input-ei-name','input-ei-paid','input-ei-total','input-ei-notes'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('modal-add-event-item').querySelector('.sheet-title').textContent = 'Add Expense';
+  document.getElementById('ei-submit-btn').textContent = 'Add';
+  document.getElementById('ei-delete-btn').style.display = 'none';
+  openModal('modal-add-event-item');
+  setTimeout(()=>document.getElementById('input-ei-name').focus(), 350);
+}
+
+function openEditEventItem(itemId) {
+  const item = dbGetEventItems(currentUser.id).find(i => i.id === itemId);
+  if (!item) return;
+  editingEventItemId = itemId;
+  document.getElementById('input-ei-name').value = item.name;
+  document.getElementById('input-ei-paid').value = item.amountPaid || '';
+  document.getElementById('input-ei-total').value = item.totalCost || '';
+  document.getElementById('input-ei-notes').value = item.notes || '';
+  document.getElementById('modal-add-event-item').querySelector('.sheet-title').textContent = 'Edit Expense';
+  document.getElementById('ei-submit-btn').textContent = 'Save';
+  document.getElementById('ei-delete-btn').style.display = 'block';
+  openModal('modal-add-event-item');
+}
+
+function submitEventItem() {
+  const name = document.getElementById('input-ei-name').value.trim();
+  if (!name) { showToast('Enter a name'); return; }
+  const amountPaid = parseFloat(document.getElementById('input-ei-paid').value) || 0;
+  const totalCost = parseFloat(document.getElementById('input-ei-total').value) || 0;
+  const notes = document.getElementById('input-ei-notes').value.trim();
+  const item = { id: editingEventItemId||uid(), eventId: currentEventId, name, amountPaid, totalCost, notes, updatedAt: new Date().toISOString() };
+  dbSaveEventItem(currentUser.id, item);
+  closeModal('modal-add-event-item');
+  renderEventDetail();
+  showToast(editingEventItemId ? 'Updated ✓' : `${name} added`);
+}
+
+function deleteEventItem() {
+  const item = dbGetEventItems(currentUser.id).find(i => i.id === editingEventItemId);
+  if (!item || !confirm(`Remove "${item.name}"?`)) return;
+  dbDeleteEventItem(currentUser.id, editingEventItemId);
+  closeModal('modal-add-event-item');
+  renderEventDetail();
+  showToast('Removed');
+}
+
