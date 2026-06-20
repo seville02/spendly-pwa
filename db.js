@@ -180,8 +180,11 @@ window.addEventListener('online', () => {
 async function dbSignUp(email, password, name) {
   if (useLocalDB) {
     localStorage.setItem('spendly_local_user', email);
-    const profile = { name, budget_day: 1 };
-    localStorage.setItem('spendly_data_local-user', JSON.stringify({ transactions: [], budgets: {}, catBudgets: {}, debts: [], profile }));
+    // Only initialise fresh data if nothing exists yet — preserve any existing data
+    if (!localStorage.getItem('spendly_data_local-user')) {
+      const profile = { name, budget_day: 1 };
+      localStorage.setItem('spendly_data_local-user', JSON.stringify({ transactions: [], budgets: {}, catBudgets: {}, debts: [], profile }));
+    }
     if (authCallback) authCallback(getLocalSession());
     return { user: { id: 'local-user', email } };
   }
