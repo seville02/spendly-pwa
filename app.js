@@ -75,7 +75,6 @@ let charts            = { donut:null, bar:null, line:null, compare:null };
 let currentEventId    = null;
 let editingEventId    = null;
 let editingEventItemId= null;
-let activeHeroTab     = 'budget';
 
 const MONTHS      = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const MONTHS_FULL = ['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -180,79 +179,6 @@ function getTxMonthAmount(tx, year, month) {
     return tx.amount * count;
   }
   return tx.amount;
-}
-
-function switchHeroTab(tab) {
-  const card = document.querySelector('.hero-card');
-  if (card) card.classList.add('switching');
-  
-  setTimeout(() => {
-    activeHeroTab = tab;
-    const tabBudget = document.getElementById('hero-tab-budget');
-    const tabWallet = document.getElementById('hero-tab-wallet');
-    if (tabBudget) tabBudget.className = 'hero-toggle-tab' + (tab === 'budget' ? ' active' : '');
-    if (tabWallet) tabWallet.className = 'hero-toggle-tab' + (tab === 'wallet' ? ' active' : '');
-    
-    // Update dots indicator
-    const dotBudget = document.getElementById('hero-dot-budget');
-    const dotWallet = document.getElementById('hero-dot-wallet');
-    if (dotBudget) dotBudget.className = 'hero-dot' + (tab === 'budget' ? ' active' : '');
-    if (dotWallet) dotWallet.className = 'hero-dot' + (tab === 'wallet' ? ' active' : '');
-
-    renderHome();
-    
-    if (card) {
-      void card.offsetWidth; // Force repaint
-      card.classList.remove('switching');
-    }
-  }, 100);
-}
-
-function initHeroSwipe() {
-  const card = document.querySelector('.hero-card');
-  if (!card) return;
-
-  let startX = 0;
-  let startY = 0;
-  let distX = 0;
-  let distY = 0;
-  const threshold = 45; // minimum distance for swipe in pixels
-  const restraint = 60; // maximum vertical deviation allowed
-
-  card.addEventListener('touchstart', function(e) {
-    const touch = e.changedTouches[0];
-    startX = touch.pageX;
-    startY = touch.pageY;
-  }, { passive: true });
-
-  card.addEventListener('touchend', function(e) {
-    const touch = e.changedTouches[0];
-    distX = touch.pageX - startX;
-    distY = touch.pageY - startY;
-
-    if (Math.abs(distX) >= threshold && Math.abs(distY) <= restraint) {
-      if (distX > 0) {
-        if (activeHeroTab !== 'budget') {
-          switchHeroTab('budget');
-          if (navigator.vibrate) navigator.vibrate(20);
-        }
-      } else {
-        if (activeHeroTab !== 'wallet') {
-          switchHeroTab('wallet');
-          if (navigator.vibrate) navigator.vibrate(20);
-        }
-      }
-    }
-  }, { passive: true });
-
-  card.addEventListener('click', function(e) {
-    if (e.target.closest('.hero-toggle-tabs') || e.target.closest('.daily-limit-pill') || e.target.closest('.hero-dot')) {
-      return;
-    }
-    const nextTab = activeHeroTab === 'budget' ? 'wallet' : 'budget';
-    switchHeroTab(nextTab);
-    if (navigator.vibrate) navigator.vibrate(15);
-  });
 }
 
 function hashPin(p) {
@@ -619,109 +545,69 @@ function renderHome() {
   const statLabels = document.querySelectorAll('.hero-card .hero-stat-label');
   const statVals = document.querySelectorAll('.hero-card .hero-stat-val');
 
-  if (activeHeroTab === 'budget') {
-    heroLabel.textContent = 'Remaining Budget';
-    const remaining = budget - spent;
-    const pct = budget > 0 ? Math.min((spent / budget) * 100, 100) : 0;
-    
-    heroNum.textContent = Math.abs(remaining).toLocaleString('en-IN', {
-      minimumFractionDigits: remaining % 1 === 0 ? 0 : 2,
-      maximumFractionDigits: 2
-    });
-    
-    if (budget > 0) {
-      if (remaining < 0) {
-        heroSub.textContent = '⚠️ Over budget by ' + fmt(Math.abs(remaining));
-        heroNum.style.color = 'var(--red)';
-      } else {
-        heroSub.textContent = fmt(spent) + ' spent · ' + fmt(remaining) + ' left';
-        heroNum.style.color = 'var(--hero-text)';
-      }
-    } else {
-      heroSub.textContent = 'Tap "Set Budget" to get started';
-      heroNum.style.color = 'var(--hero-text)';
-    }
-
-    fill.style.width = pct + '%';
-    fill.className = 'progress-fill' + (pct > 80 ? ' warn' : '');
-
-    statLabels[0].textContent = 'Budget';
-    statVals[0].textContent = fmt(budget);
-    statVals[0].className = 'hero-stat-val accent';
-
-    statLabels[1].textContent = 'Spent';
-    statVals[1].textContent = fmt(spent);
-    statVals[1].className = 'hero-stat-val red';
-
-    const today = new Date();
-    // Days remaining in standard calendar month (including today)
-    const daysInCurrentMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
-    const daysLeft = daysInCurrentMonth - today.getDate() + 1;
-    const isCurrentMonth = (viewYear === today.getFullYear() && viewMonth === today.getMonth());
-    const pill = document.getElementById('daily-limit-pill');
-    
-    if (isCurrentMonth && budget > 0 && remaining > 0 && daysLeft > 0) {
-      pill.style.display = 'inline-flex';
-      document.getElementById('daily-limit-text').textContent = fmt(remaining / daysLeft) + '/day left';
-      
-      statLabels[2].textContent = 'Daily Limit';
-      statVals[2].textContent = fmt(remaining / daysLeft);
-      statVals[2].className = 'hero-stat-val green';
-    } else {
-      pill.style.display = 'none';
-      
-      statLabels[2].textContent = 'Income';
-      statVals[2].textContent = fmt(income);
-      statVals[2].className = 'hero-stat-val green';
-    }
-
-    const banner = document.getElementById('budget-banner');
-    if (budget > 0 && remaining < 0) {
-      banner.classList.add('show');
-      document.getElementById('budget-banner-text').textContent = 'Over budget — spent ' + fmt(Math.abs(remaining)) + ' extra';
-    } else if (budget > 0 && pct >= 80) {
-      banner.classList.add('show');
-      document.getElementById('budget-banner-text').textContent = Math.round(pct) + '% used · ' + fmt(remaining) + ' remaining';
-    } else {
-      banner.classList.remove('show');
-    }
-  } else {
-    const balance = income - spent;
-    heroLabel.textContent = balance >= 0 ? 'Net Savings' : 'Net Deficit';
-    const pct = income > 0 ? Math.min((spent / income) * 100, 100) : 0;
-    
-    heroNum.textContent = Math.abs(balance).toLocaleString('en-IN', {
-      minimumFractionDigits: balance % 1 === 0 ? 0 : 2,
-      maximumFractionDigits: 2
-    });
-    
-    if (balance < 0) {
-      heroSub.textContent = '⚠️ Cash flow negative by ' + fmt(Math.abs(balance));
+  const remaining = budget - spent;
+  const pct = budget > 0 ? Math.min((spent / budget) * 100, 100) : 0;
+  
+  heroNum.textContent = Math.abs(remaining).toLocaleString('en-IN', {
+    minimumFractionDigits: remaining % 1 === 0 ? 0 : 2,
+    maximumFractionDigits: 2
+  });
+  
+  if (budget > 0) {
+    if (remaining < 0) {
+      heroSub.textContent = '⚠️ Over budget by ' + fmt(Math.abs(remaining));
       heroNum.style.color = 'var(--red)';
     } else {
-      heroSub.textContent = fmt(income) + ' earned · ' + fmt(spent) + ' spent';
+      heroSub.textContent = fmt(spent) + ' spent · ' + fmt(remaining) + ' left';
       heroNum.style.color = 'var(--hero-text)';
     }
+  } else {
+    heroSub.textContent = 'Tap "Set Budget" to get started';
+    heroNum.style.color = 'var(--hero-text)';
+  }
 
-    document.getElementById('daily-limit-pill').style.display = 'none';
+  fill.style.width = pct + '%';
+  fill.className = 'progress-fill' + (pct > 80 ? ' warn' : '');
 
-    fill.style.width = pct + '%';
-    fill.className = 'progress-fill' + (pct > 80 ? ' warn' : '');
+  statLabels[0].textContent = 'Budget';
+  statVals[0].textContent = fmt(budget);
+  statVals[0].className = 'hero-stat-val accent';
 
-    statLabels[0].textContent = 'Income';
-    statVals[0].textContent = fmt(income);
-    statVals[0].className = 'hero-stat-val green';
+  statLabels[1].textContent = 'Spent';
+  statVals[1].textContent = fmt(spent);
+  statVals[1].className = 'hero-stat-val red';
 
-    statLabels[1].textContent = 'Spent';
-    statVals[1].textContent = fmt(spent);
-    statVals[1].className = 'hero-stat-val red';
+  const today = new Date();
+  // Days remaining in standard calendar month (including today)
+  const daysInCurrentMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+  const daysLeft = daysInCurrentMonth - today.getDate() + 1;
+  const isCurrentMonth = (viewYear === today.getFullYear() && viewMonth === today.getMonth());
+  const pill = document.getElementById('daily-limit-pill');
+  
+  if (isCurrentMonth && budget > 0 && remaining > 0 && daysLeft > 0) {
+    pill.style.display = 'inline-flex';
+    document.getElementById('daily-limit-text').textContent = fmt(remaining / daysLeft) + '/day left';
+    
+    statLabels[2].textContent = 'Daily Limit';
+    statVals[2].textContent = fmt(remaining / daysLeft);
+    statVals[2].className = 'hero-stat-val green';
+  } else {
+    pill.style.display = 'none';
+    
+    statLabels[2].textContent = 'Income';
+    statVals[2].textContent = fmt(income);
+    statVals[2].className = 'hero-stat-val green';
+  }
 
-    statLabels[2].textContent = 'Savings';
-    const savingsPct = income > 0 ? Math.round(((income - spent) / income) * 100) : 0;
-    statVals[2].textContent = savingsPct > 0 ? savingsPct + '% saved' : '0%';
-    statVals[2].className = 'hero-stat-val blue';
-
-    document.getElementById('budget-banner').classList.remove('show');
+  const banner = document.getElementById('budget-banner');
+  if (budget > 0 && remaining < 0) {
+    banner.classList.add('show');
+    document.getElementById('budget-banner-text').textContent = 'Over budget — spent ' + fmt(Math.abs(remaining)) + ' extra';
+  } else if (budget > 0 && pct >= 80) {
+    banner.classList.add('show');
+    document.getElementById('budget-banner-text').textContent = Math.round(pct) + '% used · ' + fmt(remaining) + ' remaining';
+  } else {
+    banner.classList.remove('show');
   }
 
   renderSummaryBanner();
@@ -1948,7 +1834,6 @@ function showToast(msg){
   }
 
   updateMonthLabels();
-  initHeroSwipe();
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
 })();
 
