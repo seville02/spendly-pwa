@@ -1002,28 +1002,42 @@ body { display: flex; flex-direction: column; max-width: 480px; margin: 0 auto; 
   border: 2px solid var(--accent);
 }
 
+/* ── Budget / Salary segmented control ── */
 .modal-toggle-tabs {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: flex;
+  gap: 10px;
   background: var(--surface2);
-  border-radius: 10px;
-  padding: 3px;
-  gap: 3px;
-  margin-bottom: 20px;
+  border-radius: 16px;
+  padding: 5px;
+  margin: 4px 0 24px;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,.25);
 }
 .modal-toggle-tab {
-  padding: 9px;
-  border-radius: 8px;
-  text-align: center;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 11px 10px;
+  border-radius: 12px;
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
+  letter-spacing: .02em;
   cursor: pointer;
   color: var(--text3);
-  transition: all .15s;
+  transition: background .2s, color .2s, box-shadow .2s, transform .1s;
   touch-action: manipulation;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  position: relative;
+}
+.modal-toggle-tab:active { transform: scale(.96); }
+.modal-toggle-tab .tab-icon {
+  font-size: 16px;
+  line-height: 1;
 }
 .modal-toggle-tab.active {
-  background: var(--accent-dim);
-  color: var(--accent);
-  border: 1px solid var(--accent);
+  background: linear-gradient(135deg, var(--accent) 0%, #38bdf8 100%);
+  color: #0a0f1e;
+  box-shadow: 0 3px 12px rgba(79,209,197,.35);
 }

@@ -152,6 +152,18 @@ function fmtFull(n) {
     maximumFractionDigits: 2
   });
 }
+
+// Format with a specific event-scoped currency symbol (not profile currency)
+function fmtEvent(n, sym) {
+  if (!sym) sym = getCurrencySymbol();
+  if (n % 1 !== 0) {
+    return sym + Number(n).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+  if (n >= 100000) return sym + Number((n/100000).toFixed(3)) + 'L';
+  if (n >= 1000)   return sym + Number((n/1000).toFixed(3)) + 'K';
+  return sym + Number(n).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+}
+
 function uid() { return Date.now().toString(36)+Math.random().toString(36).slice(2); }
 function parseDate(str) {
   if (!str) return new Date();
@@ -1889,72 +1901,44 @@ function parseCSVRow(line){
   for(let i=0;i<line.length;i++){
     const ch=line[i];
     if(ch==='"'){
-      if(inQ&&line[i+1]==='"'){cur+='"';i++;} else inQ=!inQ;
-    } else if(ch===','&&!inQ){
-      cols.push(cur.trim()); cur='';
-    } else { cur+=ch; }
-  }
-  cols.push(cur.trim());
-  return cols;
-}
-
-// Convert "DD/MM/YYYY" + "12:21:00 am" back to ISO datetime string
-function parseDateFromCSV(dateStr,timeStr){
-  const dm=dateStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-  const base=dm?`${dm[3]}-${dm[2].padStart(2,'0')}-${dm[1].padStart(2,'0')}`:new Date().toISOString().slice(0,10);
-  if(!timeStr) return base;
-  const tm=timeStr.trim().match(/^(\d{1,2}):(\d{2})(?::\d{2})?\s*(am|pm)$/i);
-  if(!tm) return base;
-  let h=parseInt(tm[1]);
-  const period=tm[3].toLowerCase();
-  if(period==='am'&&h===12) h=0;
-  if(period==='pm'&&h!==12) h+=12;
-  return `${base}T${String(h).padStart(2,'0')}:${tm[2]}`;
-}
-
-
-
-// ─────────────────────────────────────────────────────
-// MODALS + ANDROID BACK
-// ─────────────────────────────────────────────────────
-function openModal(id){
-  document.getElementById(id).classList.add('open');
-  history.pushState({modal:id},'');
-}
-function closeModal(id){
-  const el=document.getElementById(id);
-  if(!el.classList.contains('open')) return;
-  if(history.state&&history.state.modal===id) {
-    history.back();
-  } else {
-    el.classList.remove('open');
-  }
-}
-window.addEventListener('popstate',function(){
-  const open=document.querySelector('.modal-overlay.open');
-  if(open){open.classList.remove('open');return;}
-  const active=document.querySelector('.screen.active');
-  if(active&&active.id!=='screen-home'){navigate('home');history.pushState({},'');}
-});
-history.pushState({},'');
-document.querySelectorAll('.modal-overlay').forEach(el=>el.addEventListener('click',function(e){
-  if(e.target===this){
-    closeModal(this.id);
-  }
-}));
-
-// ─────────────────────────────────────────────────────
-// TOAST
-// ─────────────────────────────────────────────────────
-let toastTimer;
-function showToast(msg){
-  const el=document.getElementById('toast');
-  el.textContent=msg;
-  el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
-  clearTimeout(toastTimer); toastTimer=setTimeout(()=>el.classList.remove('show'),2500);
-}
-
-// ─────────────────────────────────────────────────────
+      if(inQ&&line[i+1]==='"'){c  container.innerHTML = events.map((ev, idx) => {
+    const sym = ev.currency || getCurrencySymbol();
+    const items = allItems.filter(i => i.eventId === ev.id);
+    const totalPaid = items.reduce((s,i) => s + (i.amountPaid||0), 0);
+    const totalItemEst = items.reduce((s,i) => s + (i.totalCost||0), 0);
+    const budget = ev.estimatedBudget || totalItemEst;
+    const pct = budget > 0 ? Math.min((totalPaid/budget)*100, 100) : 0;
+    const stillOwed = items.reduce((s,i) => s + Math.max(0,(i.totalCost||0)-(i.amountPaid||0)), 0);
+    const curObj = CURRENCIES.find(c => c.symbol === sym);
+    const curLabel = curObj ? `${curObj.flag} ${curObj.code}` : sym;
+    return `<div class="event-card ev-animate" style="animation-delay: ${idx * 60}ms" onclick="navigateEventDetail('${ev.id}')">
+      <div class="ev-card-header">
+        <div style="display:flex;align-items:center;gap:12px;min-width:0">
+          <div class="ev-icon-wrapper">${getEventIcon(ev.name)}</div>
+          <div style="min-width:0">
+            <div class="ev-card-name" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${ev.name}</div>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+              ${ev.targetDate ? `<div class="ev-date">📅 ${new Date(ev.targetDate+'T12:00').toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}</div>` : ''}
+              <div class="ev-date" style="color:var(--accent)">${curLabel}</div>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+          <span class="ev-badge">${items.length} item${items.length!==1?'s':''}</span>
+          <div class="ev-delete-btn-direct" onclick="event.stopPropagation(); deleteEventDirect('${ev.id}', '${ev.name.replace(/'/g, "\\'")}')" title="Delete event">
+            <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+          </div>
+        </div>
+      </div>
+      <div class="ev-stats-row">
+        <div class="ev-stat-item"><div class="ev-stat-val green">${fmtEvent(totalPaid,sym)}</div><div class="ev-stat-lbl">Paid</div></div>
+        ${stillOwed>0 ? `<div class="ev-stat-item"><div class="ev-stat-val red">${fmtEvent(stillOwed,sym)}</div><div class="ev-stat-lbl">Still Owed</div></div>` : ''}
+        ${budget>0 ? `<div class="ev-stat-item"><div class="ev-stat-val accent">${fmtEvent(budget,sym)}</div><div class="ev-stat-lbl">${ev.estimatedBudget?'Est. Budget':'Items Est.'}</div></div>` : ''}
+      </div>
+      ${budget>0 ? `<div class="progress-bar" style="margin-top:12px"><div class="progress-fill${pct>80?' warn':''}" style="width:${pct}%"></div></div>
+      <div style="font-size:11px;color:var(--text3);text-align:right;margin-top:4px">${Math.round(pct)}% funded</div>` : ''}
+    </div>`;
+  }).join('<div class="event-separator"></div>');────────────────────────────────────────
 // INIT
 // ─────────────────────────────────────────────────────
 (async function init(){
@@ -2090,18 +2074,23 @@ function renderEventDetail() {
     ? `📅 ${new Date(ev.targetDate+'T12:00').toLocaleDateString('en-IN',{day:'numeric',month:'long',year:'numeric'})}`
     : '';
 
+  const sym = ev.currency || getCurrencySymbol();
+  const curObj = CURRENCIES.find(c => c.symbol === sym);
+  const curLabel = curObj ? `${curObj.flag} ${curObj.name} (${sym})` : sym;
+
   document.getElementById('ev-summary').innerHTML = `
+    <div style="font-size:11px;color:var(--accent);margin-bottom:10px;font-weight:600">${curLabel}</div>
     <div class="ev-hero-stats">
       <div class="ev-hero-card paid">
-        <div class="ev-hero-val green">${fmt(totalPaid)}</div>
+        <div class="ev-hero-val green">${fmtEvent(totalPaid,sym)}</div>
         <div class="ev-hero-lbl">Paid</div>
       </div>
       ${totalOwed > 0 ? `<div class="ev-hero-card owed">
-        <div class="ev-hero-val red">${fmt(totalOwed)}</div>
+        <div class="ev-hero-val red">${fmtEvent(totalOwed,sym)}</div>
         <div class="ev-hero-lbl">Still Owed</div>
       </div>` : ''}
       ${budget > 0 ? `<div class="ev-hero-card budget">
-        <div class="ev-hero-val accent">${fmt(budget)}</div>
+        <div class="ev-hero-val accent">${fmtEvent(budget,sym)}</div>
         <div class="ev-hero-lbl">${ev.estimatedBudget?'Est. Budget':'Items Est.'}</div>
       </div>` : ''}
     </div>
@@ -2123,15 +2112,15 @@ function renderEventDetail() {
           <div class="ev-item-row">
             <div class="ev-item-name">${item.name}</div>
             <div style="text-align:right;flex-shrink:0">
-              <div style="font-size:15px;font-weight:600;font-family:var(--mono);color:var(--green)">${fmt(item.amountPaid||0)}</div>
-              ${item.totalCost>0 ? `<div style="font-size:10px;color:var(--text3)">of ${fmt(item.totalCost)}</div>` : `<div style="font-size:10px;color:var(--text3)">paid</div>`}
+              <div style="font-size:15px;font-weight:600;font-family:var(--mono);color:var(--green)">${fmtEvent(item.amountPaid||0,sym)}</div>
+              ${item.totalCost>0 ? `<div style="font-size:10px;color:var(--text3)">of ${fmtEvent(item.totalCost,sym)}</div>` : `<div style="font-size:10px;color:var(--text3)">paid</div>`}
             </div>
           </div>
           ${item.totalCost > 0 ? `
             <div class="progress-bar" style="margin:8px 0 5px">
               <div class="progress-fill${ipct>80?' warn':''}" style="width:${ipct}%"></div>
             </div>
-            ${rem > 0 ? `<div style="font-size:11px;color:var(--red)">⏳ ${fmt(rem)} remaining</div>`
+            ${rem > 0 ? `<div style="font-size:11px;color:var(--red)">⏳ ${fmtEvent(rem,sym)} remaining</div>`
                       : `<div style="font-size:11px;color:var(--green)">✅ Fully paid</div>`}
           ` : ''}
           ${item.notes ? `<div style="font-size:11px;color:var(--text3);margin-top:6px">💬 ${item.notes}</div>` : ''}
@@ -2140,6 +2129,25 @@ function renderEventDetail() {
 }
 
 // ─── Add / Edit Event ─────────────────────────────────
+// Tracks the currency chosen in the event modal
+let eventModalCurrency = null;
+
+function _setEventCurrencyDisplay(sym) {
+  eventModalCurrency = sym;
+  const obj = CURRENCIES.find(c => c.symbol === sym);
+  const label = obj ? `${obj.flag} ${obj.name} (${sym})` : sym;
+  const el = document.getElementById('event-currency-display');
+  if (el) el.textContent = label;
+  const prefix = document.getElementById('event-budget-prefix');
+  if (prefix) prefix.textContent = sym;
+}
+
+function openEventCurrencyPicker() {
+  // Store context so currency-picker saves back to event modal
+  window._eventCurrencyPickerMode = true;
+  openCurrencyPicker();
+}
+
 function openAddEvent() {
   editingEventId = null;
   document.getElementById('input-event-name').value = '';
@@ -2148,6 +2156,8 @@ function openAddEvent() {
   document.getElementById('modal-add-event').querySelector('.sheet-title').textContent = 'New Event';
   document.getElementById('ev-submit-btn').textContent = 'Create Event';
   document.getElementById('ev-delete-btn').style.display = 'none';
+  // Default to the user's profile currency
+  _setEventCurrencyDisplay(getCurrencySymbol());
   openModal('modal-add-event');
   setTimeout(()=>document.getElementById('input-event-name').focus(), 350);
 }
@@ -2162,6 +2172,8 @@ function openEditEvent() {
   document.getElementById('modal-add-event').querySelector('.sheet-title').textContent = 'Edit Event';
   document.getElementById('ev-submit-btn').textContent = 'Save Changes';
   document.getElementById('ev-delete-btn').style.display = 'block';
+  // Use the event's saved currency (fall back to profile currency)
+  _setEventCurrencyDisplay(ev.currency || getCurrencySymbol());
   openModal('modal-add-event');
 }
 
@@ -2170,7 +2182,8 @@ function submitEvent() {
   if (!name) { showToast('Enter an event name'); return; }
   const budget = parseFloat(document.getElementById('input-event-budget').value) || 0;
   const targetDate = document.getElementById('input-event-date').value;
-  const event = { id: editingEventId||uid(), name, estimatedBudget: budget, targetDate, createdAt: new Date().toISOString() };
+  const currency = eventModalCurrency || getCurrencySymbol();
+  const event = { id: editingEventId||uid(), name, estimatedBudget: budget, targetDate, currency, createdAt: new Date().toISOString() };
   dbSaveEvent(currentUser.id, event);
   closeModal('modal-add-event');
   if (editingEventId) { renderEventDetail(); showToast('Event updated'); }

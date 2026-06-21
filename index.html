@@ -717,8 +717,12 @@
     
     <!-- Tab Toggle -->
     <div class="modal-toggle-tabs">
-      <div class="modal-toggle-tab active" id="btn-tab-budget" onclick="switchBudgetModalTab('budget')">Budget</div>
-      <div class="modal-toggle-tab" id="btn-tab-salary" onclick="switchBudgetModalTab('salary')">Salary</div>
+      <div class="modal-toggle-tab active" id="btn-tab-budget" onclick="switchBudgetModalTab('budget')">
+        <span class="tab-icon">🎯</span> Budget
+      </div>
+      <div class="modal-toggle-tab" id="btn-tab-salary" onclick="switchBudgetModalTab('salary')">
+        <span class="tab-icon">💼</span> Salary
+      </div>
     </div>
 
     <!-- Tab Content: Budget -->
@@ -880,8 +884,15 @@
       <input class="form-input" type="text" id="input-event-name" placeholder="e.g. Wedding, Goa Trip, Birthday Party…">
     </div>
     <div class="form-group">
+      <label class="form-label">Currency</label>
+      <div class="edit-field" onclick="openEventCurrencyPicker()" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:var(--surface);border:1px solid var(--border);border-radius:12px">
+        <span id="event-currency-display" style="font-size:13px;color:var(--text)">₹ Indian Rupee (₹)</span>
+        <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+    </div>
+    <div class="form-group">
       <label class="form-label">Estimated Total Budget <span style="color:var(--text3);font-weight:400;font-size:10px">(optional)</span></label>
-      <div class="amount-wrap"><span class="amount-prefix">₹</span><input class="form-input with-prefix" type="number" id="input-event-budget" placeholder="Leave blank if unsure" step="any" inputmode="decimal"></div>
+      <div class="amount-wrap"><span class="amount-prefix" id="event-budget-prefix">₹</span><input class="form-input with-prefix" type="number" id="input-event-budget" placeholder="Leave blank if unsure" step="any" inputmode="decimal"></div>
     </div>
     <div class="form-group">
       <label class="form-label">Target Date <span style="color:var(--text3);font-weight:400;font-size:10px">(optional)</span></label>
