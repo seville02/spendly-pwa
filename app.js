@@ -628,6 +628,7 @@ function renderHome() {
   const statVals = document.querySelectorAll('.hero-card .hero-stat-val');
 
   if (activeHeroTab === 'budget') {
+    heroLabel.textContent = 'Remaining Budget';
     const remaining = budget - spent;
     const pct = budget > 0 ? Math.min((spent / budget) * 100, 100) : 0;
     
@@ -694,6 +695,7 @@ function renderHome() {
     }
   } else {
     const balance = income - spent;
+    heroLabel.textContent = balance >= 0 ? 'Net Savings' : 'Net Deficit';
     const pct = income > 0 ? Math.min((spent / income) * 100, 100) : 0;
     
     heroNum.textContent = Math.abs(balance).toLocaleString('en-IN', {
