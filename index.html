@@ -380,6 +380,10 @@
       <div class="settings-left"><div class="settings-icon">🎉</div><div><div class="settings-label">Event Planner</div><div class="settings-val" id="ev-profile-val">Plan &amp; track event costs</div></div></div>
       <svg class="chevron" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
     </div>
+    <div class="settings-item" onclick="navigate('bill-splitter')">
+      <div class="settings-left"><div class="settings-icon">🧾</div><div><div class="settings-label">Bill Splitter</div><div class="settings-val">Scan receipts &amp; share cost</div></div></div>
+      <svg class="chevron" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+    </div>
     <div class="settings-item" onclick="openSetBudget()">
       <div class="settings-left"><div class="settings-icon">🎯</div><div><div class="settings-label">Monthly Budget</div><div class="settings-val" id="profile-budget-val">Not set</div></div></div>
       <svg class="chevron" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
@@ -461,6 +465,179 @@
     <div id="ev-items-list"></div>
   </div>
   <div style="height:20px"></div>
+</div>
+
+<!-- ═══ SCREEN: BILL SPLITTER (PAYER FLOW) ═══ -->
+<div class="screen" id="screen-bill-splitter">
+  <div class="header">
+    <div class="header-row">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="icon-btn" onclick="navigate('profile')" style="flex-shrink:0">
+          <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" width="20" height="20"><polyline points="15 18 9 12 15 6"/></svg>
+        </div>
+        <span style="font-size:17px;font-weight:700">Bill Splitter</span>
+      </div>
+    </div>
+  </div>
+
+  <div style="padding:0 16px 30px">
+    <!-- Scanner dropzone -->
+    <div class="scanner-container" id="bs-upload-zone">
+      <div class="scanner-beam" id="bs-scanner-beam" style="display:none"></div>
+      <div style="font-size:36px;margin-bottom:8px">📸</div>
+      <div style="font-size:14px;font-weight:600;color:var(--text)">Scan Receipt / Upload Bill</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:4px">Upload bill image to extract items automatically</div>
+      <input type="file" id="bs-file-input" accept="image/*" style="display:none" onchange="handleBillUpload(event)">
+      <button class="scanner-btn" onclick="document.getElementById('bs-file-input').click()">Choose Image</button>
+      <div style="margin-top:10px;font-size:11px;color:var(--text2)">or</div>
+      <button class="scanner-btn-secondary" onclick="simulateBillScan()">⚡ Simulate Demo Scan</button>
+    </div>
+
+    <!-- Scanning status -->
+    <div id="bs-scan-status" style="display:none;text-align:center;margin:15px 0;font-size:13px;color:var(--accent)">
+      <span class="spinner" style="display:inline-block;margin-right:6px">⏳</span> <span id="bs-status-text">Uploading and scanning...</span>
+    </div>
+
+    <!-- Bill info card -->
+    <div class="chart-card" style="margin:16px 0 0;padding:16px">
+      <div class="chart-title">Bill Details</div>
+      
+      <div class="form-group">
+        <label class="form-label">Bill Name</label>
+        <input class="form-input" type="text" id="bs-bill-name" placeholder="e.g. Cafe Dinner, Goa Resort..." value="Dinner Split">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Your Name (Payer)</label>
+        <input class="form-input" type="text" id="bs-payer-name" placeholder="Your Name">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Your UPI ID (to receive payments)</label>
+        <input class="form-input" type="text" id="bs-payer-upi" placeholder="e.g. name@upi">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Tax / Tip / Extra Charges (proportionate)</label>
+        <div class="amount-wrap">
+          <span class="amount-prefix">₹</span>
+          <input class="form-input with-prefix" type="number" id="bs-extra-charges" placeholder="0" step="any" inputmode="decimal">
+        </div>
+      </div>
+    </div>
+
+    <!-- Items list -->
+    <div class="chart-card" style="margin:16px 0 0;padding:16px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div class="chart-title" style="margin-bottom:0">Items List</div>
+        <button onclick="addBsItem()" style="background:var(--accent-dim);color:var(--accent);border:1px solid var(--accent);border-radius:20px;padding:4px 12px;font-size:11px;font-weight:600;cursor:pointer">+ Add Item</button>
+      </div>
+      <div id="bs-items-list">
+        <div style="text-align:center;padding:20px 0;color:var(--text3);font-size:12px">No items yet. Upload a receipt or add manually.</div>
+      </div>
+    </div>
+
+    <!-- Share block -->
+    <div style="margin-top:20px">
+      <button class="submit-btn" id="bs-share-btn" onclick="generateSplitLink()" style="background:linear-gradient(90deg, var(--accent), var(--blue));color:#0a0f1e;font-weight:700">🔗 Generate &amp; Share Split Link</button>
+    </div>
+    
+    <!-- Link modal/card -->
+    <div id="bs-link-box" class="chart-card" style="display:none;margin-top:16px;padding:16px;border-color:var(--accent)">
+      <div style="font-size:13px;font-weight:600;color:var(--accent);margin-bottom:8px">Split Link Generated! 🎉</div>
+      <div style="font-size:11px;color:var(--text2);margin-bottom:10px">Send this link to your friends. They can open it on mobile and select their items.</div>
+      <div style="background:var(--surface2);padding:10px;border-radius:8px;font-family:var(--mono);font-size:10px;word-break:break-all;border:1px solid var(--border);color:var(--text2);user-select:all" id="bs-generated-url"></div>
+      <div style="display:flex;gap:10px;margin-top:12px">
+        <button onclick="copyBsLink()" class="ev-add-item-btn" style="flex:1">📋 Copy Link</button>
+        <button onclick="shareBsLink()" class="submit-btn" style="flex:1;margin:0;font-size:11px;padding:8px">💬 Share Now</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SCREEN: GUEST SPLIT BILL (RECIPIENT FLOW) ═══ -->
+<div class="screen" id="screen-guest-split">
+  <div class="header">
+    <div class="header-row" style="justify-content:center">
+      <div style="display:flex;align-items:center;gap:8px">
+        <div class="ev-icon-wrapper" style="width:30px;height:30px;font-size:14px">🧾</div>
+        <span style="font-size:17px;font-weight:700">Spendly Bill Splitter</span>
+      </div>
+    </div>
+  </div>
+
+  <div style="padding:0 16px 40px">
+    <!-- Payer Banner -->
+    <div class="chart-card" style="margin:10px 0;padding:16px;background:rgba(79, 209, 197, 0.05);border-color:rgba(79, 209, 197, 0.2)">
+      <div style="font-size:14px;font-weight:600;color:var(--text)" id="gs-payer-title">Payer Name shared a bill</div>
+      <div style="font-size:18px;font-weight:700;color:var(--accent);margin-top:4px" id="gs-bill-title">Dinner Bill</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:6px" id="gs-date-label"></div>
+    </div>
+
+    <!-- Instructions -->
+    <div style="font-size:12px;color:var(--text2);margin:16px 0 10px;text-align:center">👇 Select the items that you ordered:</div>
+
+    <!-- Items Grid Selector -->
+    <div id="gs-items-container">
+      <!-- Renders list of items to select -->
+    </div>
+
+    <!-- Guest Details Form -->
+    <div class="chart-card" style="margin:16px 0;padding:16px">
+      <div class="form-group" style="margin-bottom:0">
+        <label class="form-label">Your Name</label>
+        <input class="form-input" type="text" id="gs-guest-name" placeholder="Enter your name" oninput="updateGuestTotals()">
+      </div>
+    </div>
+
+    <!-- Live share card -->
+    <div class="chart-card" style="margin:16px 0;padding:20px;background:rgba(26,37,64,0.65);border-color:var(--border2);position:relative;overflow:hidden">
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--text3)">Your Share</div>
+      <div style="display:flex;align-items:baseline;gap:4px;margin-top:4px">
+        <span style="font-size:26px;font-weight:700;color:var(--green)" id="gs-share-currency">₹</span>
+        <span style="font-size:36px;font-weight:700;color:var(--green);font-family:var(--mono)" id="gs-share-total">0.00</span>
+      </div>
+      
+      <!-- Breakdown -->
+      <div style="border-top:1px solid var(--border);margin-top:12px;padding-top:10px;font-size:11px;color:var(--text2)">
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+          <span>Items cost</span><span id="gs-items-cost" style="font-family:var(--mono)">₹0.00</span>
+        </div>
+        <div style="display:flex;justify-content:space-between">
+          <span>Proportionate tax/tip share</span><span id="gs-tax-share" style="font-family:var(--mono)">₹0.00</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- UPI QR and Deep-links -->
+    <div id="gs-pay-section" style="display:none;text-align:center;margin-top:20px">
+      <div class="chart-title">QR Code Payment</div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:12px">Scan QR code using GPay, PhonePe, Paytm, or BHIM to pay instantly</div>
+      
+      <div class="qr-box" style="margin: 0 auto 16px;">
+        <img id="gs-qr-img" style="width:180px;height:180px;display:block;margin:0 auto;border-radius:12px" alt="UPI QR Code">
+      </div>
+      
+      <div style="display:flex;flex-direction:column;gap:10px;margin-top:16px">
+        <a id="gs-upi-link" href="#" class="submit-btn" style="background:var(--accent);color:#0a0f1e;font-weight:700;display:inline-flex;align-items:center;justify-content:center;text-decoration:none;gap:6px">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+          Pay via UPI App
+        </a>
+        <button onclick="copyGsSummary()" class="ev-add-item-btn" style="padding:10px">📋 Copy Payment Message</button>
+        <button onclick="confirmGsPayment()" class="submit-btn" style="background:var(--green-dim);color:var(--green);border:1px solid var(--green);margin:0" id="gs-pay-confirm-btn">✅ I Have Transferred the Money</button>
+      </div>
+    </div>
+    
+    <!-- Unselected fallback -->
+    <div id="gs-unselected-fallback" style="text-align:center;color:var(--text3);font-size:12px;margin:20px 0">
+      Select at least one item to see payment options
+    </div>
+
+    <div style="height:30px"></div>
+    <div style="display:flex;justify-content:center;gap:12px">
+      <button onclick="window.location.hash=''; window.location.reload();" class="ev-add-item-btn" style="font-size:11px;padding:6px 14px">Go to Spendly Homepage</button>
+    </div>
+  </div>
 </div>
 
 <!-- BOTTOM NAV -->

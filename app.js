@@ -573,6 +573,7 @@ function navigate(screen) {
   if (screen==='stats')        renderStats();
   if (screen==='debts')        renderDebts();
   if (screen==='profile')      renderProfile();
+  if (screen==='bill-splitter') renderBillSplitter();
 }
 
 function focusSearch() {
@@ -1919,31 +1920,41 @@ function showToast(msg){
   applyTheme(localSettings.theme||'dark');
   updateCurrencyUI();
 
+  const isSplitRoute = handleSplitBillRouting();
+
   // Check auth state
   dbOnAuthChange(async (event, session) => {
     if (session) {
       currentUser = session.user;
-      hideAuthScreen();
-      await loadAllData(currentUser.id);
-      await processRecurring();
-      updateMonthLabels();
-      renderHome();
-      checkLock();
+      if (!isSplitRoute) {
+        hideAuthScreen();
+        await loadAllData(currentUser.id);
+        await processRecurring();
+        updateMonthLabels();
+        renderHome();
+        checkLock();
 
-      // Trigger password change modal if returning from a recovery email link
-      if (event === 'PASSWORD_RECOVERY') {
-        openChangePassword();
-        showToast('Please set your new password 🔑');
+        // Trigger password change modal if returning from a recovery email link
+        if (event === 'PASSWORD_RECOVERY') {
+          openChangePassword();
+          showToast('Please set your new password 🔑');
+        }
+      } else {
+        await loadAllData(currentUser.id);
       }
     } else {
       currentUser = null;
-      showAuthScreen();
+      if (!isSplitRoute) {
+        showAuthScreen();
+      }
     }
   });
 
   // Check existing session immediately
   const session = await dbGetSession();
-  if (!session) showAuthScreen();
+  if (!session && !isSplitRoute) {
+    showAuthScreen();
+  }
 
   updateMonthLabels();
   initHeroSwipe();
@@ -2229,3 +2240,381 @@ function toggleNewPasswordVisibility() {
   }
 }
 
+
+// ═══════════════════════════════════════════════════════
+// BILL SPLITTER MODULE
+// ═══════════════════════════════════════════════════════
+let bsItems = [];
+let tesseractScriptLoaded = false;
+
+function renderBillSplitter() {
+  // Reset scanner UI
+  document.getElementById('bs-scan-status').style.display = 'none';
+  document.getElementById('bs-scanner-beam').style.display = 'none';
+  document.getElementById('bs-link-box').style.display = 'none';
+  
+  // Set default payer values
+  let defaultName = 'Me';
+  if (appData.profile && appData.profile.name) {
+    defaultName = appData.profile.name;
+  } else if (currentUser && currentUser.email) {
+    defaultName = currentUser.email.split('@')[0];
+  }
+  
+  document.getElementById('bs-payer-name').value = defaultName;
+  document.getElementById('bs-payer-upi').value = localStorage.getItem('spendly_payer_upi') || '';
+  document.getElementById('bs-extra-charges').value = '';
+  document.getElementById('bs-bill-name').value = 'Dinner Split';
+  
+  bsItems = [];
+  renderBsItems();
+}
+
+function renderBsItems() {
+  const container = document.getElementById('bs-items-list');
+  if (bsItems.length === 0) {
+    container.innerHTML = `<div style="text-align:center;padding:20px 0;color:var(--text3);font-size:12px">No items yet. Upload a receipt or add manually.</div>`;
+    return;
+  }
+  
+  container.innerHTML = bsItems.map((item, idx) => `
+    <div class="bs-item-edit-row">
+      <input class="form-input" type="text" placeholder="Item name" value="${item.name}" oninput="updateBsItemName(${idx}, this.value)">
+      <div class="amount-wrap" style="width: 120px;">
+        <span class="amount-prefix">₹</span>
+        <input class="form-input with-prefix" type="number" placeholder="0.00" value="${item.price || ''}" step="any" inputmode="decimal" oninput="updateBsItemPrice(${idx}, this.value)">
+      </div>
+      <div class="bs-delete-btn" onclick="deleteBsItem(${idx})">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+      </div>
+    </div>
+  `).join('');
+}
+
+function addBsItem(name = '', price = '') {
+  bsItems.push({ name, price: price ? parseFloat(price) : '' });
+  renderBsItems();
+}
+
+function updateBsItemName(idx, val) {
+  bsItems[idx].name = val;
+}
+
+function updateBsItemPrice(idx, val) {
+  bsItems[idx].price = parseFloat(val) || 0;
+}
+
+function deleteBsItem(idx) {
+  bsItems.splice(idx, 1);
+  renderBsItems();
+}
+
+// Dynamic Tesseract Loader
+function loadTesseractLibrary() {
+  if (tesseractScriptLoaded) return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    document.getElementById('bs-status-text').textContent = 'Downloading OCR Engine (Tesseract.js)...';
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+    script.onload = () => {
+      tesseractScriptLoaded = true;
+      resolve();
+    };
+    script.onerror = () => reject(new Error('Tesseract script failed to load'));
+    document.head.appendChild(script);
+  });
+}
+
+async function handleBillUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  
+  // Show visual scanning beam
+  const beam = document.getElementById('bs-scanner-beam');
+  const statusDiv = document.getElementById('bs-scan-status');
+  beam.style.display = 'block';
+  statusDiv.style.display = 'block';
+  
+  try {
+    await loadTesseractLibrary();
+    document.getElementById('bs-status-text').textContent = 'Scanning receipt text (OCR running)...';
+    
+    const result = await Tesseract.recognize(file, 'eng', {
+      logger: m => {
+        if (m.status === 'recognizing text') {
+          document.getElementById('bs-status-text').textContent = `Scanning: ${Math.round(m.progress * 100)}%`;
+        }
+      }
+    });
+    
+    const parsed = parseReceiptText(result.data.text);
+    if (parsed.length > 0) {
+      bsItems = bsItems.concat(parsed);
+      renderBsItems();
+      showToast(`Extracted ${parsed.length} items successfully! 🧾`);
+    } else {
+      showToast('Could not extract items automatically. Please add manually or try another receipt.');
+    }
+  } catch (err) {
+    console.error(err);
+    showToast('OCR failed. Please add items manually.');
+  } finally {
+    beam.style.display = 'none';
+    statusDiv.style.display = 'none';
+  }
+}
+
+function simulateBillScan() {
+  const beam = document.getElementById('bs-scanner-beam');
+  const statusDiv = document.getElementById('bs-scan-status');
+  beam.style.display = 'block';
+  statusDiv.style.display = 'block';
+  document.getElementById('bs-status-text').textContent = 'Initializing simulated OCR camera...';
+  
+  const mockItems = [
+    { name: 'Margarita Pizza Large', price: 380 },
+    { name: 'Double Cheese Burger', price: 180 },
+    { name: 'Garlic Bread w/ Cheese', price: 120 },
+    { name: 'Crispy French Fries', price: 90 },
+    { name: 'Coca Cola Cans x2', price: 120 },
+    { name: 'Hot Chocolate Fudge', price: 150 }
+  ];
+  
+  let progress = 0;
+  const interval = setInterval(() => {
+    progress += 20;
+    document.getElementById('bs-status-text').textContent = `Extracting items: ${progress}%`;
+    if (progress >= 100) {
+      clearInterval(interval);
+      beam.style.display = 'none';
+      statusDiv.style.display = 'none';
+      bsItems = mockItems;
+      renderBsItems();
+      showToast('Extracted 6 items from demo receipt! 🧾');
+    }
+  }, 350);
+}
+
+function parseReceiptText(text) {
+  const lines = text.split('\n');
+  const items = [];
+  const priceRegex = /(?:rs\.?|inr|₹)?\s*(\d+(?:\.\d{1,2})?)\s*$/i;
+  
+  for (let line of lines) {
+    line = line.trim();
+    if (!line) continue;
+    if (/total|subtotal|tax|gst|vat|service|discount/i.test(line)) continue;
+    
+    const match = line.match(priceRegex);
+    if (match) {
+      const priceVal = parseFloat(match[1]);
+      let nameVal = line.replace(match[0], '').trim();
+      nameVal = nameVal.replace(/[\s\.\:\-\=\+]+$/, '').trim();
+      if (nameVal && priceVal > 0) {
+        items.push({ name: nameVal, price: priceVal });
+      }
+    }
+  }
+  return items;
+}
+
+function generateSplitLink() {
+  const billName = document.getElementById('bs-bill-name').value.trim();
+  const payerName = document.getElementById('bs-payer-name').value.trim();
+  const upi = document.getElementById('bs-payer-upi').value.trim();
+  const extra = parseFloat(document.getElementById('bs-extra-charges').value) || 0;
+  
+  if (!billName) { showToast('Please enter a bill name'); return; }
+  if (!payerName) { showToast('Please enter your name'); return; }
+  if (!upi) { showToast('Please enter your UPI ID'); return; }
+  if (!upi.includes('@')) { showToast('Invalid UPI ID address format'); return; }
+  
+  const validItems = bsItems.filter(item => item.name.trim() !== '' && parseFloat(item.price) > 0);
+  if (validItems.length === 0) { showToast('Please add at least one item'); return; }
+  
+  // Save UPI locally
+  localStorage.setItem('spendly_payer_upi', upi);
+  
+  const billData = {
+    n: billName,
+    p: payerName,
+    u: upi,
+    t: extra,
+    i: validItems,
+    d: new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+  };
+  
+  try {
+    const jsonStr = JSON.stringify(billData);
+    const b64 = btoa(unescape(encodeURIComponent(jsonStr)));
+    const shareUrl = window.location.origin + window.location.pathname + '#split-bill?b=' + b64;
+    
+    document.getElementById('bs-generated-url').textContent = shareUrl;
+    document.getElementById('bs-link-box').style.display = 'block';
+    document.getElementById('bs-link-box').scrollIntoView({ behavior: 'smooth' });
+    showToast('Split link generated! 🔗');
+  } catch (e) {
+    console.error(e);
+    showToast('Failed to generate link');
+  }
+}
+
+function copyBsLink() {
+  const urlText = document.getElementById('bs-generated-url').textContent;
+  navigator.clipboard.writeText(urlText).then(() => {
+    showToast('Link copied to clipboard! 📋');
+  });
+}
+
+function shareBsLink() {
+  const urlText = document.getElementById('bs-generated-url').textContent;
+  const billName = document.getElementById('bs-bill-name').value.trim();
+  
+  if (navigator.share) {
+    navigator.share({
+      title: `Split Bill: ${billName}`,
+      text: `Select your items from this receipt and pay your share directly:`,
+      url: urlText
+    }).catch(()=>{});
+  } else {
+    const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent('Hi friends, please click the link to select your items and split the bill: ' + urlText)}`;
+    window.open(whatsappUrl, '_blank');
+  }
+}
+
+// ─────────────────────────────────────────────────────
+// GUEST FLOW LOGIC
+// ─────────────────────────────────────────────────────
+let guestBillData = null;
+let selectedItemIndices = new Set();
+
+function handleSplitBillRouting() {
+  const hash = window.location.hash;
+  if (hash.startsWith('#split-bill')) {
+    const query = hash.split('?')[1];
+    if (query) {
+      const params = new URLSearchParams(query);
+      const billDataB64 = params.get('b');
+      if (billDataB64) {
+        try {
+          const jsonStr = decodeURIComponent(escape(atob(billDataB64)));
+          const billData = JSON.parse(jsonStr);
+          
+          // Render guest screen
+          document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+          document.getElementById('screen-guest-split').classList.add('active');
+          
+          guestBillData = billData;
+          selectedItemIndices.clear();
+          
+          document.getElementById('gs-payer-title').textContent = `${billData.p} shared a bill`;
+          document.getElementById('gs-bill-title').textContent = billData.n;
+          document.getElementById('gs-date-label').textContent = billData.d || '';
+          
+          // Render items grid
+          const itemsContainer = document.getElementById('gs-items-container');
+          itemsContainer.innerHTML = billData.i.map((item, idx) => `
+            <div class="guest-item-card" id="gs-card-${idx}" onclick="toggleGuestItemSelection(${idx})">
+              <div class="guest-item-card-left">
+                <div class="guest-checkbox">
+                  <div class="guest-checkbox-check"></div>
+                </div>
+                <div class="guest-item-name">${item.n}</div>
+              </div>
+              <div class="guest-item-price">₹${item.p.toFixed(2)}</div>
+            </div>
+          `).join('');
+          
+          document.getElementById('gs-guest-name').value = '';
+          updateGuestTotals();
+          
+          // Reset pay buttons
+          document.getElementById('gs-pay-confirm-btn').textContent = 'I Have Transferred the Money';
+          document.getElementById('gs-pay-confirm-btn').style.background = 'var(--green-dim)';
+          document.getElementById('gs-pay-confirm-btn').style.color = 'var(--green)';
+          document.getElementById('gs-pay-confirm-btn').style.borderColor = 'var(--green)';
+          document.getElementById('gs-pay-confirm-btn').disabled = false;
+          
+          return true;
+        } catch (e) {
+          console.error('Failed to parse guest bill data', e);
+          showToast('Invalid split bill URL link ⚠️');
+        }
+      }
+    }
+  }
+  return false;
+}
+
+function toggleGuestItemSelection(idx) {
+  const card = document.getElementById(`gs-card-${idx}`);
+  if (selectedItemIndices.has(idx)) {
+    selectedItemIndices.delete(idx);
+    card.classList.remove('selected');
+  } else {
+    selectedItemIndices.add(idx);
+    card.classList.add('selected');
+  }
+  updateGuestTotals();
+}
+
+function updateGuestTotals() {
+  if (!guestBillData) return;
+  
+  const subtotal = Array.from(selectedItemIndices).reduce((sum, idx) => sum + guestBillData.i[idx].p, 0);
+  const totalBillItemsCost = guestBillData.i.reduce((sum, item) => sum + item.p, 0);
+  
+  // Proportionate tax/tip share
+  let taxShare = 0;
+  if (totalBillItemsCost > 0) {
+    taxShare = (subtotal / totalBillItemsCost) * (guestBillData.t || 0);
+  }
+  
+  const totalShare = subtotal + taxShare;
+  
+  document.getElementById('gs-items-cost').textContent = `₹${subtotal.toFixed(2)}`;
+  document.getElementById('gs-tax-share').textContent = `₹${taxShare.toFixed(2)}`;
+  document.getElementById('gs-share-total').textContent = totalShare.toFixed(2);
+  
+  const paySection = document.getElementById('gs-pay-section');
+  const fallback = document.getElementById('gs-unselected-fallback');
+  
+  if (totalShare > 0) {
+    paySection.style.display = 'block';
+    fallback.style.display = 'none';
+    
+    // Generate UPI Payment Link
+    // Format: upi://pay?pa=address@upi&pn=Payee%20Name&am=Amount&tn=Note&cu=INR
+    const guestName = document.getElementById('gs-guest-name').value.trim() || 'Guest';
+    const upiUri = `upi://pay?pa=${encodeURIComponent(guestBillData.u)}&pn=${encodeURIComponent(guestBillData.p)}&am=${totalShare.toFixed(2)}&tn=${encodeURIComponent('Split: ' + guestBillData.n + ' - ' + guestName)}&cu=INR`;
+    
+    document.getElementById('gs-upi-link').href = upiUri;
+    document.getElementById('gs-qr-img').src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(upiUri)}`;
+  } else {
+    paySection.style.display = 'none';
+    fallback.style.display = 'block';
+  }
+}
+
+function copyGsSummary() {
+  if (!guestBillData) return;
+  const guestName = document.getElementById('gs-guest-name').value.trim() || 'Guest';
+  const total = document.getElementById('gs-share-total').textContent;
+  const selectedNames = Array.from(selectedItemIndices).map(idx => guestBillData.i[idx].n).join(', ');
+  
+  const msg = `Hi ${guestBillData.p}, I've split the bill "${guestBillData.n}" on Spendly. My share for: [${selectedNames}] is ₹${total}. Paid you via UPI! (From: ${guestName})`;
+  
+  navigator.clipboard.writeText(msg).then(() => {
+    showToast('Payment confirmation text copied! 📋');
+  });
+}
+
+function confirmGsPayment() {
+  const btn = document.getElementById('gs-pay-confirm-btn');
+  btn.textContent = 'Payment Notified ✅';
+  btn.style.background = 'rgba(104,211,145,0.2)';
+  btn.style.color = '#81e6d9';
+  btn.style.borderColor = 'transparent';
+  btn.disabled = true;
+  showToast('Split payment transfer logged! Thank you.');
+}
