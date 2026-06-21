@@ -951,7 +951,12 @@ function txHTML(tx, showSwipe=true) {
       </div>
       <div class="tx-right">
         <div class="tx-amount ${tx.type}">${amountStr}</div>
-        ${recur}
+        <div style="display:flex;align-items:center;justify-content:flex-end;gap:6px;margin-top:4px">
+          ${recur}
+          <div class="tx-delete-icon" onclick="event.stopPropagation(); deleteTxDirect('${tx.id}')" title="Delete transaction" style="color:var(--red);opacity:.45;padding:4px;margin-right:-4px;border-radius:6px;transition:opacity .15s,background .15s;display:flex;align-items:center;justify-content:center">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="13" height="13"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+          </div>
+        </div>
       </div>
     </div>`;
   if (!showSwipe) return inner;
@@ -962,6 +967,25 @@ function txHTML(tx, showSwipe=true) {
     </div>
     ${inner}
   </div>`;
+}
+
+async function deleteTxDirect(id) {
+  const tx = appData.transactions.find(t => t.id === id);
+  if (!tx || !confirm(`Delete "${tx.description || tx.category}"?`)) return;
+  
+  setSyncing('syncing');
+  try {
+    await dbDeleteTransaction(currentUser.id, id);
+    setSyncing('ok');
+    appData.transactions = appData.transactions.filter(t => t.id !== id);
+    showToast('Transaction deleted');
+    const a = document.querySelector('.screen.active');
+    if (a && a.id === 'screen-home') renderHome();
+    if (a && a.id === 'screen-transactions') renderTransactions();
+  } catch (e) {
+    setSyncing('error');
+    showToast('Failed to delete transaction');
+  }
 }
 
 function initSwipe(container) {
