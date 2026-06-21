@@ -11,4 +11,4 @@ const SUPABASE_ANON = '';
 const GEMINI_KEY = '';
 
 // App version — bump this to force service worker cache refresh
-const APP_VERSION = '4.1.0';
+const APP_VERSION = '4.10.0';

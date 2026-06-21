@@ -218,6 +218,26 @@ async function dbSignOut() {
   if (error) throw error;
 }
 
+async function dbResetPassword(email) {
+  if (useLocalDB) {
+    return { data: {}, error: null };
+  }
+  const { data, error } = await _sb.auth.resetPasswordForEmail(email, {
+    redirectTo: window.location.origin + window.location.pathname
+  });
+  if (error) throw error;
+  return data;
+}
+
+async function dbUpdatePassword(newPassword) {
+  if (useLocalDB) {
+    return { data: {}, error: null };
+  }
+  const { data, error } = await _sb.auth.updateUser({ password: newPassword });
+  if (error) throw error;
+  return data;
+}
+
 async function dbGetSession() {
   if (useLocalDB) {
     return getLocalSession();
@@ -240,11 +260,11 @@ function dbOnAuthChange(callback) {
   if (useLocalDB) {
     authCallback = callback;
     const session = getLocalSession();
-    setTimeout(() => callback(session), 0);
+    setTimeout(() => callback('SIGNED_IN', session), 0);
     return { data: { subscription: { unsubscribe: () => { authCallback = null; } } } };
   }
-  return _sb.auth.onAuthStateChange((_event, session) => {
-    callback(session);
+  return _sb.auth.onAuthStateChange((event, session) => {
+    callback(event, session);
   });
 }
 

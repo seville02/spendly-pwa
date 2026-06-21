@@ -56,15 +56,17 @@
   <div class="auth-card">
     <div class="auth-title" id="auth-title">Welcome back</div>
     <div class="auth-sub" id="auth-sub">Sign in to your Spendly account</div>
-    <div class="auth-tabs">
+    <div class="auth-tabs" id="auth-tabs-container">
       <div class="auth-tab active" id="auth-tab-signin" onclick="setAuthTab('signin')">Sign In</div>
       <div class="auth-tab" id="auth-tab-signup" onclick="setAuthTab('signup')">Sign Up</div>
     </div>
+    <div id="auth-back-link" onclick="setAuthTab('signin')" style="display:none;font-size:12px;color:var(--text3);cursor:pointer;margin-bottom:14px;text-align:center;text-decoration:underline">← Back to Sign In</div>
     <div id="auth-name-wrap" style="display:none">
       <input class="auth-input" type="text" id="auth-name" placeholder="Your name" onkeydown="if(event.key==='Enter')document.getElementById('auth-email').focus()">
     </div>
     <input class="auth-input" type="email" id="auth-email" placeholder="Email address" inputmode="email" onkeydown="if(event.key==='Enter')document.getElementById('auth-password').focus()">
     <input class="auth-input" type="password" id="auth-password" placeholder="Password" onkeydown="if(event.key==='Enter')handleAuth()">
+    <div id="auth-forgot-link" onclick="setAuthTab('forgot')" style="font-size:12px;color:var(--accent);text-align:right;cursor:pointer;margin-top:6px;margin-bottom:14px">Forgot Password?</div>
     <button class="auth-btn" id="auth-btn" onclick="handleAuth()">Sign In</button>
     <div class="auth-error" id="auth-error"></div>
     <div class="auth-footer">Your data is encrypted and synced<br>across all your devices via Supabase.</div>
@@ -127,6 +129,9 @@
         <div class="icon-btn" onclick="toggleTheme()">
           <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
         </div>
+        <div class="icon-btn" onclick="clearAllTransactions()" title="Clear all transactions" style="color:var(--red);opacity:.7">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="18" height="18"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+        </div>
       </div>
     </div>
   </div>
@@ -143,6 +148,10 @@
   <!-- Hero card -->
   <div class="hero-card">
     <div class="hero-glow"></div>
+    <div class="hero-toggle-tabs">
+      <div class="hero-toggle-tab active" id="hero-tab-budget" onclick="switchHeroTab('budget')">Budget Tracker</div>
+      <div class="hero-toggle-tab" id="hero-tab-wallet" onclick="switchHeroTab('wallet')">Wallet Cash Flow</div>
+    </div>
     <div class="hero-label">Remaining Budget</div>
     <div class="hero-amount">
       <span class="hero-currency" id="hero-currency">₹</span>
@@ -229,6 +238,9 @@
         <div class="month-pill" onclick="openMonthSelector()">
           <span id="nav-month-label-2">May 2026</span>
           <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+        <div class="icon-btn" onclick="clearAllTransactions()" title="Clear all transactions" style="color:var(--red);opacity:.7">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="18" height="18"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
         </div>
       </div>
     </div>
@@ -324,7 +336,11 @@
 <!-- ══════════ PROFILE ══════════ -->
 <div class="screen" id="screen-profile">
   <div class="profile-header">
-    <div class="avatar" id="profile-avatar">💼</div>
+    <div class="avatar" id="profile-avatar" onclick="document.getElementById('avatar-file-input').click()">
+      <span id="profile-avatar-txt">💼</span>
+      <div class="avatar-edit-overlay">📸</div>
+    </div>
+    <input type="file" id="avatar-file-input" accept="image/*" style="display:none" onchange="uploadAvatar(event)">
     <div class="profile-name" id="profile-display-name">My Account</div>
     <div class="profile-email" id="profile-email"></div>
     <div class="profile-sub" id="profile-sub">Budget resets on the 6th</div>
@@ -334,10 +350,6 @@
     <div class="edit-field">
       <span class="edit-field-label">Name</span>
       <input type="text" id="profile-name-input" placeholder="Your name" onblur="autoSaveProfile()" onkeydown="if(event.key==='Enter'){autoSaveProfile();this.blur()}">
-    </div>
-    <div class="edit-field">
-      <span class="edit-field-label">Budget Day</span>
-      <input type="number" id="profile-day-input" placeholder="1" min="1" max="28" onblur="autoSaveProfile()" onkeydown="if(event.key==='Enter'){autoSaveProfile();this.blur()}">
     </div>
     <div class="edit-field" onclick="openCurrencyPicker()" style="cursor:pointer">
       <span class="edit-field-label">Currency</span>
@@ -368,16 +380,16 @@
       <div class="settings-left"><div class="settings-icon">🔒</div><div><div class="settings-label">PIN Lock</div><div class="settings-val" id="pin-status-label">Disabled</div></div></div>
       <div class="toggle" id="pin-toggle" onclick="event.stopPropagation();openPinSetup()"><div class="toggle-knob"></div></div>
     </div>
+    <div class="settings-item" onclick="openChangePassword()" id="settings-change-password-item">
+      <div class="settings-left"><div class="settings-icon">🔐</div><div><div class="settings-label">Change Password</div><div class="settings-val">Update account password</div></div></div>
+      <svg class="chevron" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+    </div>
     <div class="settings-item" onclick="exportCSV()">
       <div class="settings-left"><div class="settings-icon">📊</div><div><div class="settings-label">Export CSV</div><div class="settings-val">Open in Excel / Sheets</div></div></div>
       <svg class="chevron" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
     </div>
     <div class="settings-item" onclick="openModal('modal-import-confirm')">
       <div class="settings-left"><div class="settings-icon">📥</div><div><div class="settings-label">Import Backup</div><div class="settings-val">Restore from CSV export</div></div></div>
-      <svg class="chevron" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
-    </div>
-    <div class="settings-item" onclick="clearAllData()">
-      <div class="settings-left"><div class="settings-icon">🗑️</div><div><div class="settings-label" style="color:var(--red)">Clear All Data</div><div class="settings-val">Delete all transactions & budgets</div></div></div>
       <svg class="chevron" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
     </div>
     <div class="settings-item" onclick="signOut()">
@@ -508,9 +520,9 @@
     <div class="form-group">
       <label class="form-label">Recurring</label>
       <select class="form-input" id="input-recur">
-        <option value="none">Not recurring</option>
-        <option value="monthly">Monthly</option>
-        <option value="weekly">Weekly</option>
+        <option value="none">One-time (Non-recurring)</option>
+        <option value="weekly">Weekly (based on weekday of selected date)</option>
+        <option value="monthly">Monthly (Recurring every month)</option>
       </select>
     </div>
     <button class="submit-btn" onclick="submitTransaction()">Add Transaction</button>
@@ -708,6 +720,69 @@
       </div>
     </div>
     <div id="currency-list" style="max-height:55vh;overflow-y:auto;padding:0 2px"></div>
+    <div style="height:12px"></div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: EXPORT CSV ═══ -->
+<div class="modal-overlay" id="modal-export-csv">
+  <div class="modal-sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">📊 Export CSV Report</div>
+    <div style="font-size:13px;color:var(--text2);line-height:1.65;margin-bottom:20px;text-align:center">
+      Select which transactions you want to include in the CSV file.
+    </div>
+    <button class="submit-btn" onclick="triggerExportCSV(false)">
+      📋 Export This Month Only
+    </button>
+    <div style="height:8px"></div>
+    <button class="submit-btn" style="background:var(--accent-dim);color:var(--accent);border:1px solid var(--accent)" onclick="triggerExportCSV(true)">
+      📅 Export All Time
+    </button>
+    <div style="height:8px"></div>
+    <button class="submit-btn secondary" onclick="closeModal('modal-export-csv')">
+      Cancel
+    </button>
+    <div style="height:12px"></div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: EXPORT ACTION ═══ -->
+<div class="modal-overlay" id="modal-export-action">
+  <div class="modal-sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">📤 Share or Download Report</div>
+    <div style="font-size:13px;color:var(--text2);line-height:1.65;margin-bottom:20px;text-align:center">
+      Choose to send this report via Email / Messaging or save it directly.
+    </div>
+    <button class="submit-btn" id="export-share-btn" onclick="executeExportAction('share')">
+      ✉️ Email &amp; Share Report
+    </button>
+    <div style="height:8px"></div>
+    <button class="submit-btn" style="background:var(--accent-dim);color:var(--accent);border:1px solid var(--accent)" onclick="executeExportAction('download')">
+      💾 Download Directly
+    </button>
+    <div style="height:8px"></div>
+    <button class="submit-btn secondary" onclick="closeModal('modal-export-action')">
+      Cancel
+    </button>
+    <div style="height:12px"></div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: CHANGE PASSWORD ═══ -->
+<div class="modal-overlay" id="modal-change-password">
+  <div class="modal-sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">🔐 Change Password</div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:14px;text-align:center;line-height:1.6">Enter a new secure password for your account.</div>
+    <div class="form-group">
+      <label class="form-label">New Password</label>
+      <input class="form-input" type="password" id="input-new-password" placeholder="At least 6 characters" onkeydown="if(event.key==='Enter')submitChangePassword()">
+    </div>
+    <button class="submit-btn" onclick="submitChangePassword()">Update Password</button>
+    <div style="height:6px"></div>
+    <button class="submit-btn secondary" onclick="closeModal('modal-change-password')">Cancel</button>
     <div style="height:12px"></div>
   </div>
 </div>
