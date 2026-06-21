@@ -121,6 +121,9 @@ body { display: flex; flex-direction: column; max-width: 480px; margin: 0 auto; 
 .icon-btn { width: 34px; height: 34px; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; touch-action: manipulation; flex-shrink: 0; }
 .icon-btn:active { background: var(--surface3); }
 .icon-btn svg { width: 16px; height: 16px; color: var(--text2); }
+.clear-all-btn { display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; background: var(--red-dim); color: var(--red); cursor: pointer; transition: background 0.15s, transform 0.1s; touch-action: manipulation; flex-shrink: 0; }
+.clear-all-btn:active { transform: scale(0.9); background: rgba(252, 129, 129, 0.25); }
+.clear-all-btn svg { width: 14px; height: 14px; }
 
 /* ═══════════════════════════════════════
    HERO CARD
