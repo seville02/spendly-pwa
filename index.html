@@ -1036,6 +1036,25 @@ function openCatBudgetModal() {
   renderCatBudgetSettings();
   openModal('modal-cat-budget');
 }
+
+// Inline Service Worker registration for robust updates and automatic recovery
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js')
+    .then(reg => {
+      reg.onupdatefound = () => {
+        const installingWorker = reg.installing;
+        if (installingWorker) {
+          installingWorker.onstatechange = () => {
+            if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              // Automatically reload to apply the update immediately
+              window.location.reload();
+            }
+          };
+        }
+      };
+    })
+    .catch(err => console.warn('SW registration failed:', err));
+}
 </script>
 </body>
 </html>
