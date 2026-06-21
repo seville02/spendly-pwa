@@ -136,11 +136,11 @@ function fmt(n) {
   }
   if (n >= 100000) {
     const v = n / 100000;
-    return sym + (v % 1 === 0 ? v.toFixed(0) : v.toFixed(1)) + 'L';
+    return sym + Number(v.toFixed(2)) + 'L';
   }
   if (n >= 1000) {
     const v = n / 1000;
-    return sym + (v % 1 === 0 ? v.toFixed(0) : v.toFixed(1)) + 'K';
+    return sym + Number(v.toFixed(2)) + 'K';
   }
   return sym + Number(n).toLocaleString('en-IN', {
     minimumFractionDigits: 0,
