@@ -2000,7 +2000,12 @@ function renderEvents() {
             ${ev.targetDate ? `<div class="ev-date">📅 ${new Date(ev.targetDate+'T12:00').toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}</div>` : ''}
           </div>
         </div>
-        <span class="ev-badge">${items.length} item${items.length!==1?'s':''}</span>
+        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+          <span class="ev-badge">${items.length} item${items.length!==1?'s':''}</span>
+          <div class="ev-delete-btn-direct" onclick="event.stopPropagation(); deleteEventDirect('${ev.id}', '${ev.name.replace(/'/g, "\\\'")}')" title="Delete event">
+            <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+          </div>
+        </div>
       </div>
       <div class="ev-stats-row">
         <div class="ev-stat-item"><div class="ev-stat-val green">${fmt(totalPaid)}</div><div class="ev-stat-lbl">Paid</div></div>
@@ -2127,6 +2132,14 @@ function deleteEvent() {
   dbDeleteEvent(currentUser.id, currentEventId);
   closeModal('modal-add-event');
   navigateEvents();
+  showToast('Event deleted');
+}
+
+function deleteEventDirect(eventId, eventName) {
+  if (!confirm(`Delete event "${eventName}" and all its expenses?`)) return;
+  dbDeleteEvent(currentUser.id, eventId);
+  renderEvents();
+  renderProfile();
   showToast('Event deleted');
 }
 

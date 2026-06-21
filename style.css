@@ -642,6 +642,32 @@ body { display: flex; flex-direction: column; max-width: 480px; margin: 0 auto; 
   background: var(--surface2);
 }
 
+.ev-delete-btn-direct {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text3);
+  background: var(--surface3);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid var(--border);
+}
+[data-theme="light"] .ev-delete-btn-direct {
+  background: var(--surface2);
+}
+.ev-delete-btn-direct:hover {
+  background: var(--red-dim);
+  color: var(--red);
+  border-color: rgba(252, 129, 129, 0.3);
+  transform: scale(1.05);
+}
+.ev-delete-btn-direct:active {
+  transform: scale(0.92);
+}
+
 .ev-stats-row {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
