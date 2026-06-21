@@ -92,10 +92,50 @@ function updateLocalCache(userId, action, data) {
   localStorage.setItem(`spendly_data_${userId}`, JSON.stringify(cache));
 }
 
+function _localHash(str) {
+  let h = 0;
+  for (let i = 0; i < str.length; i++) {
+    h = ((h << 5) - h) + str.charCodeAt(i);
+    h |= 0;
+  }
+  return h.toString(36);
+}
+
+function _getLocalUsers() {
+  try {
+    return JSON.parse(localStorage.getItem('spendly_local_users') || '{}');
+  } catch (e) {
+    return {};
+  }
+}
+
+function _saveLocalUsers(users) {
+  localStorage.setItem('spendly_local_users', JSON.stringify(users));
+}
+
 function getLocalSession() {
   const email = localStorage.getItem('spendly_local_user');
   if (email) {
-    return { user: { id: 'local-user', email } };
+    const normEmail = email.trim().toLowerCase();
+    const userId = 'local-user-' + normEmail.replace(/[^a-zA-Z0-9]/g, '_');
+    
+    // Legacy Data Migration: migrate legacy local-user data to email-specific key
+    const legacyKey = 'spendly_data_local-user';
+    const newKey = `spendly_data_${userId}`;
+    if (localStorage.getItem(legacyKey) && !localStorage.getItem(newKey)) {
+      localStorage.setItem(newKey, localStorage.getItem(legacyKey));
+    }
+    
+    const otherKeys = ['spendly_events', 'spendly_event_items', 'spendly_pending'];
+    otherKeys.forEach(k => {
+      const oldK = `${k}_local-user`;
+      const newK = `${k}_${userId}`;
+      if (localStorage.getItem(oldK) && !localStorage.getItem(newK)) {
+        localStorage.setItem(newK, localStorage.getItem(oldK));
+      }
+    });
+    
+    return { user: { id: userId, email: normEmail } };
   }
   return null;
 }
@@ -179,14 +219,30 @@ window.addEventListener('online', () => {
 
 async function dbSignUp(email, password, name) {
   if (useLocalDB) {
-    localStorage.setItem('spendly_local_user', email);
-    // Only initialise fresh data if nothing exists yet — preserve any existing data
-    if (!localStorage.getItem('spendly_data_local-user')) {
-      const profile = { name, budget_day: 1 };
-      localStorage.setItem('spendly_data_local-user', JSON.stringify({ transactions: [], budgets: {}, catBudgets: {}, debts: [], profile }));
+    const normEmail = email.trim().toLowerCase();
+    const users = _getLocalUsers();
+    if (users[normEmail]) {
+      throw new Error("already registered");
     }
-    if (authCallback) authCallback(getLocalSession());
-    return { user: { id: 'local-user', email } };
+    
+    users[normEmail] = {
+      email: normEmail,
+      passwordHash: _localHash(password),
+      name: name
+    };
+    _saveLocalUsers(users);
+    
+    localStorage.setItem('spendly_local_user', normEmail);
+    
+    const session = getLocalSession();
+    const userId = session.user.id;
+    if (!localStorage.getItem(`spendly_data_${userId}`)) {
+      const profile = { name, budget_day: 1 };
+      localStorage.setItem(`spendly_data_${userId}`, JSON.stringify({ transactions: [], budgets: {}, catBudgets: {}, debts: [], profile }));
+    }
+    
+    if (authCallback) authCallback('SIGNED_IN', session);
+    return session;
   }
   const { data, error } = await _sb.auth.signUp({
     email,
@@ -199,9 +255,18 @@ async function dbSignUp(email, password, name) {
 
 async function dbSignIn(email, password) {
   if (useLocalDB) {
-    localStorage.setItem('spendly_local_user', email);
-    if (authCallback) authCallback(getLocalSession());
-    return { user: { id: 'local-user', email } };
+    const normEmail = email.trim().toLowerCase();
+    const users = _getLocalUsers();
+    const user = users[normEmail];
+    if (!user || user.passwordHash !== _localHash(password)) {
+      throw new Error("Invalid login credentials");
+    }
+    
+    localStorage.setItem('spendly_local_user', normEmail);
+    
+    const session = getLocalSession();
+    if (authCallback) authCallback('SIGNED_IN', session);
+    return session;
   }
   const { data, error } = await _sb.auth.signInWithPassword({ email, password });
   if (error) throw error;
@@ -211,7 +276,7 @@ async function dbSignIn(email, password) {
 async function dbSignOut() {
   if (useLocalDB) {
     localStorage.removeItem('spendly_local_user');
-    if (authCallback) authCallback(null);
+    if (authCallback) authCallback('SIGNED_OUT', null);
     return;
   }
   const { error } = await _sb.auth.signOut();
