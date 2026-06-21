@@ -17,6 +17,17 @@ const CATEGORIES = [
   {id:'Investment',icon:'📈',color:'#4fd1c5'},{id:'Other',icon:'📌',color:'#8896b3'},
 ];
 
+const INCOME_CATEGORIES = [
+  {id:'Salary',icon:'💼',color:'#68d391'},
+  {id:'Investments',icon:'📈',color:'#4fd1c5'},
+  {id:'Freelance / Side Hustle',icon:'💻',color:'#b794f4'},
+  {id:'Gifts / Grants',icon:'🎁',color:'#f687b3'},
+  {id:'Refunds',icon:'🔄',color:'#76e4f7'},
+  {id:'Rental Income',icon:'🏠',color:'#ed8936'},
+  {id:'Business',icon:'🏢',color:'#4299e1'},
+  {id:'Other Income',icon:'📌',color:'#8896b3'},
+];
+
 const CURRENCIES = [
   {code:'INR', symbol:'₹',   name:'Indian Rupee',         flag:'🇮🇳'},
   {code:'USD', symbol:'$',   name:'US Dollar',             flag:'🇺🇸'},
@@ -70,6 +81,7 @@ let selectedCat   = 'Food';
 let filterCategory= 'all';
 let filterTimeScope= 'month';
 let activeStatsTab= 'overview';
+let activeStatsCatTab = 'expense';
 let debtType          = 'owe';
 let charts            = { donut:null, bar:null, line:null, compare:null };
 let currentEventId    = null;
@@ -877,7 +889,7 @@ function loadCachedAISummary() {
 // TX HTML + SWIPE
 // ─────────────────────────────────────────────────────
 function txHTML(tx, showSwipe=true) {
-  const cat = CATEGORIES.find(c=>c.id===tx.category)||{icon:'📌',color:'#8896b3'};
+  const cat = (tx.type === 'income' ? INCOME_CATEGORIES.find(c=>c.id===tx.category) : CATEGORIES.find(c=>c.id===tx.category)) || {icon:'📌',color:'#8896b3'};
   const hasTime = tx.datetime && tx.datetime.includes('T');
   const d   = parseDate(tx.datetime);
   const ds  = d.toLocaleDateString('en-IN',{day:'numeric',month:'short'});
@@ -987,7 +999,7 @@ function renderTransactions() {
 
   if (search) txs=txs.filter(t=>(t.description||'').toLowerCase().includes(search)||(t.category||'').toLowerCase().includes(search)||(t.notes||'').toLowerCase().includes(search)||String(t.amount).includes(search));
 
-  const catChips=CATEGORIES.filter(c=>usedCats.includes(c.id)).map(c=>
+  const catChips=[...CATEGORIES, ...INCOME_CATEGORIES].filter(c=>usedCats.includes(c.id)).map(c=>
     `<div class="cat-chip ${filterCategory===c.id?'active':''}" onclick="filterCat(this,'${c.id}')">${c.icon} ${c.id}</div>`).join('');
   document.getElementById('filter-chips').innerHTML=`
     <div class="cat-chip ${filterCategory==='all'?'active':''}" onclick="filterCat(this,'all')">📋 All</div>
@@ -1045,6 +1057,25 @@ function setStatsTab(el,tab){
   ['overview','categories','merchants','daily','compare'].forEach(id=>document.getElementById('stats-'+id).style.display=id===tab?'block':'none');
   renderStats();
 }
+function switchStatsCatTab(tab) {
+  activeStatsCatTab = tab;
+  const btnExpense = document.getElementById('stats-cat-toggle-expense');
+  const btnIncome = document.getElementById('stats-cat-toggle-income');
+  if (btnExpense && btnIncome) {
+    if (tab === 'expense') {
+      btnExpense.style.background = 'var(--accent)';
+      btnExpense.style.color = '#0a0f1e';
+      btnIncome.style.background = 'none';
+      btnIncome.style.color = 'var(--text3)';
+    } else {
+      btnIncome.style.background = 'var(--accent)';
+      btnIncome.style.color = '#0a0f1e';
+      btnExpense.style.background = 'none';
+      btnExpense.style.color = 'var(--text3)';
+    }
+  }
+  renderStats();
+}
 function destroyChart(k){if(charts[k]){charts[k].destroy();charts[k]=null;}}
 
 function renderStats(){
@@ -1074,16 +1105,21 @@ function renderStats(){
     if(sorted.length>0){charts.donut=new Chart(document.getElementById('donut-chart').getContext('2d'),{type:'doughnut',data:{labels:sorted.map(([k])=>k),datasets:[{data:sorted.map(([,v])=>v),backgroundColor:sorted.map(([k])=>CATEGORIES.find(c=>c.id===k)?.color||'#8896b3'),borderWidth:0,spacing:2}]},options:{responsive:true,maintainAspectRatio:false,cutout:'68%',plugins:{legend:{position:'bottom',labels:{color:'var(--text2)',font:{size:10},padding:8,boxWidth:8}},tooltip:{callbacks:{label:c=>` ${c.label}: ${fmt(c.raw)}`}}}}});}
   }
   if(activeStatsTab==='categories'){
-    const catTotals={};expenses.forEach(t=>{catTotals[t.category]=(catTotals[t.category]||0)+getTxMonthAmount(t, viewYear, viewMonth);});
+    const isIncome = activeStatsCatTab === 'income';
+    const targetTxs = isIncome ? incomes : expenses;
+    const catList = isIncome ? INCOME_CATEGORIES : CATEGORIES;
+    const totalAmt = isIncome ? totalIncome : totalSpent;
+    const catTotals={};
+    targetTxs.forEach(t=>{catTotals[t.category]=(catTotals[t.category]||0)+getTxMonthAmount(t, viewYear, viewMonth);});
     const sorted=Object.entries(catTotals).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]);
     const maxAmt=sorted[0]?.[1]||1, cb=appData.catBudgets||{};
     document.getElementById('cat-bars').innerHTML=sorted.map(([id,amt])=>{
-      const cat=CATEGORIES.find(c=>c.id===id)||{icon:'📌',color:'#8896b3'};
-      const pct=totalSpent>0?Math.round((amt/totalSpent)*100):0;
-      const limit=cb[id];
+      const cat=catList.find(c=>c.id===id)||{icon:'📌',color:'#8896b3'};
+      const pct=totalAmt>0?Math.round((amt/totalAmt)*100):0;
+      const limit=!isIncome ? cb[id] : null;
       const limitStr=limit?`<span class="cat-budget-left">${amt<=limit?fmt(limit-amt)+' left':'over by '+fmt(amt-limit)}</span>`:'';
       return `<div class="cat-bar-row"><div class="cat-bar-header"><div class="cat-bar-name">${cat.icon} ${id}</div><div class="cat-bar-right">${limitStr}<div class="cat-bar-pct">${pct}%</div><div class="cat-bar-amt">${fmt(amt)}</div></div></div><div class="cat-bar-track"><div class="cat-bar-fill" style="width:${(amt/maxAmt)*100}%;background:${limit&&amt>limit?'var(--red)':cat.color}"></div></div></div>`;
-    }).join('')||'<div class="empty-state"><div class="empty-icon">📊</div><div class="empty-title">No data</div></div>';
+    }).join('')||`<div class="empty-state"><div class="empty-icon">📊</div><div class="empty-title">No ${isIncome?'income':'expense'} data</div></div>`;
   }
   if(activeStatsTab==='merchants'){
     const mt={};expenses.forEach(t=>{const m=(t.description||t.category).trim();mt[m]=mt[m]||{total:0,count:0};mt[m].total+=getTxMonthAmount(t, viewYear, viewMonth);mt[m].count++;});
@@ -1428,7 +1464,7 @@ function openAddExpense(){
 
   ['input-amount','input-desc','input-notes'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('input-recur').value='none';
-  setType('expense'); selectedCat='Food'; renderCatGrid();
+  selectedCat='Food'; setType('expense');
   document.querySelector('#modal-add .sheet-title').textContent = 'Add Transaction';
   document.querySelector('#modal-add .submit-btn').textContent = 'Add Transaction';
   openModal('modal-add');
@@ -1438,10 +1474,19 @@ function setType(type){
   selectedType=type;
   document.getElementById('type-expense').className='type-btn'+(type==='expense'?' active-expense':'');
   document.getElementById('type-income').className='type-btn'+(type==='income'?' active-income':'');
-  document.getElementById('cat-group').style.display=type==='income'?'none':'block';
+  // Always show the category group; just render the appropriate categories
+  document.getElementById('cat-group').style.display='block';
+  // Reset to first category of the new type
+  if (type === 'income') {
+    if (!INCOME_CATEGORIES.find(c=>c.id===selectedCat)) selectedCat = INCOME_CATEGORIES[0].id;
+  } else {
+    if (!CATEGORIES.find(c=>c.id===selectedCat)) selectedCat = 'Food';
+  }
+  renderCatGrid();
 }
 function renderCatGrid(){
-  document.getElementById('cat-grid').innerHTML=CATEGORIES.map(c=>
+  const cats = selectedType === 'income' ? INCOME_CATEGORIES : CATEGORIES;
+  document.getElementById('cat-grid').innerHTML=cats.map(c=>
     `<div class="cat-option ${c.id===selectedCat?'selected':''}" onclick="selectCat('${c.id}')"><div class="cat-option-icon">${c.icon}</div><div class="cat-option-label">${c.id}</div></div>`).join('');
 }
 function selectCat(id){selectedCat=id;renderCatGrid();}
@@ -1467,8 +1512,8 @@ async function submitTransaction(){
     if (!tx) return;
     tx.type = selectedType;
     tx.amount = amount;
-    tx.description = desc || (selectedType === 'income' ? 'Income' : selectedCat);
-    tx.category = selectedType === 'income' ? 'Income' : selectedCat;
+    tx.description = desc || selectedCat;
+    tx.category = selectedCat;
     tx.datetime = datetime;
     tx.monthKey = key;
     tx.notes = notes;
@@ -1494,8 +1539,8 @@ async function submitTransaction(){
 
   const tx={
     id:uid(), type:selectedType, amount,
-    description:desc||(selectedType==='income'?'Income':selectedCat),
-    category:selectedType==='income'?'Income':selectedCat,
+    description:desc||selectedCat,
+    category:selectedCat,
     datetime, monthKey:key, notes, recur, recurParent:''
   };
   setSyncing('syncing');
