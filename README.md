@@ -4,157 +4,148 @@ A mobile-first Progressive Web App for tracking budget spending and managing per
 
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Status](https://img.shields.io/badge/status-active-blue)
+![Hosting](https://img.shields.io/badge/hosting-GitHub%20Pages-blueviolet)
+
+---
+
+## ⚡ Static vs Dynamic — Know Before You Deploy
+
+> This app is a **fully static PWA** (no server, no build step).
+> However, some features reach out to external services. These are clearly listed below.
+
+| Feature | Type | Requires |
+|---------|------|----------|
+| Transactions, budgets, stats, events | ✅ **Static / Local** | Nothing — stored in `localStorage` |
+| Offline support, home-screen install | ✅ **Static / Local** | Service worker (built-in) |
+| PIN lock, themes, categories | ✅ **Static / Local** | Nothing |
+| **User accounts & cross-device sync** | ⚠️ **DYNAMIC** | **Supabase credentials in `config.js`** |
+| **AI spending summary** | ⚠️ **DYNAMIC** | **Google Gemini API key in `config.js`** |
+
+### 🟢 Works with zero config (Local-Only Mode)
+Leave `SUPABASE_URL` and `SUPABASE_ANON` blank in `config.js` — the app automatically falls back to **Local-Only Mode**. All data stays in your browser. No account required.
+
+### 🔴 Dynamic features that need credentials
+
+> **⚠️ SIGN IN / SIGN UP / CLOUD SYNC — These features require a Supabase project.**
+> Without credentials, authentication is disabled and all data is local only.
+
+> **⚠️ AI SPENDING SUMMARY — This feature requires a Google Gemini API key.**
+> Without a key, the AI summary section will not appear.
+
+---
 
 ## 🎯 Overview
 
-Spendly is a lightweight, installable web application designed to help users track their spending in real-time. Built with a focus on simplicity and offline functionality, it provides an intuitive interface for managing transactions, monitoring budgets, and analyzing spending patterns.
+Spendly is a lightweight, installable PWA for tracking spending in real-time. Built with vanilla JS and no frameworks — just open `index.html` and go.
 
 ## ✨ Features
 
-- **📊 Dashboard** - Real-time balance display with key spending metrics
-- **🔐 PIN-Protected Access** - Secure your financial data with a custom PIN
-- **💳 Transaction Management** - Add, view, search, and delete transactions with ease
-- **🏷️ Category Filtering** - Organize transactions by customizable categories
-- **💰 Budget Tracking** - Monitor spending against budget limits with visual progress indicators
-- **📈 Analytics & Charts** - Comprehensive spending analysis with category breakdowns and merchant insights
-- **🔥 Streak Counter** - Gamified tracking to encourage consistent financial discipline
-- **🌓 Dark & Light Themes** - Toggle between themes for comfortable viewing anytime
-- **📴 Offline Support** - Full offline functionality with service worker integration
-- **📱 PWA Ready** - Install as a native-like app on any device
+- **📊 Dashboard** — Real-time balance, remaining budget, spending hero card
+- **💳 Transactions** — Add, search, swipe-to-delete, filter by category
+- **📈 Stats & Charts** — Spending breakdowns, merchant insights, daily & monthly trends
+- **💰 Budget & Salary** — Set a flat budget or calculate from a monthly/weekly salary
+- **🎯 Event Planner** — Plan events with per-event currency, expense tracking, and progress bars
+- **🗑️ 30-Day Recovery** — Deleted transactions can be recovered within 30 days
+- **🤝 Debts** — Track who owes you and who you owe
+- **🧾 Bill Splitter** — OCR scan a bill and split it between people
+- **🔥 Streaks** — Gamified daily tracking motivation
+- **🌓 Dark / Light Theme** — Toggle anytime
+- **📴 Offline** — Full offline support via service worker
+- **📱 PWA** — Installable on any device from the browser
 
 ## 🚀 Quick Start
 
-### Installation
+### Option A — Local Only (zero config)
 
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/shawnfeds/spendly-pwa.git
-   cd spendly-pwa
-   ```
+```bash
+git clone https://github.com/seville02/spendly-pwa.git
+cd spendly-pwa
+# Open index.html in your browser — that's it
+```
 
-2. **Open in browser:**
-   - Open `index.html` in your web browser
-   - Or serve locally with any HTTP server:
-     ```bash
-     python -m http.server 8000
-     # or
-     npx http-server
-     ```
+Leave `config.js` credentials empty. All data stays in your browser.
 
-3. **Install as PWA:**
-   - Visit the app URL in a modern browser
-   - Click the "Install" button (or menu option)
-   - Access from your home screen or app drawer
+### Option B — With Cloud Sync (Supabase)
+
+1. Create a free project at [supabase.com](https://supabase.com)
+2. Copy your `Project URL` and `anon public` key
+3. Edit `config.js`:
+
+```js
+const SUPABASE_URL  = 'https://your-project.supabase.co';
+const SUPABASE_ANON = 'your-anon-key';
+```
+
+4. **DYNAMIC:** Sign up / sign in will now work and your data syncs across devices.
+
+### Option C — With AI Summary (Gemini)
+
+1. Get a free API key at [aistudio.google.com](https://aistudio.google.com)
+2. Edit `config.js`:
+
+```js
+const GEMINI_KEY = 'your-gemini-api-key';
+```
+
+3. **DYNAMIC:** The AI spending summary section will appear on your Home screen.
 
 ## 💻 Technology Stack
 
-- **Frontend:** Vanilla JavaScript (no frameworks)
-- **Styling:** CSS3 with CSS custom properties (variables)
-- **Charts:** Chart.js 4.4.0
-- **Fonts:** DM Sans & DM Mono (Google Fonts)
-- **Storage:** Browser LocalStorage API
-- **PWA:** Service Worker with offline support
-- **Design System:** Custom theme tokens with light/dark mode
+| Layer | Technology |
+|-------|-----------|
+| Frontend | Vanilla JavaScript (no frameworks) |
+| Styling | CSS3 with custom properties |
+| Charts | Chart.js 4.4.0 |
+| Fonts | DM Sans & DM Mono (Google Fonts) |
+| Storage (local) | `localStorage` |
+| Storage (cloud) | Supabase (optional) |
+| OCR | Google Gemini Vision (optional) |
+| PWA | Service Worker + Web App Manifest |
 
 ## 📁 Project Structure
 
 ```
 spendly-pwa/
-├── index.html          # Main application file (HTML, CSS, JS)
-├── sw.js              # Service worker for offline support
-├── manifest.json      # PWA manifest configuration
-├── icons/             # App icons for different devices
-├── README.md          # Documentation (this file)
-└── LICENSE            # MIT License
+├── index.html       # App shell — all screens and modals
+├── app.js           # All UI logic, rendering, routing
+├── db.js            # Supabase database layer + local fallback
+├── style.css        # Design system and component styles
+├── config.js        # ← PUT YOUR CREDENTIALS HERE
+├── sw.js            # Service worker (offline caching)
+├── manifest.json    # PWA install metadata
+└── icons/           # App icons
 ```
 
-## 🎨 Color Palette
+## 🔒 Security & Privacy
 
-| Token | Light | Dark |
-|-------|-------|------|
-| **Accent** | #0ea5a0 | #4fd1c5 |
-| **Green** | #2d9e5f | #68d391 |
-| **Red** | #e05353 | #fc8181 |
-| **Amber** | #c07c20 | #f6ad55 |
-| **Purple** | #7c4fc4 | #b794f4 |
-| **Blue** | #2b6cb0 | #63b3ed |
-
-## 🔑 Key Components
-
-### Screens
-- **Home** - Dashboard with balance overview
-- **Transactions** - Browse and manage all transactions
-- **Stats** - Detailed spending analytics
-- **Settings** - Configure app preferences and security
-
-### UI Elements
-- **Hero Card** - Primary balance display with stats
-- **Transaction List** - Swipeable transaction items
-- **Category Filters** - Quick filtering by spending category
-- **Charts** - Spending breakdowns and trends
-- **Budget Banners** - Alerts when approaching limits
-
-## 🔒 Security
-
-- PIN-protected access with visual feedback
-- All data stored locally (no cloud sync)
-- Service worker isolation for offline operations
-- No external API calls for sensitive data
+- **Local-Only Mode**: zero data leaves your device
+- PIN-protected access
+- No tracking, no analytics, no ads
+- Supabase data is tied to your own project — you own it
 
 ## 📱 Browser Support
 
-- Chrome/Edge 90+
+- Chrome / Edge 90+
 - Firefox 88+
 - Safari 14+
-- Mobile browsers (iOS Safari, Chrome Mobile, Samsung Internet)
+- iOS Safari, Chrome Mobile, Samsung Internet
 
 ## 🛠️ Development
 
-To modify or extend Spendly:
-
-1. **Edit styles** - Modify CSS custom properties in `:root` or `[data-theme="light"]`
-2. **Add features** - JavaScript is integrated in `index.html`
-3. **Update icons** - Replace files in `icons/` directory
-4. **Service worker** - Modify `sw.js` for offline functionality
-
-### Building Locally
+No build process. Edit files, refresh browser.
 
 ```bash
-# No build process required - just open index.html
-# For development server:
+# Optional local dev server
 npx http-server --cors
 ```
 
-## 📊 Data Storage
-
-All user data is stored locally in the browser using:
-- **localStorage** - Preferences, settings, theme
-- **IndexedDB** (optional) - For larger transaction datasets
-
-*Note: Data is not synced across devices. Each installation is independent.*
-
 ## 🤝 Contributing
 
-Contributions are welcome! Please feel free to:
-- Report bugs and request features via GitHub Issues
-- Submit pull requests with improvements
-- Share feedback and suggestions
+Issues and PRs are welcome via [GitHub](https://github.com/seville02/spendly-pwa).
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 👨‍💻 Author
-
-Created by [shawnfeds](https://github.com/shawnfeds)
-
-## 🎓 Tips for Users
-
-- **Set a daily limit** to get personalized spending alerts
-- **Use categories** to understand your spending patterns
-- **Check streaks** to stay motivated about financial discipline
-- **Review monthly summaries** to track progress over time
-- **Toggle themes** for comfortable viewing in different lighting
+MIT — see [LICENSE](LICENSE)
 
 ---
 
