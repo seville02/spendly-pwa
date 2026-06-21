@@ -1901,44 +1901,28 @@ function parseCSVRow(line){
   for(let i=0;i<line.length;i++){
     const ch=line[i];
     if(ch==='"'){
-      if(inQ&&line[i+1]==='"'){c  container.innerHTML = events.map((ev, idx) => {
-    const sym = ev.currency || getCurrencySymbol();
-    const items = allItems.filter(i => i.eventId === ev.id);
-    const totalPaid = items.reduce((s,i) => s + (i.amountPaid||0), 0);
-    const totalItemEst = items.reduce((s,i) => s + (i.totalCost||0), 0);
-    const budget = ev.estimatedBudget || totalItemEst;
-    const pct = budget > 0 ? Math.min((totalPaid/budget)*100, 100) : 0;
-    const stillOwed = items.reduce((s,i) => s + Math.max(0,(i.totalCost||0)-(i.amountPaid||0)), 0);
-    const curObj = CURRENCIES.find(c => c.symbol === sym);
-    const curLabel = curObj ? `${curObj.flag} ${curObj.code}` : sym;
-    return `<div class="event-card ev-animate" style="animation-delay: ${idx * 60}ms" onclick="navigateEventDetail('${ev.id}')">
-      <div class="ev-card-header">
-        <div style="display:flex;align-items:center;gap:12px;min-width:0">
-          <div class="ev-icon-wrapper">${getEventIcon(ev.name)}</div>
-          <div style="min-width:0">
-            <div class="ev-card-name" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${ev.name}</div>
-            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-              ${ev.targetDate ? `<div class="ev-date">📅 ${new Date(ev.targetDate+'T12:00').toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}</div>` : ''}
-              <div class="ev-date" style="color:var(--accent)">${curLabel}</div>
-            </div>
-          </div>
-        </div>
-        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
-          <span class="ev-badge">${items.length} item${items.length!==1?'s':''}</span>
-          <div class="ev-delete-btn-direct" onclick="event.stopPropagation(); deleteEventDirect('${ev.id}', '${ev.name.replace(/'/g, "\\'")}')" title="Delete event">
-            <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
-          </div>
-        </div>
-      </div>
-      <div class="ev-stats-row">
-        <div class="ev-stat-item"><div class="ev-stat-val green">${fmtEvent(totalPaid,sym)}</div><div class="ev-stat-lbl">Paid</div></div>
-        ${stillOwed>0 ? `<div class="ev-stat-item"><div class="ev-stat-val red">${fmtEvent(stillOwed,sym)}</div><div class="ev-stat-lbl">Still Owed</div></div>` : ''}
-        ${budget>0 ? `<div class="ev-stat-item"><div class="ev-stat-val accent">${fmtEvent(budget,sym)}</div><div class="ev-stat-lbl">${ev.estimatedBudget?'Est. Budget':'Items Est.'}</div></div>` : ''}
-      </div>
-      ${budget>0 ? `<div class="progress-bar" style="margin-top:12px"><div class="progress-fill${pct>80?' warn':''}" style="width:${pct}%"></div></div>
-      <div style="font-size:11px;color:var(--text3);text-align:right;margin-top:4px">${Math.round(pct)}% funded</div>` : ''}
-    </div>`;
-  }).join('<div class="event-separator"></div>');────────────────────────────────────────
+      if(inQ&&line[i+1]==='"'){cur+='"';i++;} else inQ=!inQ;
+    } else if(ch===','&&!inQ){
+      cols.push(cur.trim()); cur='';
+    } else { cur+=ch; }
+  }
+  cols.push(cur.trim());
+  return cols;
+}
+
+// Convert "DD/MM/YYYY" + "12:21:00 am" back to ISO datetime string
+function parseDateFromCSV(dateStr,timeStr){
+  const dm=dateStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  const base=dm?`${dm[3]}-${dm[2].padStart(2,'0')}-${dm[1].padStart(2,'0')}`:new Date().toISOString().slice(0,10);
+  if(!timeStr) return base;
+  const tm=timeStr.trim().match(/^(\d{1,2}):(\d{2})(?::\d{2})?\s*(am|pm)$/i);
+  if(!tm) return base;
+  let h=parseInt(tm[1]);
+  const period=tm[3].toLowerCase();
+  if(period==='am'&&h===12) h=0;
+  if(period==='pm'&&h!==12) h+=12;
+  return `${base}T${String(h).padStart(2,'0')}:${tm[2]}`;
+}
 // INIT
 // ─────────────────────────────────────────────────────
 (async function init(){
@@ -2018,8 +2002,10 @@ function renderEvents() {
     container.innerHTML = `<div class="empty-state" style="padding-top:60px"><div class="empty-icon">🎯</div><div class="empty-title">No events yet</div><div class="empty-sub">Tap + to plan your first event</div></div>`;
     return;
   }
-  const cur = getCurrencySymbol();
   container.innerHTML = events.map((ev, idx) => {
+    const sym = ev.currency || getCurrencySymbol();
+    const curObj = CURRENCIES.find(c => c.symbol === sym);
+    const curLabel = curObj ? `${curObj.flag} ${curObj.code}` : sym;
     const items = allItems.filter(i => i.eventId === ev.id);
     const totalPaid = items.reduce((s,i) => s + (i.amountPaid||0), 0);
     const totalItemEst = items.reduce((s,i) => s + (i.totalCost||0), 0);
@@ -2032,20 +2018,23 @@ function renderEvents() {
           <div class="ev-icon-wrapper">${getEventIcon(ev.name)}</div>
           <div style="min-width:0">
             <div class="ev-card-name" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${ev.name}</div>
-            ${ev.targetDate ? `<div class="ev-date">📅 ${new Date(ev.targetDate+'T12:00').toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}</div>` : ''}
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+              ${ev.targetDate ? `<div class="ev-date">📅 ${new Date(ev.targetDate+'T12:00').toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}</div>` : ''}
+              <div class="ev-date" style="color:var(--accent)">${curLabel}</div>
+            </div>
           </div>
         </div>
         <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
           <span class="ev-badge">${items.length} item${items.length!==1?'s':''}</span>
-          <div class="ev-delete-btn-direct" onclick="event.stopPropagation(); deleteEventDirect('${ev.id}', '${ev.name.replace(/'/g, "\\\'")}')" title="Delete event">
+          <div class="ev-delete-btn-direct" onclick="event.stopPropagation(); deleteEventDirect('${ev.id}', '${ev.name.replace(/'/g, "\\'")}')" title="Delete event">
             <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
           </div>
         </div>
       </div>
       <div class="ev-stats-row">
-        <div class="ev-stat-item"><div class="ev-stat-val green">${fmt(totalPaid)}</div><div class="ev-stat-lbl">Paid</div></div>
-        ${stillOwed>0 ? `<div class="ev-stat-item"><div class="ev-stat-val red">${fmt(stillOwed)}</div><div class="ev-stat-lbl">Still Owed</div></div>` : ''}
-        ${budget>0 ? `<div class="ev-stat-item"><div class="ev-stat-val accent">${fmt(budget)}</div><div class="ev-stat-lbl">${ev.estimatedBudget?'Est. Budget':'Items Est.'}</div></div>` : ''}
+        <div class="ev-stat-item"><div class="ev-stat-val green">${fmtEvent(totalPaid,sym)}</div><div class="ev-stat-lbl">Paid</div></div>
+        ${stillOwed>0 ? `<div class="ev-stat-item"><div class="ev-stat-val red">${fmtEvent(stillOwed,sym)}</div><div class="ev-stat-lbl">Still Owed</div></div>` : ''}
+        ${budget>0 ? `<div class="ev-stat-item"><div class="ev-stat-val accent">${fmtEvent(budget,sym)}</div><div class="ev-stat-lbl">${ev.estimatedBudget?'Est. Budget':'Items Est.'}</div></div>` : ''}
       </div>
       ${budget>0 ? `<div class="progress-bar" style="margin-top:12px"><div class="progress-fill${pct>80?' warn':''}" style="width:${pct}%"></div></div>
       <div style="font-size:11px;color:var(--text3);text-align:right;margin-top:4px">${Math.round(pct)}% funded</div>` : ''}
