@@ -711,6 +711,26 @@ async function dbClearAllData(userId) {
   }
 }
 
+async function dbClearAllTransactions(userId) {
+  // Always wipe local cache first
+  const cached = localStorage.getItem(`spendly_data_${userId}`);
+  if (cached) {
+    const data = JSON.parse(cached);
+    data.transactions = [];
+    localStorage.setItem(`spendly_data_${userId}`, JSON.stringify(data));
+  }
+  
+  if (useLocalDB) return;
+
+  // Clear from Supabase
+  try {
+    await _sb.from('transactions').delete().eq('user_id', userId);
+  } catch (e) {
+    console.warn('Supabase clear all transactions failed', e);
+    throw e;
+  }
+}
+
 // ─────────────────────────────────────────────────────
 // LOAD ALL DATA for a user (called on login)
 // Returns everything in one parallel fetch

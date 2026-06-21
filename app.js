@@ -479,16 +479,7 @@ async function clearAllTransactions() {
   if (!confirm('Are you absolutely sure? This cannot be undone.')) return;
   setSyncing('syncing');
   try {
-    if (useLocalDB) {
-      const cached = localStorage.getItem(`spendly_data_local-user`);
-      if (cached) {
-        const data = JSON.parse(cached);
-        data.transactions = [];
-        localStorage.setItem(`spendly_data_local-user`, JSON.stringify(data));
-      }
-    } else {
-      await _sb.from('transactions').delete().eq('user_id', currentUser.id);
-    }
+    await dbClearAllTransactions(currentUser.id);
     setSyncing('ok');
   } catch(e) {
     setSyncing('error');
