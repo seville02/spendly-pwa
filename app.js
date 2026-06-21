@@ -1,6 +1,8 @@
 // ═══════════════════════════════════════════════════════
-// app.js — Spendly v4
+// app.js — Spendly v4.30.0
 // ═══════════════════════════════════════════════════════
+
+const APP_VERSION = '4.30.0';
 
 const CATEGORIES = [
   {id:'Food',icon:'🍽️',color:'#f6ad55'},{id:'Groceries',icon:'🛒',color:'#68d391'},
@@ -1480,8 +1482,8 @@ function setType(type){
   const descInput = document.getElementById('input-desc');
   if (descInput) {
     descInput.placeholder = type === 'income'
-      ? 'e.g. Client payment, Amazon payout, Dividends…'
-      : 'e.g. Swiggy, Zomato, DMart, Petrol…';
+      ? 'Where did this income come from?'
+      : 'Who / what did you pay?';
   }
   // Reset to first category of the new type
   if (type === 'income') {
