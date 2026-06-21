@@ -1476,6 +1476,13 @@ function setType(type){
   document.getElementById('type-income').className='type-btn'+(type==='income'?' active-income':'');
   // Always show the category group; just render the appropriate categories
   document.getElementById('cat-group').style.display='block';
+  // Update description placeholder based on type
+  const descInput = document.getElementById('input-desc');
+  if (descInput) {
+    descInput.placeholder = type === 'income'
+      ? 'e.g. Client payment, Amazon payout, Dividends…'
+      : 'e.g. Swiggy, Zomato, DMart, Petrol…';
+  }
   // Reset to first category of the new type
   if (type === 'income') {
     if (!INCOME_CATEGORIES.find(c=>c.id===selectedCat)) selectedCat = INCOME_CATEGORIES[0].id;
