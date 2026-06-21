@@ -1923,6 +1923,47 @@ function parseDateFromCSV(dateStr,timeStr){
   if(period==='pm'&&h!==12) h+=12;
   return `${base}T${String(h).padStart(2,'0')}:${tm[2]}`;
 }
+
+// ─────────────────────────────────────────────────────
+// MODALS + ANDROID BACK
+// ─────────────────────────────────────────────────────
+function openModal(id){
+  document.getElementById(id).classList.add('open');
+  history.pushState({modal:id},'');
+}
+function closeModal(id){
+  const el=document.getElementById(id);
+  if(!el.classList.contains('open')) return;
+  if(history.state&&history.state.modal===id) {
+    history.back();
+  } else {
+    el.classList.remove('open');
+  }
+}
+window.addEventListener('popstate',function(){
+  const open=document.querySelector('.modal-overlay.open');
+  if(open){open.classList.remove('open');return;}
+  const active=document.querySelector('.screen.active');
+  if(active&&active.id!=='screen-home'){navigate('home');history.pushState({},'');}
+});
+history.pushState({},'');
+document.querySelectorAll('.modal-overlay').forEach(el=>el.addEventListener('click',function(e){
+  if(e.target===this){
+    closeModal(this.id);
+  }
+}));
+
+// ─────────────────────────────────────────────────────
+// TOAST
+// ─────────────────────────────────────────────────────
+let toastTimer;
+function showToast(msg){
+  const el=document.getElementById('toast');
+  el.textContent=msg;
+  el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>el.classList.remove('show'),2500);
+}
+
 // INIT
 // ─────────────────────────────────────────────────────
 (async function init(){
