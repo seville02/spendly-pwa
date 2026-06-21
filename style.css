@@ -149,6 +149,44 @@ body { display: flex; flex-direction: column; max-width: 480px; margin: 0 auto; 
 .progress-fill { height: 100%; border-radius: 100px; background: linear-gradient(90deg, #4fd1c5, #68d391); transition: width .5s ease; }
 .progress-fill.warn { background: linear-gradient(90deg, #f6ad55, #fc8181); }
 
+.hero-dots {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 14px;
+}
+.hero-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.25);
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  touch-action: manipulation;
+}
+.hero-dot.active {
+  background: var(--accent);
+  width: 14px;
+  border-radius: 3px;
+}
+[data-theme="light"] .hero-dot {
+  background: rgba(0, 0, 0, 0.15);
+}
+[data-theme="light"] .hero-dot.active {
+  background: var(--accent);
+}
+
+/* Fluid transition states for card stats switching */
+.hero-amount, .hero-sub, .hero-stats {
+  transition: opacity 0.16s cubic-bezier(0.4, 0, 0.2, 1), transform 0.16s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.hero-card.switching .hero-amount,
+.hero-card.switching .hero-sub,
+.hero-card.switching .hero-stats {
+  opacity: 0;
+  transform: translateY(3px);
+}
+
 .hero-toggle-tabs {
   display: grid;
   grid-template-columns: 1fr 1fr;

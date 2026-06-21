@@ -183,12 +183,76 @@ function getTxMonthAmount(tx, year, month) {
 }
 
 function switchHeroTab(tab) {
-  activeHeroTab = tab;
-  const tabBudget = document.getElementById('hero-tab-budget');
-  const tabWallet = document.getElementById('hero-tab-wallet');
-  if (tabBudget) tabBudget.className = 'hero-toggle-tab' + (tab === 'budget' ? ' active' : '');
-  if (tabWallet) tabWallet.className = 'hero-toggle-tab' + (tab === 'wallet' ? ' active' : '');
-  renderHome();
+  const card = document.querySelector('.hero-card');
+  if (card) card.classList.add('switching');
+  
+  setTimeout(() => {
+    activeHeroTab = tab;
+    const tabBudget = document.getElementById('hero-tab-budget');
+    const tabWallet = document.getElementById('hero-tab-wallet');
+    if (tabBudget) tabBudget.className = 'hero-toggle-tab' + (tab === 'budget' ? ' active' : '');
+    if (tabWallet) tabWallet.className = 'hero-toggle-tab' + (tab === 'wallet' ? ' active' : '');
+    
+    // Update dots indicator
+    const dotBudget = document.getElementById('hero-dot-budget');
+    const dotWallet = document.getElementById('hero-dot-wallet');
+    if (dotBudget) dotBudget.className = 'hero-dot' + (tab === 'budget' ? ' active' : '');
+    if (dotWallet) dotWallet.className = 'hero-dot' + (tab === 'wallet' ? ' active' : '');
+
+    renderHome();
+    
+    if (card) {
+      void card.offsetWidth; // Force repaint
+      card.classList.remove('switching');
+    }
+  }, 100);
+}
+
+function initHeroSwipe() {
+  const card = document.querySelector('.hero-card');
+  if (!card) return;
+
+  let startX = 0;
+  let startY = 0;
+  let distX = 0;
+  let distY = 0;
+  const threshold = 45; // minimum distance for swipe in pixels
+  const restraint = 60; // maximum vertical deviation allowed
+
+  card.addEventListener('touchstart', function(e) {
+    const touch = e.changedTouches[0];
+    startX = touch.pageX;
+    startY = touch.pageY;
+  }, { passive: true });
+
+  card.addEventListener('touchend', function(e) {
+    const touch = e.changedTouches[0];
+    distX = touch.pageX - startX;
+    distY = touch.pageY - startY;
+
+    if (Math.abs(distX) >= threshold && Math.abs(distY) <= restraint) {
+      if (distX > 0) {
+        if (activeHeroTab !== 'budget') {
+          switchHeroTab('budget');
+          if (navigator.vibrate) navigator.vibrate(20);
+        }
+      } else {
+        if (activeHeroTab !== 'wallet') {
+          switchHeroTab('wallet');
+          if (navigator.vibrate) navigator.vibrate(20);
+        }
+      }
+    }
+  }, { passive: true });
+
+  card.addEventListener('click', function(e) {
+    if (e.target.closest('.hero-toggle-tabs') || e.target.closest('.daily-limit-pill') || e.target.closest('.hero-dot')) {
+      return;
+    }
+    const nextTab = activeHeroTab === 'budget' ? 'wallet' : 'budget';
+    switchHeroTab(nextTab);
+    if (navigator.vibrate) navigator.vibrate(15);
+  });
 }
 
 function hashPin(p) {
@@ -1845,6 +1909,7 @@ function showToast(msg){
   if (!session) showAuthScreen();
 
   updateMonthLabels();
+  initHeroSwipe();
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
 })();
 
