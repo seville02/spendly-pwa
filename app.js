@@ -370,6 +370,11 @@ let authMode = 'signin'; // 'signin' | 'signup'
 
 function showAuthScreen() {
   document.getElementById('auth-screen').classList.add('show');
+  const btn = document.getElementById('auth-btn');
+  if (btn) {
+    btn.disabled = false;
+    btn.textContent = authMode==='signup' ? 'Create Account' : 'Sign In';
+  }
 }
 function hideAuthScreen() {
   document.getElementById('auth-screen').classList.remove('show');
@@ -387,7 +392,11 @@ function setAuthTab(mode) {
   document.getElementById('auth-password-wrap').style.display = isForgot ? 'none' : 'block';
   document.getElementById('auth-forgot-link').style.display = mode==='signin' ? 'block' : 'none';
   
-  document.getElementById('auth-btn').textContent = isForgot ? 'Send Reset Link' : mode==='signup' ? 'Create Account' : 'Sign In';
+  const btn = document.getElementById('auth-btn');
+  if (btn) {
+    btn.disabled = false;
+    btn.textContent = isForgot ? 'Send Reset Link' : mode==='signup' ? 'Create Account' : 'Sign In';
+  }
   document.getElementById('auth-title').textContent = isForgot ? 'Reset Password' : mode==='signup' ? 'Create account' : 'Welcome back';
   document.getElementById('auth-sub').textContent = isForgot ? 'Enter your email to receive a reset link' : mode==='signup' ? 'Start tracking your money' : 'Sign in to your Spendly account';
   document.getElementById('auth-error').textContent = '';
@@ -437,7 +446,9 @@ async function handleAuth() {
     } else {
       await dbSignIn(email, password);
     }
-    // onAuthChange will handle the rest
+    // Re-enable and reset button text in case they log out later
+    btn.disabled = false;
+    btn.textContent = authMode==='signup' ? 'Create Account' : 'Sign In';
   } catch(e) {
     errEl.textContent = friendlyAuthError(e.message);
     btn.disabled = false;
