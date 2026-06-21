@@ -1,4 +1,4 @@
-const CACHE = 'spendly-v4-26';
+const CACHE = 'spendly-v4-27';
 const ASSETS = [
   './',
   './index.html',
@@ -29,8 +29,14 @@ self.addEventListener('fetch', e => {
   // Only intercept GET requests
   if (e.request.method !== 'GET') return;
 
-  // Always network-first for HTML and JS so updates come through
-  if (e.request.url.includes('.html') || e.request.url.includes('.js') || e.request.url.endsWith('/')) {
+  // Always network-first for HTML, JS, navigation, and root requests so updates come through
+  const isNavOrScript = e.request.mode === 'navigate' || 
+                        e.request.url.includes('.html') || 
+                        e.request.url.includes('.js') || 
+                        e.request.url.endsWith('/') || 
+                        !e.request.url.split('/').pop().includes('.');
+
+  if (isNavOrScript) {
     e.respondWith(
       fetch(e.request)
         .then(res => {
