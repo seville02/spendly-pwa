@@ -1,4 +1,4 @@
-const CACHE = 'spendly-v4-21';
+const CACHE = 'spendly-v4-22';
 const ASSETS = [
   './',
   './index.html',

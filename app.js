@@ -403,6 +403,13 @@ async function signOut() {
 async function clearAllTransactions() {
   if (!confirm('⚠️ Delete ALL transactions?\n\nThis will permanently delete your entire transaction history. Your budgets, category limits, debts, and profile settings will be kept.')) return;
   if (!confirm('Are you absolutely sure? This cannot be undone.')) return;
+
+  // ── Snapshot for 30-day recovery ──
+  try {
+    const snap = { ts: Date.now(), transactions: JSON.parse(JSON.stringify(appData.transactions)) };
+    localStorage.setItem(`spendly_trash_${currentUser.id}`, JSON.stringify(snap));
+  } catch(e) { console.warn('Could not save recovery snapshot', e); }
+
   setSyncing('syncing');
   try {
     await dbClearAllTransactions(currentUser.id);
@@ -417,6 +424,46 @@ async function clearAllTransactions() {
   if (active && active.id === 'screen-transactions') renderTransactions();
   if (active && active.id === 'screen-stats') renderStats();
   showToast('All transactions deleted 🗑️');
+}
+
+async function recoverTransactions() {
+  try {
+    const raw = localStorage.getItem(`spendly_trash_${currentUser.id}`);
+    if (!raw) { showToast('No recovery snapshot found'); return; }
+    const snap = JSON.parse(raw);
+    const ageMs = Date.now() - snap.ts;
+    if (ageMs > 30 * 24 * 60 * 60 * 1000) {
+      localStorage.removeItem(`spendly_trash_${currentUser.id}`);
+      showToast('Recovery window expired (30 days)');
+      return;
+    }
+    if (!snap.transactions || !snap.transactions.length) { showToast('Snapshot is empty'); return; }
+
+    if (!confirm(`Restore ${snap.transactions.length} deleted transaction${snap.transactions.length > 1 ? 's' : ''}?`)) return;
+
+    setSyncing('syncing');
+    try {
+      await dbBulkInsertTransactions(currentUser.id, snap.transactions);
+      setSyncing('ok');
+    } catch(e) {
+      setSyncing('error');
+      showToast('Sync error — recovered locally, will sync later');
+    }
+
+    // Merge back into in-memory state (avoid duplicates by id)
+    const existingIds = new Set(appData.transactions.map(t => t.id));
+    snap.transactions.forEach(t => { if (!existingIds.has(t.id)) appData.transactions.push(t); });
+
+    // Clear the snapshot so it can't be restored twice
+    localStorage.removeItem(`spendly_trash_${currentUser.id}`);
+
+    renderHome();
+    renderTransactions();
+    showToast(`✅ ${snap.transactions.length} transaction${snap.transactions.length > 1 ? 's' : ''} recovered!`);
+  } catch(e) {
+    console.error(e);
+    showToast('Recovery failed');
+  }
 }
 
 async function clearAllData() {
@@ -939,7 +986,28 @@ function renderTransactions() {
 
   const container=document.getElementById('all-tx-list');
   if (!txs.length) {
-    container.innerHTML=`<div class="empty-state"><div class="empty-icon">🔍</div><div class="empty-title">No transactions</div><div class="empty-sub">${search?'No results for "'+search+'"':'Nothing matches this filter'}</div></div>`;
+    // Check for a recoverable snapshot within 30 days
+    let recoverBanner = '';
+    try {
+      const raw = localStorage.getItem(`spendly_trash_${currentUser.id}`);
+      if (raw) {
+        const snap = JSON.parse(raw);
+        const ageMs = Date.now() - snap.ts;
+        const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
+        if (ageMs < THIRTY_DAYS && snap.transactions && snap.transactions.length > 0) {
+          const daysLeft = Math.ceil((THIRTY_DAYS - ageMs) / (24 * 60 * 60 * 1000));
+          recoverBanner = `
+            <div style="margin:16px;background:var(--accent-dim);border:1px solid var(--accent);border-radius:14px;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px">
+              <div>
+                <div style="font-size:13px;font-weight:600;color:var(--accent)">🔄 Recover Deleted Transactions</div>
+                <div style="font-size:11px;color:var(--text2);margin-top:3px">${snap.transactions.length} transaction${snap.transactions.length>1?'s':''} · expires in ${daysLeft} day${daysLeft>1?'s':''}</div>
+              </div>
+              <button onclick="recoverTransactions()" style="background:var(--accent);color:#0a0f1e;border:none;border-radius:10px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;touch-action:manipulation">Recover</button>
+            </div>`;
+        }
+      }
+    } catch(e) { console.warn(e); }
+    container.innerHTML = recoverBanner + `<div class="empty-state"><div class="empty-icon">🔍</div><div class="empty-title">No transactions</div><div class="empty-sub">${search?'No results for "'+search+'"':'Nothing matches this filter'}</div></div>`;
     return;
   }
   const groups={};
