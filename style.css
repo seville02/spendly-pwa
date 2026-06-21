@@ -1001,3 +1001,29 @@ body { display: flex; flex-direction: column; max-width: 480px; margin: 0 auto; 
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
   border: 2px solid var(--accent);
 }
+
+.modal-toggle-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  background: var(--surface2);
+  border-radius: 10px;
+  padding: 3px;
+  gap: 3px;
+  margin-bottom: 20px;
+}
+.modal-toggle-tab {
+  padding: 9px;
+  border-radius: 8px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  color: var(--text3);
+  transition: all .15s;
+  touch-action: manipulation;
+}
+.modal-toggle-tab.active {
+  background: var(--accent-dim);
+  color: var(--accent);
+  border: 1px solid var(--accent);
+}

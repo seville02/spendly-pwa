@@ -715,12 +715,52 @@
 <div class="modal-overlay" id="modal-budget">
   <div class="modal-sheet">
     <div class="sheet-handle"></div>
-    <div class="sheet-title">Set Monthly Budget</div>
-    <div class="form-group">
-      <label class="form-label">Total Budget</label>
-      <div class="amount-wrap"><span class="amount-prefix">₹</span><input class="form-input with-prefix" type="number" id="input-budget" placeholder="0" inputmode="decimal" step="any" onkeydown="if(event.key==='Enter')saveBudget()"></div>
+    <div class="sheet-title" id="budget-modal-title">Set Monthly Budget</div>
+    
+    <!-- Tab Toggle -->
+    <div class="modal-toggle-tabs">
+      <div class="modal-toggle-tab active" id="btn-tab-budget" onclick="switchBudgetModalTab('budget')">Budget</div>
+      <div class="modal-toggle-tab" id="btn-tab-salary" onclick="switchBudgetModalTab('salary')">Salary</div>
     </div>
-    <div style="font-size:12px;color:var(--text3);margin-bottom:14px;line-height:1.6">Resets on the <strong style="color:var(--accent)" id="budget-day-label">1st</strong> of every month.</div>
+
+    <!-- Tab Content: Budget -->
+    <div id="tab-content-budget">
+      <div class="form-group">
+        <label class="form-label">Total Budget</label>
+        <div class="amount-wrap"><span class="amount-prefix">₹</span><input class="form-input with-prefix" type="number" id="input-budget" placeholder="0" inputmode="decimal" step="any" onkeydown="if(event.key==='Enter')saveBudget()"></div>
+      </div>
+      <div style="font-size:12px;color:var(--text3);margin-bottom:14px;line-height:1.6">Resets on the <strong style="color:var(--accent)" id="budget-day-label">1st</strong> of every month.</div>
+    </div>
+
+    <!-- Tab Content: Salary -->
+    <div id="tab-content-salary" style="display:none">
+      <div class="form-group">
+        <label class="form-label">Salary Amount</label>
+        <div class="amount-wrap"><span class="amount-prefix">₹</span><input class="form-input with-prefix" type="number" id="input-salary" placeholder="0" inputmode="decimal" step="any" onkeydown="if(event.key==='Enter')saveBudget()"></div>
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label">Frequency</label>
+        <select class="form-input" id="select-salary-freq" onchange="toggleSalaryFreq()">
+          <option value="monthly">Monthly</option>
+          <option value="weekly">Weekly</option>
+        </select>
+      </div>
+
+      <div class="form-group" id="group-salary-payday" style="display:none">
+        <label class="form-label">Salary Pay Day</label>
+        <select class="form-input" id="select-salary-payday">
+          <option value="5">Friday</option>
+          <option value="1">Monday</option>
+          <option value="2">Tuesday</option>
+          <option value="3">Wednesday</option>
+          <option value="4">Thursday</option>
+          <option value="6">Saturday</option>
+          <option value="0">Sunday</option>
+        </select>
+      </div>
+    </div>
+
     <button class="submit-btn" onclick="saveBudget()">Save Budget</button>
     <div style="height:6px"></div>
     <button class="submit-btn secondary" onclick="closeModal('modal-budget')">Cancel</button>

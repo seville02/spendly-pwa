@@ -1431,27 +1431,125 @@ async function submitTransaction(){
   updateMonthLabels(); renderHome();
 }
 
-// ─────────────────────────────────────────────────────
-// BUDGET
-// ─────────────────────────────────────────────────────
-function openSetBudget(){
-  document.getElementById('input-budget').value=appData.budgets[currentKey()]||'';
-  openModal('modal-budget');
-  setTimeout(()=>document.getElementById('input-budget').focus(),350);
+let activeBudgetModalTab = 'budget';
+
+function switchBudgetModalTab(tab) {
+  activeBudgetModalTab = tab;
+  const tabBudgetBtn = document.getElementById('btn-tab-budget');
+  const tabSalaryBtn = document.getElementById('btn-tab-salary');
+  const tabBudgetContent = document.getElementById('tab-content-budget');
+  const tabSalaryContent = document.getElementById('tab-content-salary');
+  
+  if (tab === 'budget') {
+    tabBudgetBtn.classList.add('active');
+    tabSalaryBtn.classList.remove('active');
+    tabBudgetContent.style.display = 'block';
+    tabSalaryContent.style.display = 'none';
+    setTimeout(() => document.getElementById('input-budget').focus(), 50);
+  } else {
+    tabBudgetBtn.classList.remove('active');
+    tabSalaryBtn.classList.add('active');
+    tabBudgetContent.style.display = 'none';
+    tabSalaryContent.style.display = 'block';
+    setTimeout(() => document.getElementById('input-salary').focus(), 50);
+  }
 }
+
+function toggleSalaryFreq() {
+  const freq = document.getElementById('select-salary-freq').value;
+  const paydayGroup = document.getElementById('group-salary-payday');
+  if (freq === 'weekly') {
+    paydayGroup.style.display = 'block';
+  } else {
+    paydayGroup.style.display = 'none';
+  }
+}
+
+function countWeekdayInMonth(year, month, weekday) {
+  let count = 0;
+  const d = new Date(year, month, 1);
+  while (d.getMonth() === month) {
+    if (d.getDay() === weekday) {
+      count++;
+    }
+    d.setDate(d.getDate() + 1);
+  }
+  return count;
+}
+
+function openSetBudget(){
+  const key = currentKey();
+  let meta = null;
+  try {
+    const allMeta = JSON.parse(localStorage.getItem(`spendly_budget_meta_${currentUser.id}`) || '{}');
+    meta = allMeta[key];
+  } catch(e) { console.error(e); }
+
+  if (meta && meta.type === 'salary') {
+    document.getElementById('input-budget').value = '';
+    document.getElementById('input-salary').value = meta.salaryAmount || '';
+    document.getElementById('select-salary-freq').value = meta.frequency || 'monthly';
+    document.getElementById('select-salary-payday').value = (meta.payday !== undefined) ? meta.payday : '5';
+    switchBudgetModalTab('salary');
+    toggleSalaryFreq();
+  } else {
+    document.getElementById('input-budget').value = appData.budgets[key] || '';
+    document.getElementById('input-salary').value = '';
+    document.getElementById('select-salary-freq').value = 'monthly';
+    document.getElementById('select-salary-payday').value = '5';
+    switchBudgetModalTab('budget');
+    toggleSalaryFreq();
+  }
+
+  openModal('modal-budget');
+}
+
 async function saveBudget(){
-  const val=parseFloat(document.getElementById('input-budget').value);
-  if(!val||val<=0){showToast('Enter a valid budget');return;}
-  // Optimistically update in-memory state first so renderHome() sees the new value
-  // regardless of whether the DB call succeeds (same pattern as saveCatBudget)
-  appData.budgets[currentKey()]=val;
+  const key = currentKey();
+  let calculatedAmount = 0;
+  let metaObj = {};
+
+  if (activeBudgetModalTab === 'budget') {
+    const val = parseFloat(document.getElementById('input-budget').value);
+    if (!val || val <= 0) { showToast('Enter a valid budget'); return; }
+    calculatedAmount = val;
+    metaObj = { type: 'budget', budgetVal: val };
+  } else {
+    const salaryVal = parseFloat(document.getElementById('input-salary').value);
+    if (!salaryVal || salaryVal <= 0) { showToast('Enter a valid salary'); return; }
+    const freq = document.getElementById('select-salary-freq').value;
+    const payday = parseInt(document.getElementById('select-salary-payday').value, 10);
+
+    if (freq === 'monthly') {
+      calculatedAmount = salaryVal;
+      metaObj = { type: 'salary', salaryAmount: salaryVal, frequency: 'monthly' };
+    } else {
+      // weekly
+      const paydayCount = countWeekdayInMonth(viewYear, viewMonth, payday);
+      calculatedAmount = salaryVal * paydayCount;
+      metaObj = { type: 'salary', salaryAmount: salaryVal, frequency: 'weekly', payday: payday };
+    }
+  }
+
+  // Save metadata locally
+  try {
+    const allMeta = JSON.parse(localStorage.getItem(`spendly_budget_meta_${currentUser.id}`) || '{}');
+    allMeta[key] = metaObj;
+    localStorage.setItem(`spendly_budget_meta_${currentUser.id}`, JSON.stringify(allMeta));
+  } catch(e) { console.error(e); }
+
+  // Save calculated budget
+  appData.budgets[key] = calculatedAmount;
   setSyncing('syncing');
   try {
-    await dbSaveBudget(currentUser.id, currentKey(), val);
+    await dbSaveBudget(currentUser.id, key, calculatedAmount);
     setSyncing('ok');
   } catch(e) { setSyncing('error'); }
-  closeModal('modal-budget'); showToast(`Budget: ${fmtFull(val)}`);
-  renderHome(); renderProfile();
+
+  closeModal('modal-budget');
+  showToast(activeBudgetModalTab === 'budget' ? `Budget: ${fmtFull(calculatedAmount)}` : `Salary Budget: ${fmtFull(calculatedAmount)}`);
+  renderHome();
+  renderProfile();
 }
 
 // ─────────────────────────────────────────────────────
