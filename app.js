@@ -384,7 +384,7 @@ function setAuthTab(mode) {
   document.getElementById('auth-back-link').style.display = isForgot ? 'block' : 'none';
   
   document.getElementById('auth-name-wrap').style.display = mode==='signup' ? 'block' : 'none';
-  document.getElementById('auth-password').style.display = isForgot ? 'none' : 'block';
+  document.getElementById('auth-password-wrap').style.display = isForgot ? 'none' : 'block';
   document.getElementById('auth-forgot-link').style.display = mode==='signin' ? 'block' : 'none';
   
   document.getElementById('auth-btn').textContent = isForgot ? 'Send Reset Link' : mode==='signup' ? 'Create Account' : 'Sign In';
@@ -2160,5 +2160,59 @@ function deleteEventItem() {
   closeModal('modal-add-event-item');
   renderEventDetail();
   showToast('Removed');
+}
+
+function togglePasswordVisibility() {
+  const input = document.getElementById('auth-password');
+  const toggle = document.getElementById('auth-password-toggle');
+  if (!input || !toggle) return;
+  const isPass = input.type === 'password';
+  input.type = isPass ? 'text' : 'password';
+  
+  toggle.style.color = isPass ? 'var(--accent)' : 'var(--text3)';
+  
+  const line = toggle.querySelector('line');
+  if (!isPass) {
+    if (!line) {
+      const newLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      newLine.setAttribute('x1', '2');
+      newLine.setAttribute('y1', '2');
+      newLine.setAttribute('x2', '22');
+      newLine.setAttribute('y2', '22');
+      newLine.setAttribute('stroke', 'currentColor');
+      newLine.setAttribute('stroke-width', '2.2');
+      newLine.setAttribute('stroke-linecap', 'round');
+      toggle.querySelector('svg').appendChild(newLine);
+    }
+  } else {
+    if (line) line.remove();
+  }
+}
+
+function toggleNewPasswordVisibility() {
+  const input = document.getElementById('input-new-password');
+  const toggle = document.getElementById('new-password-toggle');
+  if (!input || !toggle) return;
+  const isPass = input.type === 'password';
+  input.type = isPass ? 'text' : 'password';
+  
+  toggle.style.color = isPass ? 'var(--accent)' : 'var(--text3)';
+  
+  const line = toggle.querySelector('line');
+  if (!isPass) {
+    if (!line) {
+      const newLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      newLine.setAttribute('x1', '2');
+      newLine.setAttribute('y1', '2');
+      newLine.setAttribute('x2', '22');
+      newLine.setAttribute('y2', '22');
+      newLine.setAttribute('stroke', 'currentColor');
+      newLine.setAttribute('stroke-width', '2.2');
+      newLine.setAttribute('stroke-linecap', 'round');
+      toggle.querySelector('svg').appendChild(newLine);
+    }
+  } else {
+    if (line) line.remove();
+  }
 }
 
