@@ -639,12 +639,11 @@ function renderHome() {
   const remaining = budget - spent;
   const pct = budget > 0 ? Math.min((spent / budget) * 100, 100) : 0;
 
-  heroNum.textContent = Math.abs(remaining).toLocaleString('en-IN', {
-    minimumFractionDigits: remaining % 1 === 0 ? 0 : 2,
-    maximumFractionDigits: 2
-  });
-
   if (budget > 0) {
+    heroNum.textContent = Math.abs(remaining).toLocaleString('en-IN', {
+      minimumFractionDigits: remaining % 1 === 0 ? 0 : 2,
+      maximumFractionDigits: 2
+    });
     if (remaining < 0) {
       heroSub.textContent = '⚠️ Over budget by ' + fmt(Math.abs(remaining));
       heroNum.style.color = 'var(--red)';
@@ -653,8 +652,12 @@ function renderHome() {
       heroNum.style.color = 'var(--hero-text)';
     }
   } else {
-    heroSub.textContent = 'Tap "Set Budget" to get started';
-    heroNum.style.color = 'var(--hero-text)';
+    heroNum.textContent = remaining.toLocaleString('en-IN', {
+      minimumFractionDigits: remaining % 1 === 0 ? 0 : 2,
+      maximumFractionDigits: 2
+    });
+    heroSub.textContent = 'No budget set for this month';
+    heroNum.style.color = remaining < 0 ? 'var(--red)' : 'var(--hero-text)';
   }
 
   fill.style.width = pct + '%';
@@ -1681,23 +1684,22 @@ async function saveBudget() {
 
   if (activeBudgetModalTab === 'budget') {
     const val = parseFloat(document.getElementById('input-budget').value);
-    if (!val || val <= 0) { showToast('Enter a valid budget'); return; }
-    calculatedAmount = val;
-    metaObj = { type: 'budget', budgetVal: val };
+    calculatedAmount = isNaN(val) || val < 0 ? 0 : val;
+    metaObj = { type: 'budget', budgetVal: calculatedAmount };
   } else {
     const salaryVal = parseFloat(document.getElementById('input-salary').value);
-    if (!salaryVal || salaryVal <= 0) { showToast('Enter a valid salary'); return; }
+    const validSalary = isNaN(salaryVal) || salaryVal < 0 ? 0 : salaryVal;
     const freq = document.getElementById('select-salary-freq').value;
     const payday = parseInt(document.getElementById('select-salary-payday').value, 10);
 
     if (freq === 'monthly') {
-      calculatedAmount = salaryVal;
-      metaObj = { type: 'salary', salaryAmount: salaryVal, frequency: 'monthly' };
+      calculatedAmount = validSalary;
+      metaObj = { type: 'salary', salaryAmount: validSalary, frequency: 'monthly' };
     } else {
       // weekly
       const paydayCount = countWeekdayInMonth(viewYear, viewMonth, payday);
-      calculatedAmount = salaryVal * paydayCount;
-      metaObj = { type: 'salary', salaryAmount: salaryVal, frequency: 'weekly', payday: payday };
+      calculatedAmount = validSalary * paydayCount;
+      metaObj = { type: 'salary', salaryAmount: validSalary, frequency: 'weekly', payday: payday };
     }
   }
 
