@@ -4,6 +4,14 @@
 
 const APP_VERSION = '4.55.0';
 
+// ── Clean up legacy local storage to fulfill request to "erase local data" ──
+try {
+  Object.keys(localStorage).forEach(key => {
+    if (key.startsWith('spendly_')) {
+      localStorage.removeItem(key);
+    }
+  });
+} catch (e) { console.warn('Local storage cleanup failed', e); }
 const CATEGORIES = [
   { id: 'Food', icon: '🍽️', color: '#f6ad55' }, { id: 'Groceries', icon: '🛒', color: '#68d391' },
   { id: 'Transport', icon: '🚌', color: '#63b3ed' }, { id: 'Fuel', icon: '⛽', color: '#e8a030' },
@@ -102,11 +110,13 @@ let editingEventItemId = null;
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const MONTHS_FULL = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
-// Settings live in localStorage (device-specific, not synced)
+// Settings (Local storage disabled per request)
 function getLocalSettings() {
-  try { return JSON.parse(localStorage.getItem('spendly_settings') || '{}'); } catch (e) { return {}; }
+  return {};
 }
-function saveLocalSettings(s) { localStorage.setItem('spendly_settings', JSON.stringify(s)); }
+function saveLocalSettings(s) {
+  // No-op
+}
 
 // ─────────────────────────────────────────────────────
 // CURRENCY — dynamic detection
@@ -440,10 +450,7 @@ async function clearAllTransactions() {
   if (!confirm('Are you absolutely sure? This cannot be undone.')) return;
 
   // ── Snapshot for 30-day recovery ──
-  try {
-    const snap = { ts: Date.now(), transactions: JSON.parse(JSON.stringify(appData.transactions)) };
-    localStorage.setItem(`spendly_trash_${currentUser.id}`, JSON.stringify(snap));
-  } catch (e) { console.warn('Could not save recovery snapshot', e); }
+  // Local storage disabled per request
 
   setSyncing('syncing');
   try {
@@ -462,8 +469,9 @@ async function clearAllTransactions() {
 }
 
 async function recoverTransactions() {
-  try {
-    const raw = localStorage.getItem(`spendly_trash_${currentUser.id}`);
+  showToast('Recovery is disabled because local data is turned off');
+  return;
+
     if (!raw) { showToast('No recovery snapshot found'); return; }
     const snap = JSON.parse(raw);
     const ageMs = Date.now() - snap.ts;
@@ -1642,7 +1650,7 @@ function openSetBudget() {
   const key = currentKey();
   let meta = null;
   try {
-    const allMeta = JSON.parse(localStorage.getItem(`spendly_budget_meta_${currentUser.id}`) || '{}');
+    const allMeta = appData.profile?.budgetMeta || {};
     meta = allMeta[key];
   } catch (e) { console.error(e); }
 
@@ -1692,11 +1700,13 @@ async function saveBudget() {
     }
   }
 
-  // Save metadata locally
+  // Save metadata to Supabase profile
   try {
-    const allMeta = JSON.parse(localStorage.getItem(`spendly_budget_meta_${currentUser.id}`) || '{}');
+    if (!appData.profile) appData.profile = {};
+    const allMeta = appData.profile.budgetMeta || {};
     allMeta[key] = metaObj;
-    localStorage.setItem(`spendly_budget_meta_${currentUser.id}`, JSON.stringify(allMeta));
+    appData.profile.budgetMeta = allMeta;
+    dbSaveProfile(currentUser.id, appData.profile);
   } catch (e) { console.error(e); }
 
   // Save calculated budget
@@ -2468,7 +2478,7 @@ function renderBillSplitter() {
   }
 
   document.getElementById('bs-payer-name').value = defaultName;
-  document.getElementById('bs-payer-upi').value = localStorage.getItem('spendly_payer_upi') || '';
+  document.getElementById('bs-payer-upi').value = appData.profile?.upi || '';
   document.getElementById('bs-extra-charges').value = '';
   document.getElementById('bs-bill-name').value = 'Dinner Split';
 
@@ -2638,8 +2648,12 @@ function generateSplitLink() {
   const validItems = bsItems.filter(item => item.name.trim() !== '' && parseFloat(item.price) > 0);
   if (validItems.length === 0) { showToast('Please add at least one item'); return; }
 
-  // Save UPI locally
-  localStorage.setItem('spendly_payer_upi', upi);
+  // Save UPI to Supabase profile
+  if (!appData.profile) appData.profile = {};
+  if (appData.profile.upi !== upi) {
+    appData.profile.upi = upi;
+    dbSaveProfile(currentUser.id, appData.profile).catch(console.error);
+  }
 
   const billData = {
     n: billName,
