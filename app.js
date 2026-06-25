@@ -1308,7 +1308,6 @@ function renderProfile() {
     }
   }
   document.getElementById('profile-sub').textContent = `Budget resets on the 1st · ${getResetMonthLabel()}`;
-  document.getElementById('profile-budget-val').textContent = (appData.budgets[currentKey()] || 0) > 0 ? fmtFull(appData.budgets[currentKey()]) + ' / month' : 'Not set';
   const activeDebts = (appData.debts || []).filter(d => !d.settled).length;
   document.getElementById('debt-tracker-val').textContent = activeDebts > 0 ? `${activeDebts} active debt${activeDebts > 1 ? 's' : ''}` : 'Track who owes who';
   const pinOn = s.pinEnabled;
