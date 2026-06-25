@@ -1385,7 +1385,6 @@ function renderCatBudgetSettings() {
 async function autoSaveProfile() {
   const p = {
     name: document.getElementById('profile-name-input').value.trim(),
-    settings: appData.profile?.settings || {}
   };
   // Currency is saved separately by selectCurrency() — don't overwrite it here
   const oldProfile = { ...appData.profile };
