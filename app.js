@@ -6,7 +6,7 @@
 // ── Clean up legacy local storage to fulfill request to "erase local data" ──
 try {
   Object.keys(localStorage).forEach(key => {
-    if (key.startsWith('spendly_') && !key.startsWith('spendly_trash_')) {
+    if (key.startsWith('spendly_') && !key.startsWith('spendly_trash_') && key !== 'spendly_theme') {
       localStorage.removeItem(key);
     }
   });
@@ -109,12 +109,17 @@ let editingEventItemId = null;
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const MONTHS_FULL = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
-// Settings (Local storage disabled per request)
+// Settings (UI preferences only — theme is stored locally, data is in Supabase)
 function getLocalSettings() {
-  return {};
+  try {
+    const theme = localStorage.getItem('spendly_theme') || 'dark';
+    return { ...localSettings, theme };
+  } catch (e) { return localSettings; }
 }
 function saveLocalSettings(s) {
-  // No-op
+  try {
+    if (s.theme) localStorage.setItem('spendly_theme', s.theme);
+  } catch (e) { /* ignore */ }
 }
 
 // ─────────────────────────────────────────────────────
