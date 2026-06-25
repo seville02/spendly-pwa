@@ -6,7 +6,7 @@
 // ── Clean up legacy local storage to fulfill request to "erase local data" ──
 try {
   Object.keys(localStorage).forEach(key => {
-    if (key.startsWith('spendly_')) {
+    if (key.startsWith('spendly_') && !key.startsWith('spendly_trash_')) {
       localStorage.removeItem(key);
     }
   });
@@ -449,7 +449,10 @@ async function clearAllTransactions() {
   if (!confirm('Are you absolutely sure? This cannot be undone.')) return;
 
   // ── Snapshot for 30-day recovery ──
-  // Local storage disabled per request
+  try {
+    const snap = { ts: Date.now(), transactions: JSON.parse(JSON.stringify(appData.transactions)) };
+    localStorage.setItem(`spendly_trash_${currentUser.id}`, JSON.stringify(snap));
+  } catch (e) { console.warn('Could not save recovery snapshot', e); }
 
   setSyncing('syncing');
   try {
@@ -468,7 +471,43 @@ async function clearAllTransactions() {
 }
 
 async function recoverTransactions() {
-  showToast('Recovery is disabled because local data is turned off');
+  try {
+    const raw = localStorage.getItem(`spendly_trash_${currentUser.id}`);
+    if (!raw) { showToast('No recovery snapshot found'); return; }
+    const snap = JSON.parse(raw);
+    const ageMs = Date.now() - snap.ts;
+    if (ageMs > 30 * 24 * 60 * 60 * 1000) {
+      localStorage.removeItem(`spendly_trash_${currentUser.id}`);
+      showToast('Recovery window expired (30 days)');
+      return;
+    }
+    if (!snap.transactions || !snap.transactions.length) { showToast('Snapshot is empty'); return; }
+
+    if (!confirm(`Restore ${snap.transactions.length} deleted transaction${snap.transactions.length > 1 ? 's' : ''}?`)) return;
+
+    setSyncing('syncing');
+    try {
+      await dbBulkInsertTransactions(currentUser.id, snap.transactions);
+      setSyncing('ok');
+
+      // Merge back into in-memory state (avoid duplicates by id)
+      const existingIds = new Set(appData.transactions.map(t => t.id));
+      snap.transactions.forEach(t => { if (!existingIds.has(t.id)) appData.transactions.push(t); });
+
+      // Clear the snapshot so it can't be restored twice
+      localStorage.removeItem(`spendly_trash_${currentUser.id}`);
+
+      renderHome();
+      renderTransactions();
+      showToast(`✅ ${snap.transactions.length} transaction${snap.transactions.length > 1 ? 's' : ''} recovered!`);
+    } catch (e) {
+      setSyncing('error');
+      showToast('Recovery failed: ' + e.message);
+    }
+  } catch (e) {
+    console.error(e);
+    showToast('Recovery failed');
+  }
 }
 
 async function clearAllData() {
