@@ -2,7 +2,6 @@
 // app.js — Spendly v4.55.0
 // ═══════════════════════════════════════════════════════
 
-const APP_VERSION = '4.55.0';
 
 // ── Clean up legacy local storage to fulfill request to "erase local data" ──
 try {
