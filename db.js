@@ -373,34 +373,74 @@ async function dbLoadAll(userId) {
     dbGetDebts(userId),
     dbGetProfile(userId),
   ]);
+  _initEventCaches(profile);
   return { transactions, budgets, catBudgets, debts, profile };
 }
 
 // ─────────────────────────────────────────────────────
-// EVENTS (Local storage removed as per request)
+// EVENTS (stored as JSON in the profiles table)
 // ─────────────────────────────────────────────────────
 
+// In-memory cache — loaded from profile on login
+let _eventsCache = null;
+let _eventItemsCache = null;
+
+function _getEventsFromProfile(profile) {
+  try { return Array.isArray(profile?.events) ? profile.events : []; } catch (e) { return []; }
+}
+function _getEventItemsFromProfile(profile) {
+  try { return Array.isArray(profile?.event_items) ? profile.event_items : []; } catch (e) { return []; }
+}
+
 function dbGetEvents(userId) {
+  // Return from in-memory cache (populated on login via dbLoadAll)
+  if (_eventsCache !== null) return _eventsCache;
   return [];
-}
-
-function dbSaveEvent(userId, event) {
-  // Local storage removed
-}
-
-function dbDeleteEvent(userId, eventId) {
-  // Local storage removed
 }
 
 function dbGetEventItems(userId) {
+  if (_eventItemsCache !== null) return _eventItemsCache;
   return [];
 }
 
+async function _persistEvents(userId) {
+  const { error } = await _sb
+    .from('profiles')
+    .upsert({ id: userId, events: _eventsCache, event_items: _eventItemsCache }, { onConflict: 'id' });
+  if (error) console.error('Failed to save events', error);
+}
+
+function dbSaveEvent(userId, event) {
+  if (_eventsCache === null) _eventsCache = [];
+  const idx = _eventsCache.findIndex(e => e.id === event.id);
+  if (idx >= 0) _eventsCache[idx] = event;
+  else _eventsCache.push(event);
+  _persistEvents(userId);
+}
+
+function dbDeleteEvent(userId, eventId) {
+  if (_eventsCache === null) return;
+  _eventsCache = _eventsCache.filter(e => e.id !== eventId);
+  if (_eventItemsCache) _eventItemsCache = _eventItemsCache.filter(i => i.eventId !== eventId);
+  _persistEvents(userId);
+}
+
 function dbSaveEventItem(userId, item) {
-  // Local storage removed
+  if (_eventItemsCache === null) _eventItemsCache = [];
+  const idx = _eventItemsCache.findIndex(i => i.id === item.id);
+  if (idx >= 0) _eventItemsCache[idx] = item;
+  else _eventItemsCache.push(item);
+  _persistEvents(userId);
 }
 
 function dbDeleteEventItem(userId, itemId) {
-  // Local storage removed
+  if (_eventItemsCache === null) return;
+  _eventItemsCache = _eventItemsCache.filter(i => i.id !== itemId);
+  _persistEvents(userId);
 }
 
+// Called during dbLoadAll to seed the caches
+function _initEventCaches(profile) {
+  _eventsCache = _getEventsFromProfile(profile);
+  _eventItemsCache = _getEventItemsFromProfile(profile);
+}
