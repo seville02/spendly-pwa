@@ -17,6 +17,8 @@ const CATEGORIES = [
   { id: 'EMI / Loan', icon: '🏦', color: '#fc8181' }, { id: 'Insurance', icon: '🛡️', color: '#4299e1' },
   { id: 'Gifts', icon: '🎁', color: '#f687b3' }, { id: 'Savings', icon: '💰', color: '#68d391' },
   { id: 'Investment', icon: '📈', color: '#4fd1c5' }, { id: 'Other', icon: '📌', color: '#8896b3' },
+  { id: 'Lotto', icon: '🎰', color: '#b17424' }, { id: 'Pets', icon: '🐾', color: '#e53e3e' },
+  { id: 'Beauty', icon: '💅', color: '#ed64a6' }, { id: 'Hobbies', icon: '🎨', color: '#38b2ac' }
 ];
 
 const INCOME_CATEGORIES = [
