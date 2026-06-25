@@ -167,7 +167,7 @@
     <div class="hero-stats">
       <div class="hero-stat"><div class="hero-stat-label">Budget</div><div class="hero-stat-val accent" id="stat-budget">₹0</div></div>
       <div class="hero-stat"><div class="hero-stat-label">Spent</div><div class="hero-stat-val red" id="stat-spent">₹0</div></div>
-      <div class="hero-stat"><div class="hero-stat-label">Income</div><div class="hero-stat-val green" id="stat-income">₹0</div></div>
+      <div class="hero-stat"><div class="hero-stat-label">Savings</div><div class="hero-stat-val green" id="stat-income">₹0</div></div>
     </div>
     <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
   </div>
@@ -283,7 +283,7 @@
   <div id="stats-overview">
     <div class="summary-grid">
       <div class="summary-card"><div class="summary-card-label">Total Spent</div><div class="summary-card-val" id="s-spent" style="color:var(--red)">₹0</div></div>
-      <div class="summary-card"><div class="summary-card-label">Total Income</div><div class="summary-card-val" id="s-income" style="color:var(--green)">₹0</div></div>
+      <div class="summary-card"><div class="summary-card-label">Total Savings</div><div class="summary-card-val" id="s-income" style="color:var(--green)">₹0</div></div>
       <div class="summary-card"><div class="summary-card-label">Transactions</div><div class="summary-card-val" id="s-count" style="color:var(--blue)">0</div></div>
       <div class="summary-card"><div class="summary-card-label">Avg / Day</div><div class="summary-card-val" id="s-avg" style="color:var(--amber)">₹0</div></div>
       <div class="summary-card"><div class="summary-card-label">Biggest Spend</div><div class="summary-card-val" id="s-max" style="color:var(--purple)">₹0</div></div>
@@ -298,7 +298,7 @@
         <div class="chart-title" style="margin-bottom:0">Category breakdown</div>
         <div class="stats-toggle-pill" style="display:flex;background:var(--surface2);border-radius:10px;padding:3px;gap:2px">
           <div class="stats-toggle-btn active" id="stats-cat-toggle-expense" onclick="switchStatsCatTab('expense')" style="padding:4px 10px;font-size:11px;font-weight:600;color:#0a0f1e;background:var(--accent);border-radius:8px;cursor:pointer;transition:all .15s">Expenses</div>
-          <div class="stats-toggle-btn" id="stats-cat-toggle-income" onclick="switchStatsCatTab('income')" style="padding:4px 10px;font-size:11px;font-weight:600;color:var(--text3);border-radius:8px;cursor:pointer;transition:all .15s">Income</div>
+          <div class="stats-toggle-btn" id="stats-cat-toggle-income" onclick="switchStatsCatTab('income')" style="padding:4px 10px;font-size:11px;font-weight:600;color:var(--text3);border-radius:8px;cursor:pointer;transition:all .15s">Savings</div>
         </div>
       </div>
       <div class="category-bars" id="cat-bars"></div>
@@ -669,7 +669,7 @@
     <div class="sheet-title">Add Transaction</div>
     <div class="type-toggle">
       <div class="type-btn active-expense" id="type-expense" onclick="setType('expense')">💸 Expense</div>
-      <div class="type-btn" id="type-income" onclick="setType('income')">💰 Income</div>
+      <div class="type-btn" id="type-income" onclick="setType('income')">💰 Savings</div>
     </div>
     <div class="form-group">
       <label class="form-label">Amount</label>
@@ -992,8 +992,12 @@
     <div class="sheet-handle"></div>
     <div class="sheet-title">📤 Share or Download Report</div>
     <div style="font-size:13px;color:var(--text2);line-height:1.65;margin-bottom:20px;text-align:center">
-      Choose to send this report via Email / Messaging or save it directly.
+      Choose how you'd like to export your report.
     </div>
+    <button class="submit-btn" id="export-email-btn" onclick="executeExportAction('email')" style="background:linear-gradient(135deg,var(--accent),#7c3aed);color:#fff;border:none">
+      📧 Send to My Email
+    </button>
+    <div style="height:8px"></div>
     <button class="submit-btn" id="export-share-btn" onclick="executeExportAction('share')">
       ✉️ Email &amp; Share Report
     </button>
@@ -1004,6 +1008,26 @@
     <div style="height:8px"></div>
     <button class="submit-btn secondary" onclick="closeModal('modal-export-action')">
       Cancel
+    </button>
+    <div style="height:12px"></div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: EMAIL SENT ═══ -->
+<div class="modal-overlay" id="modal-email-sent">
+  <div class="modal-sheet">
+    <div class="sheet-handle"></div>
+    <div style="text-align:center;padding:12px 0 4px">
+      <div style="font-size:52px;margin-bottom:8px">📬</div>
+      <div class="sheet-title" style="margin-bottom:8px">Email Ready!</div>
+      <div style="font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:6px">
+        Your CSV has been <strong>downloaded</strong> and your email client has opened.<br>
+        Just <strong>attach the file</strong> and hit send!
+      </div>
+      <div id="email-sent-address" style="font-size:12px;color:var(--accent);background:var(--accent-dim);padding:6px 14px;border-radius:20px;display:inline-block;margin-bottom:18px"></div>
+    </div>
+    <button class="submit-btn" onclick="closeModal('modal-email-sent')" style="background:linear-gradient(135deg,var(--accent),#7c3aed);color:#fff;border:none">
+      ✅ Got It
     </button>
     <div style="height:12px"></div>
   </div>

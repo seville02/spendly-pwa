@@ -3,7 +3,7 @@
 // Update these values if you change your Supabase project
 // ═══════════════════════════════════════════════════════
 
-const SUPABASE_URL  = '';
+const SUPABASE_URL = '';
 const SUPABASE_ANON = '';
 
 // Gemini API key for AI spending summary — free tier, no billing needed
@@ -11,4 +11,4 @@ const SUPABASE_ANON = '';
 const GEMINI_KEY = '';
 
 // App version — bump this to force service worker cache refresh
-const APP_VERSION = '4.30.0';
+const APP_VERSION = '4.55.0';

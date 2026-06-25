@@ -1,249 +1,32 @@
 // ═══════════════════════════════════════════════════════
-// db.js — Supabase database layer with Local Fallback & Offline Caching
+// db.js — Supabase database layer
 // All auth + data operations live here.
 // app.js calls these functions; never calls Supabase directly.
 // ═══════════════════════════════════════════════════════
 
-// Detect if we should run in Local-Only Mode
-const useLocalDB = !SUPABASE_URL || !SUPABASE_ANON;
+// Local-Only Mode is disabled
+const useLocalDB = false;
 
-// ── Init Supabase client (only if credentials are provided) ─────────────────
+// ── Init Supabase client ─────────────────────────────────────────────────────
 let _sb = null;
-if (!useLocalDB) {
-  try {
-    _sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON, {
-      auth: {
-        persistSession: true,          // keeps user logged in across app restarts
-        autoRefreshToken: true,        // silently refreshes token before expiry
-        detectSessionInUrl: false,
-        storage: localStorage,
-      }
-    });
-  } catch (e) {
-    console.error("Failed to initialize Supabase client. Falling back to Local-Only mode.", e);
-  }
-}
-
-// ── Local Storage Caching & Sync Queue ──────────────────────────────────────
-let syncQueue = [];
-let authCallback = null;
-let isSyncingQueue = false;
-
-function loadSyncQueue(userId) {
-  try {
-    syncQueue = JSON.parse(localStorage.getItem(`spendly_pending_${userId}`) || '[]');
-  } catch (e) {
-    syncQueue = [];
-  }
-}
-
-function saveSyncQueue(userId) {
-  localStorage.setItem(`spendly_pending_${userId}`, JSON.stringify(syncQueue));
-}
-
-function queueSyncOperation(userId, op) {
-  syncQueue.push(op);
-  saveSyncQueue(userId);
-  attemptSync(userId);
-}
-
-function updateLocalCache(userId, action, data) {
-  const cached = localStorage.getItem(`spendly_data_${userId}`);
-  const cache = cached ? JSON.parse(cached) : { transactions: [], budgets: {}, catBudgets: {}, debts: [], profile: {} };
-  
-  switch (action) {
-    case 'insert_tx':
-      cache.transactions = (cache.transactions || []).filter(t => t.id !== data.id);
-      cache.transactions.unshift(data);
-      break;
-    case 'delete_tx':
-      cache.transactions = (cache.transactions || []).filter(t => t.id !== data.id);
-      break;
-    case 'update_tx':
-      cache.transactions = (cache.transactions || []).map(t => t.id === data.id ? { ...t, ...data.updates } : t);
-      break;
-    case 'save_budget':
-      cache.budgets = cache.budgets || {};
-      cache.budgets[data.monthKey] = data.amount;
-      break;
-    case 'save_cat_budget':
-      cache.catBudgets = cache.catBudgets || {};
-      if (data.amount > 0) {
-        cache.catBudgets[data.category] = data.amount;
-      } else {
-        delete cache.catBudgets[data.category];
-      }
-      break;
-    case 'insert_debt':
-      cache.debts = (cache.debts || []).filter(d => d.id !== data.id);
-      cache.debts.unshift(data);
-      break;
-    case 'update_debt':
-      cache.debts = (cache.debts || []).map(d => d.id === data.id ? { ...d, ...data.updates } : d);
-      break;
-    case 'delete_debt':
-      cache.debts = (cache.debts || []).filter(d => d.id !== data.id);
-      break;
-    case 'save_profile':
-      cache.profile = { ...cache.profile, ...data };
-      break;
-  }
-  
-  localStorage.setItem(`spendly_data_${userId}`, JSON.stringify(cache));
-}
-
-function _localHash(str) {
-  let h = 0;
-  for (let i = 0; i < str.length; i++) {
-    h = ((h << 5) - h) + str.charCodeAt(i);
-    h |= 0;
-  }
-  return h.toString(36);
-}
-
-function _getLocalUsers() {
-  try {
-    return JSON.parse(localStorage.getItem('spendly_local_users') || '{}');
-  } catch (e) {
-    return {};
-  }
-}
-
-function _saveLocalUsers(users) {
-  localStorage.setItem('spendly_local_users', JSON.stringify(users));
-}
-
-function getLocalSession() {
-  const email = localStorage.getItem('spendly_local_user');
-  if (email) {
-    const normEmail = email.trim().toLowerCase();
-    const userId = 'local-user-' + normEmail.replace(/[^a-zA-Z0-9]/g, '_');
-    
-    // Legacy Data Migration: migrate legacy local-user data to email-specific key
-    const legacyKey = 'spendly_data_local-user';
-    const newKey = `spendly_data_${userId}`;
-    if (localStorage.getItem(legacyKey) && !localStorage.getItem(newKey)) {
-      localStorage.setItem(newKey, localStorage.getItem(legacyKey));
+try {
+  _sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON, {
+    auth: {
+      persistSession: true,          // keeps user logged in across app restarts
+      autoRefreshToken: true,        // silently refreshes token before expiry
+      detectSessionInUrl: false,
+      storage: localStorage,
     }
-    
-    const otherKeys = ['spendly_events', 'spendly_event_items', 'spendly_pending'];
-    otherKeys.forEach(k => {
-      const oldK = `${k}_local-user`;
-      const newK = `${k}_${userId}`;
-      if (localStorage.getItem(oldK) && !localStorage.getItem(newK)) {
-        localStorage.setItem(newK, localStorage.getItem(oldK));
-      }
-    });
-    
-    return { user: { id: userId, email: normEmail } };
-  }
-  return null;
+  });
+} catch (e) {
+  console.error("Failed to initialize Supabase client.", e);
 }
-
-// Background sync function
-async function attemptSync(userId) {
-  if (useLocalDB || !_sb || isSyncingQueue || !navigator.onLine) return;
-  loadSyncQueue(userId);
-  if (syncQueue.length === 0) return;
-
-  isSyncingQueue = true;
-  if (typeof setSyncing === 'function') setSyncing('syncing');
-
-  try {
-    while (syncQueue.length > 0) {
-      const op = syncQueue[0];
-      let success = false;
-      
-      try {
-        switch (op.type) {
-          case 'insert_tx':
-            await _dbInsertTransactionRaw(userId, op.tx);
-            break;
-          case 'delete_tx':
-            await _dbDeleteTransactionRaw(userId, op.id);
-            break;
-          case 'update_tx':
-            await _dbUpdateTransactionRaw(userId, op.id, op.updates);
-            break;
-          case 'save_budget':
-            await _dbSaveBudgetRaw(userId, op.monthKey, op.amount);
-            break;
-          case 'save_cat_budget':
-            await _dbSaveCatBudgetRaw(userId, op.category, op.amount);
-            break;
-          case 'insert_debt':
-            await _dbInsertDebtRaw(userId, op.debt);
-            break;
-          case 'update_debt':
-            await _dbUpdateDebtRaw(userId, op.id, op.updates);
-            break;
-          case 'delete_debt':
-            await _dbDeleteDebtRaw(userId, op.id);
-            break;
-          case 'save_profile':
-            await _dbSaveProfileRaw(userId, op.profile);
-            break;
-        }
-        success = true;
-      } catch (err) {
-        console.error('Failed to sync operation', op, err);
-        if (err.status >= 400 && err.status < 500) {
-          success = true; 
-        } else {
-          break; // Stop and retry later
-        }
-      }
-
-      if (success) {
-        syncQueue.shift();
-        saveSyncQueue(userId);
-      }
-    }
-
-    if (typeof setSyncing === 'function') {
-      setSyncing(syncQueue.length === 0 ? 'ok' : 'error');
-    }
-  } finally {
-    isSyncingQueue = false;
-  }
-}
-
-window.addEventListener('online', () => {
-  const session = getLocalSession();
-  if (session) attemptSync(session.user.id);
-});
 
 // ─────────────────────────────────────────────────────
 // AUTH
 // ─────────────────────────────────────────────────────
 
 async function dbSignUp(email, password, name) {
-  if (useLocalDB) {
-    const normEmail = email.trim().toLowerCase();
-    const users = _getLocalUsers();
-    if (users[normEmail]) {
-      throw new Error("already registered");
-    }
-    
-    users[normEmail] = {
-      email: normEmail,
-      passwordHash: _localHash(password),
-      name: name
-    };
-    _saveLocalUsers(users);
-    
-    localStorage.setItem('spendly_local_user', normEmail);
-    
-    const session = getLocalSession();
-    const userId = session.user.id;
-    if (!localStorage.getItem(`spendly_data_${userId}`)) {
-      const profile = { name, budget_day: 1 };
-      localStorage.setItem(`spendly_data_${userId}`, JSON.stringify({ transactions: [], budgets: {}, catBudgets: {}, debts: [], profile }));
-    }
-    
-    if (authCallback) authCallback('SIGNED_IN', session);
-    return session;
-  }
   const { data, error } = await _sb.auth.signUp({
     email,
     password,
@@ -254,39 +37,17 @@ async function dbSignUp(email, password, name) {
 }
 
 async function dbSignIn(email, password) {
-  if (useLocalDB) {
-    const normEmail = email.trim().toLowerCase();
-    const users = _getLocalUsers();
-    const user = users[normEmail];
-    if (!user || user.passwordHash !== _localHash(password)) {
-      throw new Error("Invalid login credentials");
-    }
-    
-    localStorage.setItem('spendly_local_user', normEmail);
-    
-    const session = getLocalSession();
-    if (authCallback) authCallback('SIGNED_IN', session);
-    return session;
-  }
   const { data, error } = await _sb.auth.signInWithPassword({ email, password });
   if (error) throw error;
   return data;
 }
 
 async function dbSignOut() {
-  if (useLocalDB) {
-    localStorage.removeItem('spendly_local_user');
-    if (authCallback) authCallback('SIGNED_OUT', null);
-    return;
-  }
   const { error } = await _sb.auth.signOut();
   if (error) throw error;
 }
 
 async function dbResetPassword(email) {
-  if (useLocalDB) {
-    return { data: {}, error: null };
-  }
   const { data, error } = await _sb.auth.resetPasswordForEmail(email, {
     redirectTo: window.location.origin + window.location.pathname
   });
@@ -295,39 +56,26 @@ async function dbResetPassword(email) {
 }
 
 async function dbUpdatePassword(newPassword) {
-  if (useLocalDB) {
-    return { data: {}, error: null };
-  }
   const { data, error } = await _sb.auth.updateUser({ password: newPassword });
   if (error) throw error;
   return data;
 }
 
 async function dbGetSession() {
-  if (useLocalDB) {
-    return getLocalSession();
-  }
+  if (!_sb) return null;
   const { data } = await _sb.auth.getSession();
   return data?.session ?? null;
 }
 
 async function dbGetUser() {
-  if (useLocalDB) {
-    const session = getLocalSession();
-    return session ? session.user : null;
-  }
+  if (!_sb) return null;
   const { data } = await _sb.auth.getUser();
   return data?.user ?? null;
 }
 
 // Listen for auth state changes (login / logout / token refresh)
 function dbOnAuthChange(callback) {
-  if (useLocalDB) {
-    authCallback = callback;
-    const session = getLocalSession();
-    setTimeout(() => callback('SIGNED_IN', session), 0);
-    return { data: { subscription: { unsubscribe: () => { authCallback = null; } } } };
-  }
+  if (!_sb) return { data: { subscription: { unsubscribe: () => {} } } };
   return _sb.auth.onAuthStateChange((event, session) => {
     callback(event, session);
   });
@@ -338,28 +86,17 @@ function dbOnAuthChange(callback) {
 // ─────────────────────────────────────────────────────
 
 async function dbGetProfile(userId) {
-  if (useLocalDB) {
-    const cached = localStorage.getItem(`spendly_data_${userId}`);
-    return cached ? (JSON.parse(cached).profile || {}) : {};
-  }
   const { data, error } = await _sb
     .from('profiles')
     .select('*')
     .eq('id', userId)
     .single();
   if (error && error.code !== 'PGRST116') throw error;
-  return data;
+  return data || {};
 }
 
 async function dbSaveProfile(userId, profile) {
-  updateLocalCache(userId, 'save_profile', profile);
-  if (useLocalDB) return;
-  try {
-    await _dbSaveProfileRaw(userId, profile);
-  } catch (e) {
-    console.warn('Supabase save profile failed, queueing', e);
-    queueSyncOperation(userId, { type: 'save_profile', profile });
-  }
+  await _dbSaveProfileRaw(userId, profile);
 }
 
 async function _dbSaveProfileRaw(userId, profile) {
@@ -374,10 +111,6 @@ async function _dbSaveProfileRaw(userId, profile) {
 // ─────────────────────────────────────────────────────
 
 async function dbGetTransactions(userId) {
-  if (useLocalDB) {
-    const cached = localStorage.getItem(`spendly_data_${userId}`);
-    return cached ? (JSON.parse(cached).transactions || []) : [];
-  }
   const { data, error } = await _sb
     .from('transactions')
     .select('*')
@@ -388,10 +121,6 @@ async function dbGetTransactions(userId) {
 }
 
 async function dbGetTransactionsByMonth(userId, monthKey) {
-  if (useLocalDB) {
-    const txs = await dbGetTransactions(userId);
-    return txs.filter(t => t.month_key === monthKey || t.monthKey === monthKey);
-  }
   const { data, error } = await _sb
     .from('transactions')
     .select('*')
@@ -403,14 +132,7 @@ async function dbGetTransactionsByMonth(userId, monthKey) {
 }
 
 async function dbInsertTransaction(userId, tx) {
-  updateLocalCache(userId, 'insert_tx', tx);
-  if (useLocalDB) return;
-  try {
-    await _dbInsertTransactionRaw(userId, tx);
-  } catch (e) {
-    console.warn('Supabase insert transaction failed, queueing', e);
-    queueSyncOperation(userId, { type: 'insert_tx', tx });
-  }
+  await _dbInsertTransactionRaw(userId, tx);
 }
 
 async function _dbInsertTransactionRaw(userId, tx) {
@@ -433,14 +155,7 @@ async function _dbInsertTransactionRaw(userId, tx) {
 }
 
 async function dbDeleteTransaction(userId, txId) {
-  updateLocalCache(userId, 'delete_tx', { id: txId });
-  if (useLocalDB) return;
-  try {
-    await _dbDeleteTransactionRaw(userId, txId);
-  } catch (e) {
-    console.warn('Supabase delete transaction failed, queueing', e);
-    queueSyncOperation(userId, { type: 'delete_tx', id: txId });
-  }
+  await _dbDeleteTransactionRaw(userId, txId);
 }
 
 async function _dbDeleteTransactionRaw(userId, txId) {
@@ -453,14 +168,7 @@ async function _dbDeleteTransactionRaw(userId, txId) {
 }
 
 async function dbUpdateTransaction(userId, txId, updates) {
-  updateLocalCache(userId, 'update_tx', { id: txId, updates });
-  if (useLocalDB) return;
-  try {
-    await _dbUpdateTransactionRaw(userId, txId, updates);
-  } catch (e) {
-    console.warn('Supabase update transaction failed, queueing', e);
-    queueSyncOperation(userId, { type: 'update_tx', id: txId, updates });
-  }
+  await _dbUpdateTransactionRaw(userId, txId, updates);
 }
 
 async function _dbUpdateTransactionRaw(userId, txId, updates) {
@@ -485,30 +193,23 @@ async function _dbUpdateTransactionRaw(userId, txId, updates) {
 // Bulk insert for import / recurring
 async function dbBulkInsertTransactions(userId, txList) {
   if (!txList.length) return;
-  txList.forEach(tx => updateLocalCache(userId, 'insert_tx', tx));
-  if (useLocalDB) return;
-  try {
-    const rows = txList.map(tx => ({
-      id:           tx.id,
-      user_id:      userId,
-      type:         tx.type,
-      amount:       tx.amount,
-      description:  tx.description || '',
-      category:     tx.category || '',
-      notes:        tx.notes || '',
-      recur:        tx.recur || 'none',
-      recur_parent: tx.recurParent || '',
-      month_key:    tx.monthKey,
-      datetime:     tx.datetime,
-    }));
-    const { error } = await _sb
-      .from('transactions')
-      .upsert(rows, { onConflict: 'id', ignoreDuplicates: true });
-    if (error) throw error;
-  } catch (e) {
-    console.warn('Supabase bulk insert transactions failed, queueing each', e);
-    txList.forEach(tx => queueSyncOperation(userId, { type: 'insert_tx', tx }));
-  }
+  const rows = txList.map(tx => ({
+    id:           tx.id,
+    user_id:      userId,
+    type:         tx.type,
+    amount:       tx.amount,
+    description:  tx.description || '',
+    category:     tx.category || '',
+    notes:        tx.notes || '',
+    recur:        tx.recur || 'none',
+    recur_parent: tx.recurParent || '',
+    month_key:    tx.monthKey,
+    datetime:     tx.datetime,
+  }));
+  const { error } = await _sb
+    .from('transactions')
+    .upsert(rows, { onConflict: 'id', ignoreDuplicates: true });
+  if (error) throw error;
 }
 
 // ─────────────────────────────────────────────────────
@@ -516,10 +217,6 @@ async function dbBulkInsertTransactions(userId, txList) {
 // ─────────────────────────────────────────────────────
 
 async function dbGetBudgets(userId) {
-  if (useLocalDB) {
-    const cached = localStorage.getItem(`spendly_data_${userId}`);
-    return cached ? (JSON.parse(cached).budgets || {}) : {};
-  }
   const { data, error } = await _sb
     .from('budgets')
     .select('*')
@@ -531,14 +228,7 @@ async function dbGetBudgets(userId) {
 }
 
 async function dbSaveBudget(userId, monthKey, amount) {
-  updateLocalCache(userId, 'save_budget', { monthKey, amount });
-  if (useLocalDB) return;
-  try {
-    await _dbSaveBudgetRaw(userId, monthKey, amount);
-  } catch (e) {
-    console.warn('Supabase save budget failed, queueing', e);
-    queueSyncOperation(userId, { type: 'save_budget', monthKey, amount });
-  }
+  await _dbSaveBudgetRaw(userId, monthKey, amount);
 }
 
 async function _dbSaveBudgetRaw(userId, monthKey, amount) {
@@ -554,43 +244,39 @@ async function _dbSaveBudgetRaw(userId, monthKey, amount) {
 // ─────────────────────────────────────────────────────
 
 async function dbGetCatBudgets(userId) {
-  if (useLocalDB) {
-    const cached = localStorage.getItem(`spendly_data_${userId}`);
-    return cached ? (JSON.parse(cached).catBudgets || {}) : {};
-  }
   const { data, error } = await _sb
     .from('cat_budgets')
     .select('*')
     .eq('user_id', userId);
   if (error) throw error;
   const map = {};
-  (data ?? []).forEach(b => { map[b.category] = Number(b.amount); });
+  (data ?? []).forEach(b => {
+    const mk = b.month_key;
+    if (mk) {
+      if (!map[mk]) map[mk] = {};
+      map[mk][b.category] = Number(b.amount);
+    }
+  });
   return map;
 }
 
-async function dbSaveCatBudget(userId, category, amount) {
-  updateLocalCache(userId, 'save_cat_budget', { category, amount });
-  if (useLocalDB) return;
-  try {
-    await _dbSaveCatBudgetRaw(userId, category, amount);
-  } catch (e) {
-    console.warn('Supabase save category budget failed, queueing', e);
-    queueSyncOperation(userId, { type: 'save_cat_budget', category, amount });
-  }
+async function dbSaveCatBudget(userId, monthKey, category, amount) {
+  await _dbSaveCatBudgetRaw(userId, monthKey, category, amount);
 }
 
-async function _dbSaveCatBudgetRaw(userId, category, amount) {
+async function _dbSaveCatBudgetRaw(userId, monthKey, category, amount) {
   if (amount > 0) {
     const { error } = await _sb
       .from('cat_budgets')
-      .upsert({ user_id: userId, category, amount },
-              { onConflict: 'user_id,category' });
+      .upsert({ user_id: userId, month_key: monthKey, category, amount },
+              { onConflict: 'user_id,month_key,category' });
     if (error) throw error;
   } else {
     const { error } = await _sb
       .from('cat_budgets')
       .delete()
       .eq('user_id', userId)
+      .eq('month_key', monthKey)
       .eq('category', category);
     if (error) throw error;
   }
@@ -601,10 +287,6 @@ async function _dbSaveCatBudgetRaw(userId, category, amount) {
 // ─────────────────────────────────────────────────────
 
 async function dbGetDebts(userId) {
-  if (useLocalDB) {
-    const cached = localStorage.getItem(`spendly_data_${userId}`);
-    return cached ? (JSON.parse(cached).debts || []) : [];
-  }
   const { data, error } = await _sb
     .from('debts')
     .select('*')
@@ -615,14 +297,7 @@ async function dbGetDebts(userId) {
 }
 
 async function dbInsertDebt(userId, debt) {
-  updateLocalCache(userId, 'insert_debt', debt);
-  if (useLocalDB) return;
-  try {
-    await _dbInsertDebtRaw(userId, debt);
-  } catch (e) {
-    console.warn('Supabase insert debt failed, queueing', e);
-    queueSyncOperation(userId, { type: 'insert_debt', debt });
-  }
+  await _dbInsertDebtRaw(userId, debt);
 }
 
 async function _dbInsertDebtRaw(userId, debt) {
@@ -642,14 +317,7 @@ async function _dbInsertDebtRaw(userId, debt) {
 }
 
 async function dbUpdateDebt(userId, debtId, updates) {
-  updateLocalCache(userId, 'update_debt', { id: debtId, updates });
-  if (useLocalDB) return;
-  try {
-    await _dbUpdateDebtRaw(userId, debtId, updates);
-  } catch (e) {
-    console.warn('Supabase update debt failed, queueing', e);
-    queueSyncOperation(userId, { type: 'update_debt', id: debtId, updates });
-  }
+  await _dbUpdateDebtRaw(userId, debtId, updates);
 }
 
 async function _dbUpdateDebtRaw(userId, debtId, updates) {
@@ -662,14 +330,7 @@ async function _dbUpdateDebtRaw(userId, debtId, updates) {
 }
 
 async function dbDeleteDebt(userId, debtId) {
-  updateLocalCache(userId, 'delete_debt', { id: debtId });
-  if (useLocalDB) return;
-  try {
-    await _dbDeleteDebtRaw(userId, debtId);
-  } catch (e) {
-    console.warn('Supabase delete debt failed, queueing', e);
-    queueSyncOperation(userId, { type: 'delete_debt', id: debtId });
-  }
+  await _dbDeleteDebtRaw(userId, debtId);
 }
 
 async function _dbDeleteDebtRaw(userId, debtId) {
@@ -686,49 +347,19 @@ async function _dbDeleteDebtRaw(userId, debtId) {
 // ─────────────────────────────────────────────────────
 
 async function dbClearAllData(userId) {
-  // Always wipe local cache first
-  const cached = localStorage.getItem(`spendly_data_${userId}`);
-  const profile = cached ? (JSON.parse(cached).profile || {}) : {};
-  const empty = { transactions: [], budgets: {}, catBudgets: {}, debts: [], profile };
-  localStorage.setItem(`spendly_data_${userId}`, JSON.stringify(empty));
-  // Clear sync queue too
-  syncQueue = [];
-  saveSyncQueue(userId);
-
-  if (useLocalDB) return;
-
   // Delete all rows for this user in each table (Supabase)
-  try {
-    await Promise.all([
-      _sb.from('transactions').delete().eq('user_id', userId),
-      _sb.from('budgets').delete().eq('user_id', userId),
-      _sb.from('cat_budgets').delete().eq('user_id', userId),
-      _sb.from('debts').delete().eq('user_id', userId),
-    ]);
-  } catch (e) {
-    console.warn('Supabase clear all data failed (local cache was wiped)', e);
-    throw e;
-  }
+  await Promise.all([
+    _sb.from('transactions').delete().eq('user_id', userId),
+    _sb.from('budgets').delete().eq('user_id', userId),
+    _sb.from('cat_budgets').delete().eq('user_id', userId),
+    _sb.from('debts').delete().eq('user_id', userId),
+  ]);
 }
 
 async function dbClearAllTransactions(userId) {
-  // Always wipe local cache first
-  const cached = localStorage.getItem(`spendly_data_${userId}`);
-  if (cached) {
-    const data = JSON.parse(cached);
-    data.transactions = [];
-    localStorage.setItem(`spendly_data_${userId}`, JSON.stringify(data));
-  }
-  
-  if (useLocalDB) return;
-
   // Clear from Supabase
-  try {
-    await _sb.from('transactions').delete().eq('user_id', userId);
-  } catch (e) {
-    console.warn('Supabase clear all transactions failed', e);
-    throw e;
-  }
+  const { error } = await _sb.from('transactions').delete().eq('user_id', userId);
+  if (error) throw error;
 }
 
 // ─────────────────────────────────────────────────────
@@ -737,38 +368,14 @@ async function dbClearAllTransactions(userId) {
 // ─────────────────────────────────────────────────────
 
 async function dbLoadAll(userId) {
-  loadSyncQueue(userId);
-  
-  // Try syncing pending operations first if online
-  if (!useLocalDB && syncQueue.length > 0 && navigator.onLine) {
-    await attemptSync(userId);
-  }
-
-  const cached = localStorage.getItem(`spendly_data_${userId}`);
-  const localData = cached ? JSON.parse(cached) : null;
-
-  if (useLocalDB) {
-    return localData || { transactions: [], budgets: {}, catBudgets: {}, debts: [], profile: {} };
-  }
-
-  try {
-    const [transactions, budgets, catBudgets, debts, profile] = await Promise.all([
-      dbGetTransactions(userId),
-      dbGetBudgets(userId),
-      dbGetCatBudgets(userId),
-      dbGetDebts(userId),
-      dbGetProfile(userId),
-    ]);
-    const data = { transactions, budgets, catBudgets, debts, profile };
-    localStorage.setItem(`spendly_data_${userId}`, JSON.stringify(data));
-    return data;
-  } catch (e) {
-    console.warn('Failed to load from Supabase, returning local cache if available', e);
-    if (localData) {
-      return localData;
-    }
-    throw e;
-  }
+  const [transactions, budgets, catBudgets, debts, profile] = await Promise.all([
+    dbGetTransactions(userId),
+    dbGetBudgets(userId),
+    dbGetCatBudgets(userId),
+    dbGetDebts(userId),
+    dbGetProfile(userId),
+  ]);
+  return { transactions, budgets, catBudgets, debts, profile };
 }
 
 // ─────────────────────────────────────────────────────
@@ -791,6 +398,7 @@ function dbDeleteEvent(userId, eventId) {
   localStorage.setItem(`spendly_event_items_${userId}`, JSON.stringify(dbGetEventItems(userId).filter(i => i.eventId !== eventId)));
 }
 
+// Event items are also locally stored
 function dbGetEventItems(userId) {
   try { return JSON.parse(localStorage.getItem(`spendly_event_items_${userId}`) || '[]'); } catch(e) { return []; }
 }
