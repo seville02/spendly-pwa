@@ -748,7 +748,8 @@ function renderHome() {
   const statVals = document.querySelectorAll('.hero-card .hero-stat-val');
 
   const remaining = budget - spent;
-  const pct = budget > 0 ? Math.min((spent / budget) * 100, 100) : 0;
+  const truePct = budget > 0 ? (spent / budget) * 100 : 0;
+  const pct = Math.min(truePct, 100);
 
   if (budget > 0) {
     heroNum.textContent = Math.abs(remaining).toLocaleString('en-IN', {
@@ -772,8 +773,7 @@ function renderHome() {
   }
 
   fill.style.width = pct + '%';
-  fill.className = 'progress-fill' + (pct >= 100 ? ' over' : pct > 80 ? ' warn' : '');
-  fill.style.width = Math.min(pct, 100) + '%';
+  fill.className = 'progress-fill' + (truePct >= 100 ? ' over' : truePct >= 80 ? ' warn' : '');
 
   statLabels[0].textContent = 'Budget';
   statVals[0].textContent = fmt(budget);
