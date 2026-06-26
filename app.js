@@ -96,14 +96,14 @@ let editingTxId = null;
 // XP / RANK SYSTEM
 // ─────────────────────────────────────────────────────
 const XP_RANKS = [
-  { label: 'Beginner', badge: '🌱', min: 0,    max: 50   },
-  { label: 'Bronze',   badge: '🥉', min: 50,   max: 170  },
-  { label: 'Silver',   badge: '🥈', min: 170,  max: 350  },
-  { label: 'Gold',     badge: '🥇', min: 350,  max: 700  },
-  { label: 'Platinum', badge: '💠', min: 700,  max: 1800 },
-  { label: 'Diamond',  badge: '💎', min: 1800, max: 3200 },
-  { label: 'Mythic',   badge: '🌟', min: 3200, max: 7000 },
-  { label: 'Legend',   badge: '👑', min: 7000, max: 10000 },
+  { label: 'Beginner', badge: '🌱', min: 0, max: 50 },
+  { label: 'Bronze', badge: '🥉', min: 50, max: 170 },
+  { label: 'Silver', badge: '🥈', min: 170, max: 350 },
+  { label: 'Gold', badge: '🥇', min: 350, max: 700 },
+  { label: 'Platinum', badge: '💠', min: 700, max: 1800 },
+  { label: 'Diamond', badge: '💎', min: 1800, max: 3200 },
+  { label: 'Mythic', badge: '🌟', min: 3200, max: 7000 },
+  { label: 'Legend', badge: '👑', min: 7000, max: 10000 },
 ];
 const XP_KEY = () => `spendly_xp_${currentUser?.id || 'local'}`;
 const XP_LASTMONTH_KEY = () => `spendly_xp_lastmonth_${currentUser?.id || 'local'}`;
@@ -142,16 +142,16 @@ function renderXPBar() {
 
   const badge = document.getElementById('xp-rank-badge');
   const label = document.getElementById('xp-rank-label');
-  const fill  = document.getElementById('xp-bar-fill');
-  const pts   = document.getElementById('xp-points-label');
-  const next  = document.getElementById('xp-next-label');
-  const need  = document.getElementById('xp-needed-label');
+  const fill = document.getElementById('xp-bar-fill');
+  const pts = document.getElementById('xp-points-label');
+  const next = document.getElementById('xp-next-label');
+  const need = document.getElementById('xp-needed-label');
 
   if (!badge) return;
   badge.textContent = rank.badge;
   label.textContent = rank.label;
-  pts.textContent   = `${xp.toLocaleString()} XP`;
-  fill.style.width  = `${pct}%`;
+  pts.textContent = `${xp.toLocaleString()} XP`;
+  fill.style.width = `${pct}%`;
   if (nextRank) {
     next.textContent = `Next: ${nextRank.badge} ${nextRank.label}`;
     need.textContent = `${(rank.max - xp).toLocaleString()} XP to go`;
@@ -1403,10 +1403,46 @@ async function deleteDebt(id) {
 // ─────────────────────────────────────────────────────
 // PROFILE
 // ─────────────────────────────────────────────────────
-function renderProfile() {
+async function renderProfile() {
   const p = appData.profile || {}, s = getLocalSettings();
+
+  // ─── AUTOMATIC USERNAME GENERATION LOGIC ───
+  if (!p.username && currentUser && currentUser.email) {
+    let baseUsername = currentUser.email.split('@')[0].toLowerCase().replace(/[^a-z0-9_]/g, '');
+    if (baseUsername.length < 3) baseUsername += '321'; // Enforce minimum 3 character rule
+    let finalUsername = baseUsername;
+
+    try {
+      // Quietly check if username exists in database
+      const { data: existingUser } = await supabase
+        .from('profiles')
+        .select('username')
+        .eq('username', finalUsername)
+        .maybeSingle();
+
+      // If duplicate found, append a random 4-digit number
+      if (existingUser) {
+        finalUsername = `${baseUsername}${Math.floor(1000 + Math.random() * 9000)}`;
+      }
+
+      // Update backend database with no toast alerts
+      await supabase
+        .from('profiles')
+        .update({ username: finalUsername })
+        .eq('id', currentUser.id);
+
+      // Mutate local app memory so UI catches it immediately
+      p.username = finalUsername;
+      if (appData.profile) appData.profile.username = finalUsername;
+    } catch (err) {
+      console.error('Silent username generation failed:', err);
+    }
+  }
+  // ───────────────────────────────────────────
+
   document.getElementById('profile-name-input').value = p.name || '';
-  // Username field
+
+  // Username field UI assignment
   const unameInput = document.getElementById('profile-username-input');
   const unameBadge = document.getElementById('profile-username-badge');
   if (unameInput) unameInput.value = p.username || '';
@@ -1418,6 +1454,7 @@ function renderProfile() {
       unameBadge.style.display = 'none';
     }
   }
+
   // Currency display — show flag + name
   const curSym = s.currency || detectCurrency();
   const curObj = CURRENCIES.find(c => c.symbol === curSym);
@@ -1425,6 +1462,7 @@ function renderProfile() {
   document.getElementById('profile-currency-display').textContent = curLabel;
   document.getElementById('profile-display-name').textContent = p.name || currentUser?.email || 'My Account';
   document.getElementById('profile-email').textContent = currentUser?.email || '';
+
   const avatarTxt = document.getElementById('profile-avatar-txt');
   if (avatarTxt) {
     if (p.avatar) {
@@ -1433,9 +1471,11 @@ function renderProfile() {
       avatarTxt.textContent = p.name ? p.name[0].toUpperCase() : '💼';
     }
   }
+
   document.getElementById('profile-sub').textContent = `Budget resets on the 1st · ${getResetMonthLabel()}`;
   const activeDebts = (appData.debts || []).filter(d => !d.settled).length;
   document.getElementById('debt-tracker-val').textContent = activeDebts > 0 ? `${activeDebts} active debt${activeDebts > 1 ? 's' : ''}` : 'Track who owes who';
+
   const pinOn = s.pinEnabled;
   document.getElementById('pin-toggle').className = 'toggle' + (pinOn ? ' on' : '');
   document.getElementById('pin-status-label').textContent = pinOn ? 'Enabled' : 'Disabled';
@@ -1637,7 +1677,7 @@ function openAddSavingsFDModal() {
   const data = getSavingsData();
   const accounts = data.savingsAccounts || [];
   const parentSelect = document.getElementById('savings-fd-parent-select');
-  
+
   // Filter for bank/savings account types
   const parentAccounts = accounts.map((acc, idx) => ({ acc, idx })).filter(item => item.acc.type === 'bank' || item.acc.type === 'savings');
 
@@ -1689,12 +1729,12 @@ async function deleteSavingsFD(parentIdx, fdIdx) {
   const data = getSavingsData();
   const parentAcc = data.savingsAccounts[parentIdx];
   if (!parentAcc || !parentAcc.fds || !parentAcc.fds[fdIdx]) return;
-  
+
   const fd = parentAcc.fds[fdIdx];
   if (!confirm(`Delete FD "${fd.name}"? This cannot be undone.`)) return;
 
   parentAcc.fds.splice(fdIdx, 1);
-  
+
   setSyncing('syncing');
   try {
     await dbSaveProfile(currentUser.id, appData.profile);
@@ -2696,7 +2736,7 @@ function switchEventsTab(tab) {
   currentEventsTab = tab;
   document.getElementById('ev-tab-active').className = 'stats-tab' + (tab === 'active' ? ' active' : '');
   document.getElementById('ev-tab-history').className = 'stats-tab' + (tab === 'history' ? ' active' : '');
-  
+
   if (tab === 'active') {
     document.getElementById('events-list').style.display = 'block';
     document.getElementById('events-history-list').style.display = 'none';
@@ -2710,7 +2750,7 @@ function switchEventsTab(tab) {
 function renderEvents() {
   const events = dbGetEvents(currentUser.id);
   const allItems = dbGetEventItems(currentUser.id);
-  
+
   // Split events based on completed status
   const activeEvents = events.filter(e => !e.completed);
   const historyEvents = events.filter(e => e.completed);
@@ -2761,7 +2801,7 @@ function renderEvents() {
           ${stillOwed > 0 ? `<div class="ev-stat-item"><div class="ev-stat-val red">${fmtEvent(stillOwed, sym)}</div><div class="ev-stat-lbl">Still Owed</div></div>` : ''}
           ${budget > 0 ? `<div class="ev-stat-item"><div class="ev-stat-val accent">${fmtEvent(budget, sym)}</div><div class="ev-stat-lbl">${ev.estimatedBudget ? 'Est. Budget' : 'Items Est.'}</div></div>` : ''}
         </div>
-        ${budget > 0 ? `<div class="progress-bar" style="margin-top:12px"><div class="progress-fill${pct >= 100 ? ' over' : pct >= 80 ? ' warn' : ''}" style="width:${Math.min(pct,100)}%"></div></div>
+        ${budget > 0 ? `<div class="progress-bar" style="margin-top:12px"><div class="progress-fill${pct >= 100 ? ' over' : pct >= 80 ? ' warn' : ''}" style="width:${Math.min(pct, 100)}%"></div></div>
         <div style="font-size:11px;color:var(--text3);text-align:right;margin-top:4px">${Math.round(pct)}% funded</div>` : ''}
       </div>`;
     }).join('<div class="event-separator"></div>');
@@ -2819,7 +2859,7 @@ function renderEventDetail() {
     </div>
     ${budget > 0 ? `
       <div class="progress-bar" style="margin:14px 0 4px">
-        <div class="progress-fill${pct >= 100 ? ' over' : pct >= 80 ? ' warn' : ''}" style="width:${Math.min(pct,100)}%"></div>
+        <div class="progress-fill${pct >= 100 ? ' over' : pct >= 80 ? ' warn' : ''}" style="width:${Math.min(pct, 100)}%"></div>
       </div>
       <div style="font-size:11px;color:var(--text3);text-align:right;margin-bottom:12px">${Math.round(pct)}% funded</div>
     ` : ''}`;
@@ -2841,7 +2881,7 @@ function renderEventDetail() {
           </div>
           ${item.totalCost > 0 ? `
             <div class="progress-bar" style="margin:8px 0 5px">
-              <div class="progress-fill${ipct >= 100 ? ' over' : ipct >= 80 ? ' warn' : ''}" style="width:${Math.min(ipct,100)}%"></div>
+              <div class="progress-fill${ipct >= 100 ? ' over' : ipct >= 80 ? ' warn' : ''}" style="width:${Math.min(ipct, 100)}%"></div>
             </div>
             ${rem > 0 ? `<div style="font-size:11px;color:var(--red)">⏳ ${fmtEvent(rem, sym)} remaining</div>`
             : `<div style="font-size:11px;color:var(--green)">✅ Fully paid</div>`}
@@ -3155,14 +3195,14 @@ async function handleBillUpload(event) {
     if (parsed.items && parsed.items.length > 0) {
       bsItems = bsItems.concat(parsed.items);
       renderBsItems();
-      
+
       if (parsed.companyName) {
         document.getElementById('bs-bill-name').value = parsed.companyName;
       }
       if (parsed.extraCharges > 0) {
         document.getElementById('bs-extra-charges').value = parsed.extraCharges;
       }
-      
+
       showToast(`Extracted ${parsed.items.length} items successfully! 🧾`);
     } else {
       showToast('Could not extract items automatically. Please add manually or try another receipt.');
@@ -3493,10 +3533,10 @@ let selectedInvoiceFile = null;
 function escapeHtml(str) {
   if (!str) return '';
   return str.replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#039;');
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
 }
 
 async function renderInvoicesScreen() {
@@ -3533,7 +3573,7 @@ function renderInvoices() {
   // Filter
   const filtered = invoicesList.filter(inv => {
     return (inv.name && inv.name.toLowerCase().includes(query)) ||
-           (inv.details && inv.details.toLowerCase().includes(query));
+      (inv.details && inv.details.toLowerCase().includes(query));
   });
 
   // Update badge count
@@ -3560,7 +3600,7 @@ function renderInvoices() {
     const ext = inv.file_name.split('.').pop().toLowerCase();
     let icon = '📄';
     let colorClass = 'other';
-    
+
     if (['png', 'jpg', 'jpeg', 'heic'].includes(ext)) {
       icon = '🖼️';
       colorClass = 'image';
@@ -3677,7 +3717,7 @@ async function confirmDeleteAllInvoices() {
     return;
   }
   if (!confirm('🚨 WARNING: Are you sure you want to delete ALL invoices? This action cannot be undone and will delete all files permanently.')) return;
-  
+
   setSyncing('syncing');
   try {
     await dbDeleteAllInvoices(currentUser.id);
@@ -3809,7 +3849,7 @@ async function searchTripUser() {
     try {
       const found = await dbLookupByUsername(raw);
       if (!found) {
-        resultEl.innerHTML = `<span style="color:var(--red)">❌ No user found for @${raw.replace(/^@/,'')}</span>`;
+        resultEl.innerHTML = `<span style="color:var(--red)">❌ No user found for @${raw.replace(/^@/, '')}</span>`;
         tripSearchResult = null;
         return;
       }
@@ -3912,7 +3952,7 @@ async function selectTrip(groupId) {
   setSyncing('syncing');
   try {
     currentTripData = await dbGetTripDetails(groupId);
-    
+
     document.getElementById('trip-groups-list-container').style.display = 'none';
     document.getElementById('trip-details-panel').style.display = 'block';
 
