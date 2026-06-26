@@ -435,49 +435,70 @@
 
   <!-- Total savings hero -->
   <div class="savings-hero-card">
+    <div class="savings-hero-glow"></div>
     <div class="savings-hero-label">TOTAL SAVINGS</div>
     <div class="savings-hero-amount">
       <span class="savings-hero-currency" id="savings-hero-currency">₹</span>
       <span class="savings-hero-num" id="savings-hero-total">0</span>
     </div>
-    <div class="savings-hero-sub" id="savings-hero-sub">Across all accounts</div>
+    <div class="savings-hero-sub" id="savings-hero-sub">Add accounts to get started</div>
+    <div class="savings-hero-divider"></div>
     <div class="savings-hero-row">
       <div class="savings-hero-stat">
-        <div class="savings-hero-stat-label">ACCOUNTS</div>
+        <div class="savings-hero-stat-label">🏦 ACCOUNTS</div>
         <div class="savings-hero-stat-val" id="savings-count">0</div>
       </div>
       <div class="savings-hero-stat">
-        <div class="savings-hero-stat-label">IN HAND</div>
+        <div class="savings-hero-stat-label">💵 IN HAND CASH</div>
         <div class="savings-hero-stat-val" id="savings-inhand-display">₹0</div>
       </div>
     </div>
   </div>
 
-  <!-- In-hand cash quick edit -->
-  <div style="padding:0 16px;margin-bottom:16px">
-    <div style="font-size:10px;font-weight:500;letter-spacing:.07em;text-transform:uppercase;color:var(--text3);margin-bottom:8px">💵 Cash in Hand</div>
-    <div class="edit-field">
+  <!-- In-hand cash -->
+  <div class="savings-section-card">
+    <div class="savings-section-header">
+      <span class="savings-section-icon">💵</span>
+      <span class="savings-section-title">Cash in Hand</span>
+    </div>
+    <div class="edit-field" style="margin-bottom:0">
       <span class="edit-field-label">Amount</span>
-      <input type="number" id="savings-inhand-input" placeholder="0" step="any" inputmode="decimal"
-        style="flex:1;background:none;border:none;outline:none;padding:12px 0;font-size:14px;font-family:var(--mono);color:var(--text)"
+      <input type="number" id="savings-inhand-input" placeholder="Enter cash amount..." step="any" inputmode="decimal"
+        style="flex:1;background:none;border:none;outline:none;padding:13px 0;font-size:15px;font-family:var(--mono);color:var(--text)"
         onblur="saveInHandCash(this.value)" onkeydown="if(event.key==='Enter')this.blur()">
     </div>
   </div>
 
-  <!-- Accounts list -->
-  <div style="padding:0 16px;margin-bottom:6px">
-    <div style="font-size:10px;font-weight:500;letter-spacing:.07em;text-transform:uppercase;color:var(--text3);margin-bottom:8px">🏦 Bank &amp; Savings Accounts</div>
+  <!-- Accounts -->
+  <div class="savings-section-card">
+    <div class="savings-section-header">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="savings-section-icon">🏦</span>
+        <span class="savings-section-title">Bank &amp; Savings Accounts</span>
+      </div>
+      <button onclick="openAddSavingsAccountModal()" class="savings-section-action">+ Add</button>
+    </div>
     <div id="savings-accounts-list"></div>
-    <button onclick="openAddSavingsAccountModal()" class="savings-add-btn">
+    <button onclick="openAddSavingsAccountModal()" class="savings-add-btn" id="savings-add-btn-main">
       <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
       Add Account
     </button>
   </div>
 
-  <!-- Recent savings transactions -->
-  <div style="padding:0 16px;margin-bottom:20px">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-      <div style="font-size:10px;font-weight:500;letter-spacing:.07em;text-transform:uppercase;color:var(--text3)">📋 Savings Log</div>
+  <!-- Savings Log -->
+  <div class="savings-section-card" style="margin-bottom:24px">
+    <div class="savings-section-header">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="savings-section-icon">📋</span>
+        <span class="savings-section-title">Savings Log</span>
+      </div>
+      <button onclick="openAddSavingsTransactionModal()" class="savings-section-action">+ Add Entry</button>
+    </div>
+    <div id="savings-transactions-list"></div>
+  </div>
+
+  <div style="height:20px"></div>
+
       <button onclick="openAddSavingsTransactionModal()" style="font-size:11px;font-weight:600;color:var(--accent);background:none;border:none;cursor:pointer;padding:0">+ Add Entry</button>
     </div>
     <div id="savings-transactions-list"></div>
