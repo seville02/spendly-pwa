@@ -564,7 +564,7 @@ async function dbGetTrips(userId, email) {
     if (byId) groupIds.push(...byId.map(m => m.group_id));
   }
 
-  if (email && groupIds.length === 0) {
+  if (email) {
     // Legacy fallback: look up by email
     const { data: byEmail } = await _sb
       .from('trip_members')
