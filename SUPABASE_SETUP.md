@@ -102,8 +102,13 @@ ALTER TABLE public.trip_expenses ENABLE ROW LEVEL SECURITY;
 
 -- Disable RLS restrictions or add simple bypass policy for quick development
 -- (In production, replace with user-specific session policies)
+DROP POLICY IF EXISTS "Enable read/write for all users" ON public.trip_groups;
 CREATE POLICY "Enable read/write for all users" ON public.trip_groups FOR ALL USING (true);
+
+DROP POLICY IF EXISTS "Enable read/write for all users" ON public.trip_members;
 CREATE POLICY "Enable read/write for all users" ON public.trip_members FOR ALL USING (true);
+
+DROP POLICY IF EXISTS "Enable read/write for all users" ON public.trip_expenses;
 CREATE POLICY "Enable read/write for all users" ON public.trip_expenses FOR ALL USING (true);
 ```
 
