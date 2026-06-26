@@ -692,6 +692,7 @@ function navigate(screen) {
   if (screen === 'profile') renderProfile();
   if (screen === 'bill-splitter') renderBillSplitter();
   if (screen === 'savings') renderSavingsScreen();
+  if (screen === 'invoices') renderInvoicesScreen();
 }
 
 function focusSearch() {
@@ -3273,4 +3274,202 @@ function confirmGsPayment() {
   btn.style.borderColor = 'transparent';
   btn.disabled = true;
   showToast('Split payment transfer logged! Thank you.');
+}
+
+// ─────────────────────────────────────────────────────
+// INVOICES VAULT SCREEN
+// ─────────────────────────────────────────────────────
+let invoicesList = [];
+let selectedInvoiceFile = null;
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return str.replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+}
+
+async function renderInvoicesScreen() {
+  if (!currentUser) {
+    showToast('Please sign in to manage invoices');
+    navigate('profile');
+    return;
+  }
+  setSyncing('syncing');
+  try {
+    invoicesList = await dbGetInvoices(currentUser.id);
+    renderInvoices();
+    setSyncing('ok');
+  } catch (e) {
+    console.error('Failed to load invoices', e);
+    setSyncing('error');
+    showToast('Failed to load invoices');
+  }
+}
+
+function renderInvoices() {
+  const query = document.getElementById('invoice-search-input').value.toLowerCase().trim();
+  const listContainer = document.getElementById('invoice-list');
+  if (!listContainer) return;
+
+  // Filter
+  const filtered = invoicesList.filter(inv => {
+    return (inv.name && inv.name.toLowerCase().includes(query)) ||
+           (inv.details && inv.details.toLowerCase().includes(query));
+  });
+
+  // Update badge count
+  document.getElementById('invoice-count-label').textContent = `${filtered.length} Invoice${filtered.length === 1 ? '' : 's'}`;
+
+  // Update profile settings badge if element exists
+  const profileVal = document.getElementById('profile-invoices-val');
+  if (profileVal) {
+    profileVal.textContent = invoicesList.length > 0 ? `${invoicesList.length} invoice${invoicesList.length === 1 ? '' : 's'} stored` : 'Store & view your bills';
+  }
+
+  if (filtered.length === 0) {
+    listContainer.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">📁</div>
+        <div class="empty-title">No invoices found</div>
+        <div class="empty-sub">${query ? 'Try searching another keyword' : 'Tap + to upload your first bill or invoice'}</div>
+      </div>
+    `;
+    return;
+  }
+
+  listContainer.innerHTML = filtered.map(inv => {
+    const ext = inv.file_name.split('.').pop().toLowerCase();
+    let icon = '📄';
+    let colorClass = 'other';
+    
+    if (['png', 'jpg', 'jpeg', 'heic'].includes(ext)) {
+      icon = '🖼️';
+      colorClass = 'image';
+    } else if (ext === 'pdf') {
+      icon = '📕';
+      colorClass = 'pdf';
+    } else if (['xls', 'xlsx'].includes(ext)) {
+      icon = '📗';
+      colorClass = 'excel';
+    } else if (['doc', 'docx'].includes(ext)) {
+      icon = '📘';
+      colorClass = 'word';
+    }
+
+    const dateStr = inv.date ? new Date(inv.date).toLocaleDateString('en-IN', {
+      day: 'numeric', month: 'short', year: 'numeric'
+    }) : 'No Date';
+
+    return `
+      <div class="invoice-card">
+        <div class="invoice-icon-wrap ${colorClass}">
+          <span style="font-size: 20px;">${icon}</span>
+          <span class="invoice-ext-badge">${ext.toUpperCase()}</span>
+        </div>
+        <div class="invoice-info">
+          <div class="invoice-name">${escapeHtml(inv.name)}</div>
+          <div class="invoice-date">${dateStr}</div>
+          ${inv.details ? `<div class="invoice-details">${escapeHtml(inv.details)}</div>` : ''}
+        </div>
+        <div class="invoice-actions">
+          <a href="${inv.file_url}" target="_blank" class="invoice-action-btn view" title="View Document">
+            <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" width="16" height="16"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          </a>
+          <button class="invoice-action-btn delete" onclick="deleteInvoiceById('${inv.id}', '${inv.file_name}')" title="Delete">
+            <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" width="16" height="16"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+          </button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function openAddInvoiceModal() {
+  document.getElementById('invoice-name-input').value = '';
+  document.getElementById('invoice-date-input').value = new Date().toISOString().split('T')[0];
+  document.getElementById('invoice-details-input').value = '';
+  document.getElementById('invoice-file-input').value = '';
+  document.getElementById('invoice-file-label').textContent = 'Tap to choose file';
+  selectedInvoiceFile = null;
+  openModal('modal-add-invoice');
+}
+
+function handleInvoiceFileSelected(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  selectedInvoiceFile = file;
+  document.getElementById('invoice-file-label').textContent = file.name;
+}
+
+async function submitInvoice() {
+  const name = document.getElementById('invoice-name-input').value.trim();
+  const date = document.getElementById('invoice-date-input').value;
+  const details = document.getElementById('invoice-details-input').value.trim();
+
+  if (!name) { showToast('Please enter an invoice name'); return; }
+  if (!date) { showToast('Please choose a date'); return; }
+  if (!selectedInvoiceFile) { showToast('Please select a file to upload'); return; }
+
+  const submitBtn = document.getElementById('invoice-submit-btn');
+  const submitText = document.getElementById('invoice-submit-text');
+  submitBtn.disabled = true;
+  submitText.textContent = 'Uploading file...';
+
+  try {
+    const uploadResult = await dbUploadInvoiceFile(currentUser.id, selectedInvoiceFile);
+    await dbSaveInvoice(currentUser.id, {
+      name,
+      date,
+      details,
+      fileUrl: uploadResult.url,
+      fileName: uploadResult.path,
+      fileType: selectedInvoiceFile.type
+    });
+
+    closeModal('modal-add-invoice');
+    showToast('Invoice uploaded successfully 🎉');
+    await renderInvoicesScreen();
+  } catch (err) {
+    console.error('Invoice upload failed', err);
+    showToast(`Upload failed: ${err.message}`);
+  } finally {
+    submitBtn.disabled = false;
+    submitText.textContent = 'Upload & Save';
+  }
+}
+
+async function deleteInvoiceById(id, filePath) {
+  if (!confirm('Are you sure you want to delete this invoice document?')) return;
+  setSyncing('syncing');
+  try {
+    await dbDeleteInvoice(currentUser.id, id, filePath);
+    showToast('Invoice deleted');
+    await renderInvoicesScreen();
+  } catch (e) {
+    console.error(e);
+    setSyncing('error');
+    showToast('Failed to delete invoice');
+  }
+}
+
+async function confirmDeleteAllInvoices() {
+  if (invoicesList.length === 0) {
+    showToast('No invoices to delete');
+    return;
+  }
+  if (!confirm('🚨 WARNING: Are you sure you want to delete ALL invoices? This action cannot be undone and will delete all files permanently.')) return;
+  
+  setSyncing('syncing');
+  try {
+    await dbDeleteAllInvoices(currentUser.id);
+    showToast('All invoices deleted successfully');
+    await renderInvoicesScreen();
+  } catch (e) {
+    console.error(e);
+    setSyncing('error');
+    showToast('Failed to delete all invoices');
+  }
 }

@@ -408,6 +408,10 @@
       <div class="settings-left"><div class="settings-icon">🧾</div><div><div class="settings-label">Bill Splitter</div><div class="settings-val">Scan receipts &amp; share cost</div></div></div>
       <svg class="chevron" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
     </div>
+    <div class="settings-item" onclick="navigate('invoices')">
+      <div class="settings-left"><div class="settings-icon">📁</div><div><div class="settings-label">Invoices Vault</div><div class="settings-val" id="profile-invoices-val">Store &amp; view your bills</div></div></div>
+      <svg class="chevron" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+    </div>
     <div class="settings-item" onclick="openCatBudgetModal()">
       <div class="settings-left"><div class="settings-icon">📊</div><div><div class="settings-label">Category Budgets</div><div class="settings-val">Set per-category limits</div></div></div>
       <svg class="chevron" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
@@ -519,6 +523,41 @@
   </div>
 
   <div style="height:20px"></div>
+</div>
+
+<!-- ══════════ INVOICES ══════════ -->
+<div class="screen" id="screen-invoices">
+  <div class="header">
+    <div class="header-row">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="icon-btn" onclick="navigate('profile')" style="flex-shrink:0">
+          <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" width="20" height="20"><polyline points="15 18 9 12 15 6"/></svg>
+        </div>
+        <span style="font-size:17px;font-weight:700">Invoices Vault</span>
+      </div>
+      <div style="display:flex;gap:6px">
+        <div class="icon-btn" onclick="confirmDeleteAllInvoices()" title="Delete all invoices" style="color:var(--red)">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="18" height="18"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+        </div>
+        <div class="icon-btn" onclick="openAddInvoiceModal()" title="Add invoice">
+          <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" width="20" height="20"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="search-bar" style="margin-bottom: 12px; margin-top: 8px;">
+    <div class="search-input-wrap">
+      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input class="search-input" type="text" id="invoice-search-input" placeholder="Search invoices by name or details…" oninput="renderInvoices()">
+    </div>
+  </div>
+
+  <div style="padding:0 16px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center">
+    <span style="font-size:11px;font-weight:500;text-transform:uppercase;color:var(--text3);letter-spacing:.05em" id="invoice-count-label">0 Invoices</span>
+  </div>
+
+  <div id="invoice-list" style="padding:0 16px 20px"></div>
 </div>
 
 <!-- ═══ MODAL: ADD SAVINGS ACCOUNT ═══ -->
@@ -1232,6 +1271,46 @@
     <button class="submit-btn" onclick="submitChangePassword()">Update Password</button>
     <div style="height:6px"></div>
     <button class="submit-btn secondary" onclick="closeModal('modal-change-password')">Cancel</button>
+    <div style="height:12px"></div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: ADD INVOICE ═══ -->
+<div class="modal-overlay" id="modal-add-invoice">
+  <div class="modal-sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Upload Invoice / Bill</div>
+    
+    <div class="form-group">
+      <label class="form-label">Invoice Name / Vendor</label>
+      <input class="form-input" type="text" id="invoice-name-input" placeholder="e.g. Amazon, Electric Bill, Office Supplies">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Date</label>
+      <input class="form-input" type="date" id="invoice-date-input">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Additional Details / Notes</label>
+      <textarea class="form-input" id="invoice-details-input" placeholder="e.g. Total amount ₹2,499, Work expense..." style="height:60px;resize:none;padding:10px;font-family:var(--font)"></textarea>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Document File</label>
+      <div class="file-upload-zone" onclick="document.getElementById('invoice-file-input').click()">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="24" height="24" style="color:var(--accent);margin-bottom:6px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        <span id="invoice-file-label" style="font-size:12px;font-weight:500;color:var(--text2)">Tap to choose file</span>
+        <span style="font-size:10px;color:var(--text3);margin-top:2px">Supports Images, HEIC, PDF, Excel, Word</span>
+      </div>
+      <input type="file" id="invoice-file-input" style="display:none" onchange="handleInvoiceFileSelected(event)" accept="image/*,.heic,.pdf,.xls,.xlsx,.doc,.docx">
+    </div>
+
+    <button class="submit-btn" id="invoice-submit-btn" onclick="submitInvoice()">
+      <span id="invoice-submit-text">Upload &amp; Save</span>
+    </button>
+    <div style="height:6px"></div>
+    <button class="submit-btn secondary" onclick="closeModal('modal-add-invoice')">Cancel</button>
     <div style="height:12px"></div>
   </div>
 </div>

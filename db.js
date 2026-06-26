@@ -453,3 +453,96 @@ function _initEventCaches(profile) {
   _eventsCache = _getEventsFromProfile(profile);
   _eventItemsCache = _getEventItemsFromProfile(profile);
 }
+
+// ─────────────────────────────────────────────────────
+// INVOICES (Supabase Database & Storage)
+// ─────────────────────────────────────────────────────
+async function dbGetInvoices(userId) {
+  const { data, error } = await _sb
+    .from('invoices')
+    .select('*')
+    .eq('user_id', userId)
+    .order('date', { ascending: false });
+  if (error) throw error;
+  return data || [];
+}
+
+async function dbUploadInvoiceFile(userId, file) {
+  const fileExt = file.name.split('.').pop();
+  const fileName = `${userId}/${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
+  
+  const { data, error } = await _sb.storage
+    .from('invoices')
+    .upload(fileName, file, { cacheControl: '3600', upsert: true });
+
+  if (error) throw error;
+
+  const { data: urlData } = _sb.storage
+    .from('invoices')
+    .getPublicUrl(fileName);
+
+  return {
+    url: urlData.publicUrl,
+    path: fileName
+  };
+}
+
+async function dbSaveInvoice(userId, invoice) {
+  const { data, error } = await _sb
+    .from('invoices')
+    .insert({
+      user_id: userId,
+      name: invoice.name,
+      date: invoice.date,
+      details: invoice.details,
+      file_url: invoice.fileUrl,
+      file_name: invoice.fileName,
+      file_type: invoice.fileType
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+async function dbDeleteInvoice(userId, invoiceId, filePath) {
+  const { error: dbError } = await _sb
+    .from('invoices')
+    .delete()
+    .eq('id', invoiceId)
+    .eq('user_id', userId);
+
+  if (dbError) throw dbError;
+
+  if (filePath) {
+    const { error: storageError } = await _sb.storage
+      .from('invoices')
+      .remove([filePath]);
+    if (storageError) console.error('Storage deletion failed', storageError);
+  }
+}
+
+async function dbDeleteAllInvoices(userId) {
+  const { data: list, error: listError } = await _sb
+    .from('invoices')
+    .select('file_name')
+    .eq('user_id', userId);
+
+  if (listError) throw listError;
+
+  const { error: dbError } = await _sb
+    .from('invoices')
+    .delete()
+    .eq('user_id', userId);
+
+  if (dbError) throw dbError;
+
+  if (list && list.length > 0) {
+    const filePaths = list.map(item => item.file_name);
+    const { error: storageError } = await _sb.storage
+      .from('invoices')
+      .remove(filePaths);
+    if (storageError) console.error('Storage clean up failed', storageError);
+  }
+}
