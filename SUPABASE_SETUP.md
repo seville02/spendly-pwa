@@ -106,3 +106,57 @@ CREATE POLICY "Enable read/write for all users" ON public.trip_groups FOR ALL US
 CREATE POLICY "Enable read/write for all users" ON public.trip_members FOR ALL USING (true);
 CREATE POLICY "Enable read/write for all users" ON public.trip_expenses FOR ALL USING (true);
 ```
+
+---
+
+## 5. Invoices Vault Database & Storage Setup
+Run the following SQL in your Supabase SQL Editor to create the `invoices` table and setup Row Level Security:
+
+```sql
+-- 1. Create invoices table
+CREATE TABLE IF NOT EXISTS public.invoices (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  date DATE NOT NULL,
+  details TEXT,
+  file_url TEXT NOT NULL,
+  file_name TEXT NOT NULL,
+  file_type TEXT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+);
+
+-- Enable RLS
+ALTER TABLE public.invoices ENABLE ROW LEVEL SECURITY;
+
+-- Add RLS policies (allow users to manage only their own invoices)
+CREATE POLICY "Users can manage their own invoices" 
+ON public.invoices FOR ALL 
+USING (auth.uid() = user_id);
+```
+
+### Setup Storage Bucket
+1. Go to your Supabase Console.
+2. Navigate to **Storage** -> **New Bucket**.
+3. Create a bucket named `invoices` and set it to **Public** (so the app can retrieve file links).
+4. Run this SQL in your SQL Editor to allow authenticated users to upload/manage files in the `invoices` bucket:
+
+```sql
+-- Allow authenticated users to upload files to the invoices bucket
+CREATE POLICY "Allow authenticated uploads" 
+ON storage.objects FOR INSERT 
+TO authenticated 
+WITH CHECK (bucket_id = 'invoices');
+
+-- Allow authenticated users to retrieve files from the invoices bucket
+CREATE POLICY "Allow authenticated select" 
+ON storage.objects FOR SELECT 
+TO authenticated 
+USING (bucket_id = 'invoices');
+
+-- Allow authenticated users to delete their own files
+CREATE POLICY "Allow authenticated delete" 
+ON storage.objects FOR DELETE 
+TO authenticated 
+USING (bucket_id = 'invoices');
+```
