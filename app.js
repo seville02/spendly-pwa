@@ -587,6 +587,7 @@ function navigate(screen) {
   if (screen === 'debts') renderDebts();
   if (screen === 'profile') renderProfile();
   if (screen === 'bill-splitter') renderBillSplitter();
+  if (screen === 'savings') renderSavingsScreen();
 }
 
 function focusSearch() {
@@ -1320,91 +1321,253 @@ function renderProfile() {
   if (cpEl) cpEl.style.display = (typeof useLocalDB !== 'undefined' && useLocalDB) ? 'none' : 'flex';
 
   renderCatBudgetSettings();
-  renderSavingsAccounts();
+  renderSavingsAccounts(); // updates profile button label
 }
 
-function renderSavingsAccounts() {
-  const container = document.getElementById('savings-accounts-container');
-  if (!container) return;
+// ─────────────────────────────────────────────────────
+// SAVINGS SCREEN
+// ─────────────────────────────────────────────────────
 
-  const accounts = appData.profile?.budgetMeta?.savingsAccounts || [];
-  const curSym = getCurrencySymbol();
+const SAVINGS_ACCOUNT_ICONS = {
+  bank: '🏦', savings: '💰', fd: '📈', rd: '🗓️',
+  mutual_fund: '📊', ppf: '🏛️', crypto: '🪙', gold: '🥇', other: '📌'
+};
+const SAVINGS_ACCOUNT_LABELS = {
+  bank: 'Bank Account', savings: 'Savings Account', fd: 'Fixed Deposit',
+  rd: 'Recurring Deposit', mutual_fund: 'Mutual Fund', ppf: 'PPF / NPS',
+  crypto: 'Crypto', gold: 'Gold / Jewellery', other: 'Other'
+};
 
-  if (accounts.length === 0) {
-    container.innerHTML = `<div style="font-size:12px;color:var(--text3);text-align:center;padding:12px;border:1px dashed var(--border2);border-radius:var(--r-sm)">No savings accounts added yet.</div>`;
-    document.getElementById('savings-total-val').textContent = fmt(0);
-    return;
-  }
+let savingsTxType = 'deposit';
 
-  container.innerHTML = accounts.map((acc, index) => {
-    return `<div class="edit-field" style="display:flex;align-items:center;gap:8px;margin-bottom:0;padding:0 14px">
-      <input type="text" placeholder="Account name" value="${acc.name || ''}" class="savings-acc-name" data-index="${index}" onblur="saveSavingsAccounts()" onkeydown="if(event.key==='Enter')this.blur()" style="flex:2;min-width:0;font-size:13px">
-      <div style="width:1px;height:24px;background:var(--border2)"></div>
-      <span style="font-size:13px;color:var(--text3);margin-left:4px">${curSym}</span>
-      <input type="number" placeholder="0" value="${acc.balance !== undefined ? acc.balance : ''}" class="savings-acc-balance" data-index="${index}" onblur="saveSavingsAccounts()" onkeydown="if(event.key==='Enter')this.blur()" style="flex:1.5;min-width:0;font-size:13px;font-family:var(--mono);text-align:right" step="any">
-      <button onclick="deleteSavingsAccount(${index})" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:18px;padding:4px;display:flex;align-items:center;justify-content:center;opacity:0.7">&times;</button>
-    </div>`;
-  }).join('');
-
-  const total = accounts.reduce((sum, acc) => sum + (parseFloat(acc.balance) || 0), 0);
-  document.getElementById('savings-total-val').textContent = fmt(total);
-}
-
-function addSavingsAccount() {
+function getSavingsData() {
   if (!appData.profile) appData.profile = {};
   if (!appData.profile.budgetMeta) appData.profile.budgetMeta = {};
   if (!appData.profile.budgetMeta.savingsAccounts) appData.profile.budgetMeta.savingsAccounts = [];
-
-  appData.profile.budgetMeta.savingsAccounts.push({ name: '', balance: '' });
-  renderSavingsAccounts();
-
-  // Focus the newly added name input
-  setTimeout(() => {
-    const names = document.querySelectorAll('.savings-acc-name');
-    if (names.length > 0) {
-      names[names.length - 1].focus();
-    }
-  }, 50);
+  if (!appData.profile.budgetMeta.savingsTxs) appData.profile.budgetMeta.savingsTxs = [];
+  if (appData.profile.budgetMeta.inHandCash === undefined) appData.profile.budgetMeta.inHandCash = 0;
+  return appData.profile.budgetMeta;
 }
 
-function deleteSavingsAccount(index) {
-  if (!appData.profile?.budgetMeta?.savingsAccounts) return;
-  appData.profile.budgetMeta.savingsAccounts.splice(index, 1);
-  renderSavingsAccounts();
-  saveSavingsAccounts();
-}
+function renderSavingsScreen() {
+  const data = getSavingsData();
+  const curSym = getCurrencySymbol();
+  const accounts = data.savingsAccounts || [];
+  const txs = data.savingsTxs || [];
+  const inHand = parseFloat(data.inHandCash) || 0;
 
-async function saveSavingsAccounts() {
-  if (!appData.profile) appData.profile = {};
-  if (!appData.profile.budgetMeta) appData.profile.budgetMeta = {};
+  const accountsTotal = accounts.reduce((s, a) => s + (parseFloat(a.balance) || 0), 0);
+  const total = accountsTotal + inHand;
 
-  const nameInputs = document.querySelectorAll('.savings-acc-name');
-  const balanceInputs = document.querySelectorAll('.savings-acc-balance');
-  const accounts = [];
-
-  nameInputs.forEach((input, i) => {
-    const name = input.value.trim();
-    const balanceVal = balanceInputs[i].value;
-    const balance = balanceVal === '' ? '' : parseFloat(balanceVal);
-    accounts.push({ name, balance });
+  // Hero
+  document.getElementById('savings-hero-currency').textContent = curSym;
+  document.getElementById('savings-hero-total').textContent = total.toLocaleString('en-IN', {
+    minimumFractionDigits: total % 1 === 0 ? 0 : 2,
+    maximumFractionDigits: 2
   });
+  document.getElementById('savings-count').textContent = accounts.length;
+  document.getElementById('savings-inhand-display').textContent = fmt(inHand);
+  document.getElementById('savings-hero-sub').textContent =
+    accounts.length > 0
+      ? `${accounts.length} account${accounts.length > 1 ? 's' : ''} + cash in hand`
+      : 'Add your accounts to get started';
 
-  appData.profile.budgetMeta.savingsAccounts = accounts;
+  // In-hand cash input
+  const inHandInput = document.getElementById('savings-inhand-input');
+  if (inHandInput) inHandInput.value = inHand > 0 ? inHand : '';
 
-  // Calculate and update the total UI immediately
-  const total = accounts.reduce((sum, acc) => sum + (parseFloat(acc.balance) || 0), 0);
-  document.getElementById('savings-total-val').textContent = fmt(total);
+  // Accounts list
+  const accList = document.getElementById('savings-accounts-list');
+  if (accList) {
+    if (accounts.length === 0) {
+      accList.innerHTML = `<div style="text-align:center;padding:16px;color:var(--text3);font-size:12px;border:1px dashed var(--border2);border-radius:14px">No accounts yet. Tap + Add Account.</div>`;
+    } else {
+      accList.innerHTML = accounts.map((acc, i) => `
+        <div class="savings-account-row">
+          <div class="savings-account-icon">${SAVINGS_ACCOUNT_ICONS[acc.type] || '📌'}</div>
+          <div class="savings-account-info">
+            <div class="savings-account-name">${acc.name || 'Unnamed Account'}</div>
+            <div class="savings-account-type">${SAVINGS_ACCOUNT_LABELS[acc.type] || 'Account'}</div>
+          </div>
+          <div class="savings-account-balance">${curSym}${(parseFloat(acc.balance) || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</div>
+          <button class="savings-account-delete" onclick="deleteSavingsAccountById(${i})" title="Delete">
+            <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" width="16" height="16"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+          </button>
+        </div>`).join('');
+    }
+  }
 
-  // Sync to database
+  // Transactions log
+  const txList = document.getElementById('savings-transactions-list');
+  if (txList) {
+    if (txs.length === 0) {
+      txList.innerHTML = `<div style="text-align:center;padding:16px;color:var(--text3);font-size:12px;border:1px dashed var(--border2);border-radius:14px">No entries yet. Tap + Add Entry.</div>`;
+    } else {
+      txList.innerHTML = [...txs].reverse().slice(0, 30).map(tx => {
+        const sign = tx.type === 'deposit' ? '+' : '-';
+        const d = new Date(tx.date);
+        const dateStr = d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+        const accName = accounts[tx.accountIdx]?.name || tx.accountName || 'Account';
+        return `<div class="savings-tx-row">
+          <div class="savings-tx-icon ${tx.type}">${tx.type === 'deposit' ? '💰' : '💸'}</div>
+          <div class="savings-tx-info">
+            <div class="savings-tx-name">${tx.note || (tx.type === 'deposit' ? 'Deposit' : 'Withdrawal')}</div>
+            <div class="savings-tx-meta">${accName} · ${dateStr}</div>
+          </div>
+          <div class="savings-tx-amount ${tx.type}">${sign}${fmt(tx.amount)}</div>
+        </div>`;
+      }).join('');
+    }
+  }
+
+  // Update profile button label
+  const profileVal = document.getElementById('savings-profile-val');
+  if (profileVal) {
+    const totalFmt = fmt(total);
+    profileVal.textContent = accounts.length > 0 ? `${totalFmt} across ${accounts.length} account${accounts.length > 1 ? 's' : ''}` : 'Manage your accounts & cash';
+  }
+}
+
+function openAddSavingsAccountModal() {
+  document.getElementById('savings-acc-name-input').value = '';
+  document.getElementById('savings-acc-balance-input').value = '';
+  document.getElementById('savings-acc-type-input').value = 'bank';
+  document.getElementById('savings-modal-currency').textContent = getCurrencySymbol();
+  openModal('modal-savings-account');
+  setTimeout(() => document.getElementById('savings-acc-name-input').focus(), 350);
+}
+
+async function submitSavingsAccount() {
+  const name = document.getElementById('savings-acc-name-input').value.trim();
+  const balance = parseFloat(document.getElementById('savings-acc-balance-input').value) || 0;
+  const type = document.getElementById('savings-acc-type-input').value;
+
+  if (!name) { showToast('Please enter an account name'); return; }
+
+  const data = getSavingsData();
+  data.savingsAccounts.push({ name, balance, type });
+
   setSyncing('syncing');
   try {
     await dbSaveProfile(currentUser.id, appData.profile);
     setSyncing('ok');
+    closeModal('modal-savings-account');
+    renderSavingsScreen();
+    showToast(`✓ ${name} added`);
   } catch (e) {
     setSyncing('error');
-    showToast('Failed to save savings accounts: ' + e.message);
+    showToast('Failed to save: ' + e.message);
   }
 }
+
+async function deleteSavingsAccountById(index) {
+  const data = getSavingsData();
+  const acc = data.savingsAccounts[index];
+  if (!acc) return;
+  if (!confirm(`Delete "${acc.name}"? This cannot be undone.`)) return;
+  data.savingsAccounts.splice(index, 1);
+  setSyncing('syncing');
+  try {
+    await dbSaveProfile(currentUser.id, appData.profile);
+    setSyncing('ok');
+    renderSavingsScreen();
+    showToast(`✓ Account removed`);
+  } catch (e) {
+    setSyncing('error');
+    showToast('Failed: ' + e.message);
+  }
+}
+
+async function saveInHandCash(val) {
+  const n = parseFloat(val) || 0;
+  const data = getSavingsData();
+  data.inHandCash = n;
+  setSyncing('syncing');
+  try {
+    await dbSaveProfile(currentUser.id, appData.profile);
+    setSyncing('ok');
+    renderSavingsScreen();
+    showToast(`✓ Cash in hand: ${fmt(n)}`);
+  } catch (e) {
+    setSyncing('error');
+    showToast('Failed: ' + e.message);
+  }
+}
+
+function openAddSavingsTransactionModal() {
+  const data = getSavingsData();
+  const accounts = data.savingsAccounts || [];
+  const select = document.getElementById('savings-tx-account-select');
+  select.innerHTML = accounts.length > 0
+    ? accounts.map((a, i) => `<option value="${i}">${SAVINGS_ACCOUNT_ICONS[a.type] || '📌'} ${a.name}</option>`).join('')
+    : '<option value="">No accounts added yet</option>';
+  document.getElementById('savings-tx-amount').value = '';
+  document.getElementById('savings-tx-note').value = '';
+  document.getElementById('savings-tx-currency').textContent = getCurrencySymbol();
+  setSavingsTxType('deposit');
+  openModal('modal-savings-tx');
+  setTimeout(() => document.getElementById('savings-tx-amount').focus(), 350);
+}
+
+function setSavingsTxType(type) {
+  savingsTxType = type;
+  const depBtn = document.getElementById('savings-tx-type-deposit');
+  const witBtn = document.getElementById('savings-tx-type-withdraw');
+  if (type === 'deposit') {
+    depBtn.className = 'submit-btn';
+    witBtn.className = 'submit-btn secondary';
+  } else {
+    witBtn.className = 'submit-btn';
+    depBtn.className = 'submit-btn secondary';
+  }
+}
+
+async function submitSavingsTransaction() {
+  const amount = parseFloat(document.getElementById('savings-tx-amount').value);
+  const note = document.getElementById('savings-tx-note').value.trim();
+  const accountIdx = parseInt(document.getElementById('savings-tx-account-select').value);
+  const data = getSavingsData();
+
+  if (!amount || amount <= 0) { showToast('Please enter a valid amount'); return; }
+  if (data.savingsAccounts.length === 0) { showToast('Please add an account first'); return; }
+
+  const acc = data.savingsAccounts[accountIdx];
+  if (!acc) { showToast('Invalid account'); return; }
+
+  // Update account balance
+  const current = parseFloat(acc.balance) || 0;
+  acc.balance = savingsTxType === 'deposit' ? current + amount : Math.max(0, current - amount);
+
+  // Log transaction
+  data.savingsTxs.push({
+    type: savingsTxType,
+    accountIdx,
+    accountName: acc.name,
+    amount,
+    note,
+    date: new Date().toISOString()
+  });
+
+  setSyncing('syncing');
+  try {
+    await dbSaveProfile(currentUser.id, appData.profile);
+    setSyncing('ok');
+    closeModal('modal-savings-tx');
+    renderSavingsScreen();
+    const sign = savingsTxType === 'deposit' ? '+' : '-';
+    showToast(`✓ ${sign}${fmt(amount)} ${savingsTxType === 'deposit' ? 'deposited' : 'withdrawn'}`);
+  } catch (e) {
+    setSyncing('error');
+    showToast('Failed: ' + e.message);
+  }
+}
+
+// Legacy stubs kept so no breakage
+function renderSavingsAccounts() { renderSavingsScreen(); }
+function addSavingsAccount() { openAddSavingsAccountModal(); }
+function deleteSavingsAccount(index) { deleteSavingsAccountById(index); }
+async function saveSavingsAccounts() { /* no-op, replaced */ }
+
 
 function uploadAvatar(event) {
   const file = event.target.files[0];
