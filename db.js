@@ -550,20 +550,35 @@ async function dbDeleteAllInvoices(userId) {
 // ─────────────────────────────────────────────────────
 // GROUP TRIP SPLITTER (Supabase Database)
 // ─────────────────────────────────────────────────────
-async function dbGetTrips(email) {
-  if (!email) return [];
-  // 1. Get all group IDs where this user email is a member
-  const { data: memberships, error: memError } = await _sb
-    .from('trip_members')
-    .select('group_id')
-    .eq('email', email);
+async function dbGetTrips(userId, email) {
+  if (!userId && !email) return [];
 
-  if (memError) throw memError;
-  if (!memberships || memberships.length === 0) return [];
+  // Query by user_id (new) or email (legacy)
+  let groupIds = [];
 
-  const groupIds = memberships.map(m => m.group_id);
+  if (userId) {
+    const { data: byId } = await _sb
+      .from('trip_members')
+      .select('group_id')
+      .eq('user_id', userId);
+    if (byId) groupIds.push(...byId.map(m => m.group_id));
+  }
 
-  // 2. Fetch the trip group details
+  if (email && groupIds.length === 0) {
+    // Legacy fallback: look up by email
+    const { data: byEmail } = await _sb
+      .from('trip_members')
+      .select('group_id')
+      .eq('email', email);
+    if (byEmail) groupIds.push(...byEmail.map(m => m.group_id));
+  }
+
+  if (groupIds.length === 0) return [];
+
+  // Deduplicate
+  groupIds = [...new Set(groupIds)];
+
+  // Fetch the trip group details
   const { data: groups, error: groupError } = await _sb
     .from('trip_groups')
     .select('*')
@@ -574,7 +589,7 @@ async function dbGetTrips(email) {
   return groups || [];
 }
 
-async function dbCreateTrip(userId, name, emails) {
+async function dbCreateTrip(userId, name, members) {
   // 1. Insert group record
   const { data: group, error: groupError } = await _sb
     .from('trip_groups')
@@ -584,10 +599,13 @@ async function dbCreateTrip(userId, name, emails) {
 
   if (groupError) throw groupError;
 
-  // 2. Insert member records (including creator + invited emails)
-  const memberRows = emails.map(email => ({
+  // 2. Insert member records — members is array of { user_id, username, display_name, email }
+  const memberRows = members.map(m => ({
     group_id: group.id,
-    email: email.trim().toLowerCase()
+    user_id: m.user_id || null,
+    username: m.username || null,
+    display_name: m.display_name || m.username || m.email || 'Unknown',
+    email: m.email || null
   }));
 
   const { error: memError } = await _sb
@@ -624,7 +642,7 @@ async function dbAddTripExpense(groupId, description, amount, paidBy, date) {
       group_id: groupId,
       description,
       amount,
-      paid_by: paidBy.trim().toLowerCase(),
+      paid_by: paidBy,  // user_id (UUID) for new trips; email string for legacy
       date: date || new Date().toISOString().split('T')[0]
     })
     .select()
@@ -649,3 +667,72 @@ async function dbDeleteTripGroup(groupId) {
     .eq('id', groupId);
   if (error) throw error;
 }
+
+// ─────────────────────────────────────────────────────
+// USERNAME LOOKUP
+// ─────────────────────────────────────────────────────
+
+/** Find a user profile by their @username handle. Returns { id, username, name } or null. */
+async function dbLookupByUsername(username) {
+  const handle = username.replace(/^@/, '').trim().toLowerCase();
+  const { data, error } = await _sb
+    .from('profiles')
+    .select('id, username, name')
+    .eq('username', handle)
+    .single();
+  if (error && error.code !== 'PGRST116') throw error;
+  return data || null;
+}
+
+// ─────────────────────────────────────────────────────
+// NOTIFICATIONS
+// ─────────────────────────────────────────────────────
+
+/** Send an in-app notification to a specific user. */
+async function dbSendNotification(toUserId, type, message, metadata) {
+  const { error } = await _sb
+    .from('notifications')
+    .insert({
+      user_id: toUserId,
+      type: type,
+      message: message,
+      metadata: metadata || {},
+      is_read: false
+    });
+  if (error) console.error('Failed to send notification:', error);
+}
+
+/** Get all notifications for the current user. */
+async function dbGetNotifications(userId) {
+  const { data, error } = await _sb
+    .from('notifications')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+    .limit(50);
+  if (error && error.code === '42P01') return []; // table doesn't exist yet
+  if (error) throw error;
+  return data || [];
+}
+
+/** Mark all notifications as read for a user. */
+async function dbMarkAllNotifsRead(userId) {
+  const { error } = await _sb
+    .from('notifications')
+    .update({ is_read: true })
+    .eq('user_id', userId)
+    .eq('is_read', false);
+  if (error) console.error('Failed to mark notifications read:', error);
+}
+
+/** Count unread notifications. */
+async function dbCountUnreadNotifs(userId) {
+  const { count, error } = await _sb
+    .from('notifications')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .eq('is_read', false);
+  if (error) return 0;
+  return count || 0;
+}
+

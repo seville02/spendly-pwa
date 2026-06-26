@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════
-// app.js — Spendly v4.55.0
+// app.js — Spendly v4.56.0
 // ═══════════════════════════════════════════════════════
 
 
@@ -1402,6 +1402,18 @@ async function deleteDebt(id) {
 function renderProfile() {
   const p = appData.profile || {}, s = getLocalSettings();
   document.getElementById('profile-name-input').value = p.name || '';
+  // Username field
+  const unameInput = document.getElementById('profile-username-input');
+  const unameBadge = document.getElementById('profile-username-badge');
+  if (unameInput) unameInput.value = p.username || '';
+  if (unameBadge) {
+    if (p.username) {
+      unameBadge.textContent = '@' + p.username;
+      unameBadge.style.display = 'inline-block';
+    } else {
+      unameBadge.style.display = 'none';
+    }
+  }
   // Currency display — show flag + name
   const curSym = s.currency || detectCurrency();
   const curObj = CURRENCIES.find(c => c.symbol === curSym);
@@ -3306,7 +3318,15 @@ async function renderInvoicesScreen() {
   } catch (e) {
     console.error('Failed to load invoices', e);
     setSyncing('error');
-    showToast('Failed to load invoices');
+    // Gracefully fall back to empty list if table doesn't exist yet
+    const isTableMissing = e && (e.code === '42P01' || (e.message && e.message.includes('does not exist')));
+    if (isTableMissing) {
+      invoicesList = [];
+      renderInvoices();
+      showToast('Invoices table not set up yet — see SUPABASE_SETUP.md');
+    } else {
+      showToast('Failed to load invoices: ' + (e.message || e));
+    }
   }
 }
 
@@ -3480,6 +3500,8 @@ async function confirmDeleteAllInvoices() {
 // ─────────────────────────────────────────────────────
 let activeTripsList = [];
 let currentTripData = null;
+let tripPendingMembers = []; // { user_id, username, display_name, email }
+let tripSearchResult = null;  // last looked-up user from dbLookupByUsername
 
 function switchBillSplitterTab(tab) {
   const tabGroups = document.getElementById('bs-tab-groups');
@@ -3517,7 +3539,7 @@ async function renderTripGroupsScreen() {
 
   setSyncing('syncing');
   try {
-    activeTripsList = await dbGetTrips(currentUser.email);
+    activeTripsList = await dbGetTrips(currentUser.id, currentUser.email);
     renderTripGroups();
     setSyncing('ok');
   } catch (e) {
@@ -3566,30 +3588,123 @@ function openCreateTripModal() {
     showToast('Please sign in first');
     return;
   }
+  // Reset state
+  tripPendingMembers = [];
+  tripSearchResult = null;
   document.getElementById('trip-name-input').value = '';
-  document.getElementById('trip-emails-input').value = '';
+  document.getElementById('trip-username-search').value = '';
+  document.getElementById('trip-user-search-result').innerHTML = '';
+  renderTripMemberChips();
   openModal('modal-create-trip');
+}
+
+let _tripSearchDebounce = null;
+async function searchTripUser() {
+  clearTimeout(_tripSearchDebounce);
+  const raw = document.getElementById('trip-username-search').value.trim();
+  const resultEl = document.getElementById('trip-user-search-result');
+  tripSearchResult = null;
+
+  if (!raw || raw.replace(/^@/, '').length < 2) {
+    resultEl.innerHTML = '';
+    return;
+  }
+
+  _tripSearchDebounce = setTimeout(async () => {
+    try {
+      const found = await dbLookupByUsername(raw);
+      if (!found) {
+        resultEl.innerHTML = `<span style="color:var(--red)">❌ No user found for @${raw.replace(/^@/,'')}</span>`;
+        tripSearchResult = null;
+        return;
+      }
+      // Don't allow adding yourself
+      if (found.id === currentUser.id) {
+        resultEl.innerHTML = `<span style="color:var(--text3)">That's you — you're added automatically ✓</span>`;
+        tripSearchResult = null;
+        return;
+      }
+      // Don't allow duplicates
+      if (tripPendingMembers.some(m => m.user_id === found.id)) {
+        resultEl.innerHTML = `<span style="color:var(--text3)">@${found.username} is already added</span>`;
+        tripSearchResult = null;
+        return;
+      }
+      tripSearchResult = found;
+      resultEl.innerHTML = `<span style="color:var(--green)">✓ Found: <strong>${escapeHtml(found.name || found.username)}</strong> (@${escapeHtml(found.username)}) — tap Add</span>`;
+    } catch (e) {
+      resultEl.innerHTML = `<span style="color:var(--red)">Error looking up user</span>`;
+      tripSearchResult = null;
+    }
+  }, 350);
+}
+
+function addSearchedUser() {
+  if (!tripSearchResult) {
+    showToast('Search for a valid @username first');
+    return;
+  }
+  tripPendingMembers.push({
+    user_id: tripSearchResult.id,
+    username: tripSearchResult.username,
+    display_name: tripSearchResult.name || tripSearchResult.username,
+    email: null
+  });
+  tripSearchResult = null;
+  document.getElementById('trip-username-search').value = '';
+  document.getElementById('trip-user-search-result').innerHTML = '';
+  renderTripMemberChips();
+}
+
+function removeTripMember(userId) {
+  tripPendingMembers = tripPendingMembers.filter(m => m.user_id !== userId);
+  renderTripMemberChips();
+}
+
+function renderTripMemberChips() {
+  const container = document.getElementById('trip-added-members');
+  if (!container) return;
+  if (tripPendingMembers.length === 0) {
+    container.innerHTML = '';
+    return;
+  }
+  container.innerHTML = tripPendingMembers.map(m => `
+    <div style="display:inline-flex;align-items:center;gap:6px;background:var(--accent-dim);border:1px solid var(--accent);border-radius:20px;padding:4px 10px;font-size:12px;color:var(--accent)">
+      <span>@${escapeHtml(m.username)}</span>
+      <button onclick="removeTripMember('${m.user_id}')" style="background:none;border:none;color:var(--accent);cursor:pointer;font-size:13px;line-height:1;padding:0">&times;</button>
+    </div>
+  `).join('');
 }
 
 async function submitCreateTrip() {
   const name = document.getElementById('trip-name-input').value.trim();
-  const emailsText = document.getElementById('trip-emails-input').value.trim();
-
   if (!name) { showToast('Please enter a trip name'); return; }
 
-  const emails = emailsText.split('\n')
-    .map(e => e.trim().toLowerCase())
-    .filter(e => e.length > 0 && e.includes('@'));
-
-  if (!emails.includes(currentUser.email.toLowerCase())) {
-    emails.push(currentUser.email.toLowerCase());
-  }
+  // Build members array — always include self
+  const selfMember = {
+    user_id: currentUser.id,
+    username: appData.profile?.username || null,
+    display_name: appData.profile?.name || currentUser.email?.split('@')[0] || 'You',
+    email: currentUser.email
+  };
+  const allMembers = [selfMember, ...tripPendingMembers];
 
   setSyncing('syncing');
   try {
-    const group = await dbCreateTrip(currentUser.id, name, emails);
+    const group = await dbCreateTrip(currentUser.id, name, allMembers);
+
+    // Send in-app notification to each invited member (not self)
+    const notifMsg = `${selfMember.display_name} added you to a trip group: "${name}" ✈️`;
+    for (const m of tripPendingMembers) {
+      try {
+        await dbSendNotification(m.user_id, 'trip_invite', notifMsg, { group_id: group.id, trip_name: name });
+      } catch (ne) {
+        console.warn('Failed to notify', m.username, ne);
+      }
+    }
+
     closeModal('modal-create-trip');
-    showToast(`"${name}" created successfully 🎉`);
+    showToast(`"${name}" created — ${tripPendingMembers.length} member(s) notified 🎉`);
     await selectTrip(group.id);
   } catch (e) {
     console.error(e);
@@ -3647,7 +3762,17 @@ function renderTripExpenses() {
     const dateStr = new Date(exp.date).toLocaleDateString('en-IN', {
       day: 'numeric', month: 'short'
     });
-    const payerName = exp.paid_by === currentUser.email ? 'You' : exp.paid_by.split('@')[0];
+    // Resolve payer display name from members list
+    const payerMember = (currentTripData.members || []).find(m => m.user_id === exp.paid_by);
+    let payerName;
+    if (exp.paid_by === currentUser.id) {
+      payerName = 'You';
+    } else if (payerMember) {
+      payerName = payerMember.display_name || payerMember.username || payerMember.email?.split('@')[0] || exp.paid_by;
+    } else {
+      // Legacy fallback: paid_by was an email
+      payerName = exp.paid_by.includes('@') ? exp.paid_by.split('@')[0] : exp.paid_by;
+    }
 
     return `
       <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)">
@@ -3671,9 +3796,11 @@ function openAddTripExpenseModal() {
   document.getElementById('trip-exp-date').value = new Date().toISOString().split('T')[0];
 
   const select = document.getElementById('trip-exp-payer');
-  select.innerHTML = currentTripData.members.map(m => {
-    const label = m.email === currentUser.email ? 'You' : m.email.split('@')[0];
-    return `<option value="${m.email}">${label} (${m.email})</option>`;
+  select.innerHTML = (currentTripData.members || []).map(m => {
+    const isMe = m.user_id === currentUser.id;
+    const label = isMe ? 'You' : (m.display_name || m.username || m.email?.split('@')[0] || m.user_id);
+    const tag = m.username ? ` (@${m.username})` : (m.email ? ` (${m.email.split('@')[0]})` : '');
+    return `<option value="${m.user_id}">${label}${tag}</option>`;
   }).join('');
 
   openModal('modal-add-trip-expense');
@@ -3741,33 +3868,47 @@ function calculateTripBalances() {
     return;
   }
 
+  // Key balances by user_id (or email for legacy)
+  const memberKey = m => m.user_id || m.email;
+  const memberLabel = m => {
+    if (m.user_id === currentUser.id) return 'You';
+    return m.display_name || m.username || m.email?.split('@')[0] || m.user_id;
+  };
+
   const balances = {};
   members.forEach(m => {
-    balances[m.email] = 0;
+    balances[memberKey(m)] = 0;
   });
 
   const totalSpent = expenses.reduce((sum, exp) => sum + parseFloat(exp.amount), 0);
   const sharePerPerson = totalSpent / members.length;
 
   expenses.forEach(exp => {
-    if (balances[exp.paid_by] !== undefined) {
-      balances[exp.paid_by] += parseFloat(exp.amount);
+    // paid_by is now user_id; support legacy email fallback
+    const key = exp.paid_by;
+    if (balances[key] !== undefined) {
+      balances[key] += parseFloat(exp.amount);
+    } else {
+      // Legacy: paid_by was email — find matching member
+      const legacyMember = members.find(m => m.email === exp.paid_by);
+      if (legacyMember) balances[memberKey(legacyMember)] += parseFloat(exp.amount);
     }
   });
 
   members.forEach(m => {
-    balances[m.email] -= sharePerPerson;
+    balances[memberKey(m)] -= sharePerPerson;
   });
 
   const debtors = [];
   const creditors = [];
 
-  Object.keys(balances).forEach(email => {
-    const bal = balances[email];
+  Object.keys(balances).forEach(key => {
+    const bal = balances[key];
+    const member = members.find(m => memberKey(m) === key);
     if (bal < -0.01) {
-      debtors.push({ email, amount: -bal });
+      debtors.push({ key, label: member ? memberLabel(member) : key, amount: -bal });
     } else if (bal > 0.01) {
-      creditors.push({ email, amount: bal });
+      creditors.push({ key, label: member ? memberLabel(member) : key, amount: bal });
     }
   });
 
@@ -3784,8 +3925,10 @@ function calculateTripBalances() {
     const amount = Math.min(debtor.amount, creditor.amount);
 
     transactions.push({
-      from: debtor.email,
-      to: creditor.email,
+      key: debtor.key,
+      label: debtor.label,
+      toKey: creditor.key,
+      toLabel: creditor.label,
       amount: amount
     });
 
@@ -3802,7 +3945,8 @@ function calculateTripBalances() {
     </div>
   `;
 
-  const myBal = balances[currentUser.email] || 0;
+  const myKey = currentUser.id;
+  const myBal = balances[myKey] || 0;
   if (myBal > 0.01) {
     html += `<div style="background:rgba(104,211,145,.1);color:var(--green);padding:10px;border-radius:10px;font-size:12px;font-weight:600;margin-bottom:12px;display:flex;justify-content:space-between"><span>You are owed:</span> <span>₹${myBal.toFixed(2)}</span></div>`;
   } else if (myBal < -0.01) {
@@ -3820,8 +3964,8 @@ function calculateTripBalances() {
     `;
 
     html += transactions.map(tx => {
-      const fromName = tx.from === currentUser.email ? 'You' : tx.from.split('@')[0];
-      const toName = tx.to === currentUser.email ? 'You' : tx.to.split('@')[0];
+      const fromName = tx.label || (tx.key === currentUser.id ? 'You' : tx.key);
+      const toName = tx.toLabel || (tx.toKey === currentUser.id ? 'You' : tx.toKey);
 
       return `
         <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;background:var(--surface2);padding:8px 12px;border-radius:8px">
