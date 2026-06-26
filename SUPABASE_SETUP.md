@@ -69,7 +69,7 @@ Run the following SQL in your Supabase SQL Editor to create tables for managing 
 
 ```sql
 -- 1. Create Trip Groups Table
-CREATE TABLE public.trip_groups (
+CREATE TABLE IF NOT EXISTS public.trip_groups (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   name TEXT NOT NULL,
   created_by UUID REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -77,7 +77,7 @@ CREATE TABLE public.trip_groups (
 );
 
 -- 2. Create Trip Members Table
-CREATE TABLE public.trip_members (
+CREATE TABLE IF NOT EXISTS public.trip_members (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   group_id UUID REFERENCES public.trip_groups(id) ON DELETE CASCADE,
   email TEXT NOT NULL,
@@ -85,7 +85,7 @@ CREATE TABLE public.trip_members (
 );
 
 -- 3. Create Trip Expenses Table
-CREATE TABLE public.trip_expenses (
+CREATE TABLE IF NOT EXISTS public.trip_expenses (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   group_id UUID REFERENCES public.trip_groups(id) ON DELETE CASCADE,
   description TEXT NOT NULL,
