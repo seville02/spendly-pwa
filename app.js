@@ -878,15 +878,19 @@ function renderCatBudgetHome(txs) {
     Object.entries(cb).slice(0, 4).map(([cat, limit]) => {
       const s = spent[cat] || 0, pct = Math.min((s / limit) * 100, 100);
       const c = CATEGORIES.find(x => x.id === cat) || { icon: '📌', color: '#8896b3' };
-      const warn = pct >= 80;
+      const rawPct = (s / limit) * 100;
+      const isOver = rawPct >= 100;
+      const isWarn = !isOver && rawPct >= 80;
+      const barColor = isOver ? 'var(--red)' : isWarn ? '#ed8936' : c.color;
+      const amtColor = isOver ? 'var(--red)' : isWarn ? 'var(--amber)' : 'var(--text)';
       return `<div class="cat-budget-row">
         <div class="cat-budget-icon">${c.icon}</div>
         <div class="cat-budget-info">
           <div class="cat-budget-name">${cat}</div>
-          <div class="cat-budget-progress"><div class="cat-budget-bar" style="width:${pct}%;background:${warn ? 'var(--red)' : c.color}"></div></div>
+          <div class="cat-budget-progress"><div class="cat-budget-bar" style="width:${pct}%;background:${barColor}"></div></div>
         </div>
         <div class="cat-budget-right">
-          <div class="cat-budget-amt" style="color:${warn ? 'var(--red)' : 'var(--text)'}">${fmt(s)}</div>
+          <div class="cat-budget-amt" style="color:${amtColor}">${fmt(s)}</div>
           <div class="cat-budget-limit">of ${fmt(limit)}</div>
         </div>
       </div>`;
@@ -2575,7 +2579,7 @@ function renderEvents() {
         ${stillOwed > 0 ? `<div class="ev-stat-item"><div class="ev-stat-val red">${fmtEvent(stillOwed, sym)}</div><div class="ev-stat-lbl">Still Owed</div></div>` : ''}
         ${budget > 0 ? `<div class="ev-stat-item"><div class="ev-stat-val accent">${fmtEvent(budget, sym)}</div><div class="ev-stat-lbl">${ev.estimatedBudget ? 'Est. Budget' : 'Items Est.'}</div></div>` : ''}
       </div>
-      ${budget > 0 ? `<div class="progress-bar" style="margin-top:12px"><div class="progress-fill${pct > 80 ? ' warn' : ''}" style="width:${pct}%"></div></div>
+      ${budget > 0 ? `<div class="progress-bar" style="margin-top:12px"><div class="progress-fill${pct >= 100 ? ' over' : pct >= 80 ? ' warn' : ''}" style="width:${Math.min(pct,100)}%"></div></div>
       <div style="font-size:11px;color:var(--text3);text-align:right;margin-top:4px">${Math.round(pct)}% funded</div>` : ''}
     </div>`;
   }).join('<div class="event-separator"></div>');
@@ -2624,7 +2628,7 @@ function renderEventDetail() {
     </div>
     ${budget > 0 ? `
       <div class="progress-bar" style="margin:14px 0 4px">
-        <div class="progress-fill${pct > 80 ? ' warn' : ''}" style="width:${pct}%"></div>
+        <div class="progress-fill${pct >= 100 ? ' over' : pct >= 80 ? ' warn' : ''}" style="width:${Math.min(pct,100)}%"></div>
       </div>
       <div style="font-size:11px;color:var(--text3);text-align:right;margin-bottom:12px">${Math.round(pct)}% funded</div>
     ` : ''}`;
@@ -2646,7 +2650,7 @@ function renderEventDetail() {
           </div>
           ${item.totalCost > 0 ? `
             <div class="progress-bar" style="margin:8px 0 5px">
-              <div class="progress-fill${ipct > 80 ? ' warn' : ''}" style="width:${ipct}%"></div>
+              <div class="progress-fill${ipct >= 100 ? ' over' : ipct >= 80 ? ' warn' : ''}" style="width:${Math.min(ipct,100)}%"></div>
             </div>
             ${rem > 0 ? `<div style="font-size:11px;color:var(--red)">⏳ ${fmtEvent(rem, sym)} remaining</div>`
             : `<div style="font-size:11px;color:var(--green)">✅ Fully paid</div>`}

@@ -651,8 +651,12 @@ body { display: flex; flex-direction: column; max-width: 480px; margin: 0 auto; 
   box-shadow: 0 0 6px var(--accent);
 }
 .event-card .progress-fill.warn, #screen-event-detail .progress-fill.warn {
-  background: linear-gradient(90deg, var(--amber), var(--red));
-  box-shadow: 0 0 6px var(--red);
+  background: linear-gradient(90deg, var(--amber), #ed8936);
+  box-shadow: 0 0 6px rgba(246,173,85,0.6);
+}
+.event-card .progress-fill.over, #screen-event-detail .progress-fill.over {
+  background: linear-gradient(90deg, #fc8181, #e53e3e);
+  box-shadow: 0 0 6px rgba(252,129,129,0.7);
 }
 
 .ev-hero-stats {
