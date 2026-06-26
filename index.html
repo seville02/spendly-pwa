@@ -696,7 +696,56 @@
     </div>
   </div>
 
-  <div style="padding:0 16px 30px">
+  <div class="stats-tabs-wrap" style="margin-bottom: 12px; padding-top: 6px;">
+    <div class="stats-tabs">
+      <div class="stats-tab active" id="bs-tab-groups" onclick="switchBillSplitterTab('groups')">Group Trip Splitter</div>
+      <div class="stats-tab" id="bs-tab-scan" onclick="switchBillSplitterTab('scan')">Quick Split &amp; Scan</div>
+    </div>
+  </div>
+
+  <div id="bs-panel-groups" style="padding:0 16px 30px">
+    <!-- List of active trips -->
+    <div id="trip-groups-list-container">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <span style="font-size:11px;font-weight:500;text-transform:uppercase;color:var(--text3);letter-spacing:.05em">Active Trips</span>
+        <button onclick="openCreateTripModal()" style="background:var(--accent-dim);color:var(--accent);border:1px solid var(--accent);border-radius:20px;padding:5px 12px;font-size:11px;font-weight:600;cursor:pointer">+ New Trip</button>
+      </div>
+      <div id="trip-groups-list"></div>
+    </div>
+
+    <!-- Active trip details panel (shown when a trip is selected) -->
+    <div id="trip-details-panel" style="display:none">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;border-bottom:1px solid var(--border);padding-bottom:10px">
+        <div>
+          <h3 id="selected-trip-name" style="margin:0;font-size:18px;color:var(--text)">Trip Name</h3>
+          <span style="font-size:11px;color:var(--text3)">Group split details</span>
+        </div>
+        <div style="display:flex;gap:6px">
+          <button onclick="closeTripDetails()" style="background:var(--surface2);border:none;border-radius:8px;padding:6px 12px;font-size:12px;color:var(--text2);cursor:pointer">Back</button>
+          <button id="trip-delete-btn" onclick="deleteCurrentTrip()" style="background:rgba(239, 68, 68, 0.12);border:none;border-radius:8px;padding:6px 10px;color:#ef4444;cursor:pointer" title="Delete Trip">🗑️</button>
+        </div>
+      </div>
+
+      <!-- Add Expense Card Button -->
+      <div style="margin-bottom:16px">
+        <button class="submit-btn" onclick="openAddTripExpenseModal()" style="background:linear-gradient(90deg, var(--accent), var(--blue));color:#0a0f1e;font-weight:700">+ Add Trip Expense</button>
+      </div>
+
+      <!-- Settlements Breakdown -->
+      <div class="chart-card" style="margin:0 0 16px;padding:16px">
+        <div class="chart-title">Balances &amp; Settlements</div>
+        <div id="trip-settlements-list"></div>
+      </div>
+
+      <!-- Expenses List -->
+      <div class="chart-card" style="margin:0;padding:16px">
+        <div class="chart-title">Expenses log</div>
+        <div id="trip-expenses-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="bs-panel-scan" style="display:none; padding:0 16px 30px">
     <!-- Scanner dropzone -->
     <div class="scanner-container" id="bs-upload-zone">
       <div class="scanner-beam" id="bs-scanner-beam" style="display:none"></div>
@@ -769,6 +818,7 @@
       </div>
     </div>
   </div>
+</div>
 </div>
 
 <!-- ═══ SCREEN: GUEST SPLIT BILL (RECIPIENT FLOW) ═══ -->
@@ -1311,6 +1361,67 @@
     </button>
     <div style="height:6px"></div>
     <button class="submit-btn secondary" onclick="closeModal('modal-add-invoice')">Cancel</button>
+    <div style="height:12px"></div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: CREATE TRIP GROUP ═══ -->
+<div class="modal-overlay" id="modal-create-trip">
+  <div class="modal-sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">✈️ Create Trip Group</div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:14px;text-align:center;line-height:1.6">Share expenses with friends during trips. Anyone added who has the app can view and edit this group!</div>
+    
+    <div class="form-group">
+      <label class="form-label">Trip Name / Destination</label>
+      <input class="form-input" type="text" id="trip-name-input" placeholder="e.g. Goa Trip 2026, Ladakh Bike Tour">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Friend's Email Addresses (one per line)</label>
+      <textarea class="form-input" id="trip-emails-input" placeholder="friend1@gmail.com&#10;friend2@gmail.com" style="height:100px;resize:none;padding:10px;font-family:var(--font)"></textarea>
+      <span style="font-size:10px;color:var(--text3);margin-top:4px">Your email address will be added automatically.</span>
+    </div>
+
+    <button class="submit-btn" onclick="submitCreateTrip()">Create Group</button>
+    <div style="height:6px"></div>
+    <button class="submit-btn secondary" onclick="closeModal('modal-create-trip')">Cancel</button>
+    <div style="height:12px"></div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: ADD TRIP EXPENSE ═══ -->
+<div class="modal-overlay" id="modal-add-trip-expense">
+  <div class="modal-sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">💸 Add Trip Expense</div>
+    
+    <div class="form-group">
+      <label class="form-label">Description</label>
+      <input class="form-input" type="text" id="trip-exp-desc" placeholder="e.g. Hotel Booking, Dinner, Fuel">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Amount</label>
+      <div class="amount-wrap">
+        <span class="amount-prefix">₹</span>
+        <input class="form-input with-prefix" type="number" id="trip-exp-amount" placeholder="0" step="any" inputmode="decimal">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Paid By</label>
+      <select class="form-input" id="trip-exp-payer" style="font-family:var(--font)"></select>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Date</label>
+      <input class="form-input" type="date" id="trip-exp-date">
+    </div>
+
+    <button class="submit-btn" onclick="submitTripExpense()">Add Expense</button>
+    <div style="height:6px"></div>
+    <button class="submit-btn secondary" onclick="closeModal('modal-add-trip-expense')">Cancel</button>
     <div style="height:12px"></div>
   </div>
 </div>

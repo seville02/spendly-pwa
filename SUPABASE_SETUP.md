@@ -61,3 +61,48 @@ SELECT cron.schedule(
 
 > [!NOTE]
 > Make sure to replace `your-project-ref` and `your_supabase_anon_or_service_role_key` with your actual project credentials in the SQL above.
+
+---
+
+## 4. Group Trip Splitter Database Setup (Optional but Required for Groups Feature)
+Run the following SQL in your Supabase SQL Editor to create tables for managing Trip Groups, Members, and Expenses:
+
+```sql
+-- 1. Create Trip Groups Table
+CREATE TABLE public.trip_groups (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  name TEXT NOT NULL,
+  created_by UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+);
+
+-- 2. Create Trip Members Table
+CREATE TABLE public.trip_members (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  group_id UUID REFERENCES public.trip_groups(id) ON DELETE CASCADE,
+  email TEXT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+);
+
+-- 3. Create Trip Expenses Table
+CREATE TABLE public.trip_expenses (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  group_id UUID REFERENCES public.trip_groups(id) ON DELETE CASCADE,
+  description TEXT NOT NULL,
+  amount NUMERIC(12,2) NOT NULL,
+  paid_by TEXT NOT NULL, -- Email of the member who paid
+  date DATE DEFAULT CURRENT_DATE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+);
+
+-- Enable Row Level Security (RLS)
+ALTER TABLE public.trip_groups ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.trip_members ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.trip_expenses ENABLE ROW LEVEL SECURITY;
+
+-- Disable RLS restrictions or add simple bypass policy for quick development
+-- (In production, replace with user-specific session policies)
+CREATE POLICY "Enable read/write for all users" ON public.trip_groups FOR ALL USING (true);
+CREATE POLICY "Enable read/write for all users" ON public.trip_members FOR ALL USING (true);
+CREATE POLICY "Enable read/write for all users" ON public.trip_expenses FOR ALL USING (true);
+```

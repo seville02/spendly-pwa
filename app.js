@@ -2844,6 +2844,7 @@ let bsItems = [];
 let tesseractScriptLoaded = false;
 
 function renderBillSplitter() {
+  switchBillSplitterTab('groups');
   // Reset scanner UI
   document.getElementById('bs-scan-status').style.display = 'none';
   document.getElementById('bs-scanner-beam').style.display = 'none';
@@ -3472,4 +3473,368 @@ async function confirmDeleteAllInvoices() {
     setSyncing('error');
     showToast('Failed to delete all invoices');
   }
+}
+
+// ─────────────────────────────────────────────────────
+// GROUP TRIP SPLITTER INTERFACE AND ENGINE
+// ─────────────────────────────────────────────────────
+let activeTripsList = [];
+let currentTripData = null;
+
+function switchBillSplitterTab(tab) {
+  const tabGroups = document.getElementById('bs-tab-groups');
+  const tabScan = document.getElementById('bs-tab-scan');
+  const panelGroups = document.getElementById('bs-panel-groups');
+  const panelScan = document.getElementById('bs-panel-scan');
+
+  if (!tabGroups || !tabScan || !panelGroups || !panelScan) return;
+
+  if (tab === 'groups') {
+    tabGroups.classList.add('active');
+    tabScan.classList.remove('active');
+    panelGroups.style.display = 'block';
+    panelScan.style.display = 'none';
+    renderTripGroupsScreen();
+  } else {
+    tabScan.classList.add('active');
+    tabGroups.classList.remove('active');
+    panelScan.style.display = 'block';
+    panelGroups.style.display = 'none';
+  }
+}
+
+async function renderTripGroupsScreen() {
+  if (!currentUser) {
+    document.getElementById('trip-groups-list').innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">✈️</div>
+        <div class="empty-title">Sign in required</div>
+        <div class="empty-sub">Please sign in from the Profile page to manage shared Trip Splitter groups.</div>
+      </div>
+    `;
+    return;
+  }
+
+  setSyncing('syncing');
+  try {
+    activeTripsList = await dbGetTrips(currentUser.email);
+    renderTripGroups();
+    setSyncing('ok');
+  } catch (e) {
+    console.error('Failed to load trips', e);
+    setSyncing('error');
+  }
+}
+
+function renderTripGroups() {
+  const container = document.getElementById('trip-groups-list');
+  if (!container) return;
+
+  if (activeTripsList.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state" style="padding: 20px 0;">
+        <div class="empty-icon">🏕️</div>
+        <div class="empty-title">No trips yet</div>
+        <div class="empty-sub">Tap "+ New Trip" to create your first shared group trip!</div>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = activeTripsList.map(trip => {
+    const dateStr = new Date(trip.created_at).toLocaleDateString('en-IN', {
+      day: 'numeric', month: 'short', year: 'numeric'
+    });
+
+    return `
+      <div class="settings-item" onclick="selectTrip('${trip.id}')" style="margin-bottom: 8px; border-radius: var(--r); background: var(--surface); border: 1px solid var(--border);">
+        <div class="settings-left">
+          <div class="settings-icon" style="background: rgba(183,148,244,.12); color: var(--purple);">✈️</div>
+          <div>
+            <div class="settings-label" style="font-weight:600;">${escapeHtml(trip.name)}</div>
+            <div class="settings-val">Created ${dateStr}</div>
+          </div>
+        </div>
+        <svg class="chevron" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+      </div>
+    `;
+  }).join('');
+}
+
+function openCreateTripModal() {
+  if (!currentUser) {
+    showToast('Please sign in first');
+    return;
+  }
+  document.getElementById('trip-name-input').value = '';
+  document.getElementById('trip-emails-input').value = '';
+  openModal('modal-create-trip');
+}
+
+async function submitCreateTrip() {
+  const name = document.getElementById('trip-name-input').value.trim();
+  const emailsText = document.getElementById('trip-emails-input').value.trim();
+
+  if (!name) { showToast('Please enter a trip name'); return; }
+
+  const emails = emailsText.split('\n')
+    .map(e => e.trim().toLowerCase())
+    .filter(e => e.length > 0 && e.includes('@'));
+
+  if (!emails.includes(currentUser.email.toLowerCase())) {
+    emails.push(currentUser.email.toLowerCase());
+  }
+
+  setSyncing('syncing');
+  try {
+    const group = await dbCreateTrip(currentUser.id, name, emails);
+    closeModal('modal-create-trip');
+    showToast(`"${name}" created successfully 🎉`);
+    await selectTrip(group.id);
+  } catch (e) {
+    console.error(e);
+    setSyncing('error');
+    showToast('Failed to create trip group');
+  }
+}
+
+async function selectTrip(groupId) {
+  setSyncing('syncing');
+  try {
+    currentTripData = await dbGetTripDetails(groupId);
+    
+    document.getElementById('trip-groups-list-container').style.display = 'none';
+    document.getElementById('trip-details-panel').style.display = 'block';
+
+    document.getElementById('selected-trip-name').textContent = currentTripData.group.name;
+
+    const deleteBtn = document.getElementById('trip-delete-btn');
+    if (currentUser.id === currentTripData.group.created_by) {
+      deleteBtn.style.display = 'block';
+    } else {
+      deleteBtn.style.display = 'none';
+    }
+
+    renderTripExpenses();
+    calculateTripBalances();
+
+    setSyncing('ok');
+  } catch (e) {
+    console.error('Failed to load trip details', e);
+    setSyncing('error');
+    showToast('Failed to load trip details');
+  }
+}
+
+function closeTripDetails() {
+  document.getElementById('trip-details-panel').style.display = 'none';
+  document.getElementById('trip-groups-list-container').style.display = 'block';
+  currentTripData = null;
+  renderTripGroupsScreen();
+}
+
+function renderTripExpenses() {
+  const container = document.getElementById('trip-expenses-list');
+  if (!container) return;
+
+  const expenses = currentTripData.expenses || [];
+  if (expenses.length === 0) {
+    container.innerHTML = `<div style="text-align:center;padding:12px;color:var(--text3);font-size:12px">No expenses logged yet.</div>`;
+    return;
+  }
+
+  container.innerHTML = expenses.map(exp => {
+    const dateStr = new Date(exp.date).toLocaleDateString('en-IN', {
+      day: 'numeric', month: 'short'
+    });
+    const payerName = exp.paid_by === currentUser.email ? 'You' : exp.paid_by.split('@')[0];
+
+    return `
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)">
+        <div style="min-width:0;flex:1;">
+          <div style="font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(exp.description)}</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px">Paid by <strong>${escapeHtml(payerName)}</strong> · ${dateStr}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-family:var(--mono);font-size:14px;font-weight:700;color:var(--text)">₹${parseFloat(exp.amount).toLocaleString('en-IN')}</span>
+          <button onclick="deleteTripExpense('${exp.id}')" style="background:none;border:none;color:var(--text3);cursor:pointer;padding:4px;font-size:12px">✕</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function openAddTripExpenseModal() {
+  if (!currentTripData) return;
+  document.getElementById('trip-exp-desc').value = '';
+  document.getElementById('trip-exp-amount').value = '';
+  document.getElementById('trip-exp-date').value = new Date().toISOString().split('T')[0];
+
+  const select = document.getElementById('trip-exp-payer');
+  select.innerHTML = currentTripData.members.map(m => {
+    const label = m.email === currentUser.email ? 'You' : m.email.split('@')[0];
+    return `<option value="${m.email}">${label} (${m.email})</option>`;
+  }).join('');
+
+  openModal('modal-add-trip-expense');
+}
+
+async function submitTripExpense() {
+  const desc = document.getElementById('trip-exp-desc').value.trim();
+  const amt = parseFloat(document.getElementById('trip-exp-amount').value);
+  const paidBy = document.getElementById('trip-exp-payer').value;
+  const date = document.getElementById('trip-exp-date').value;
+
+  if (!desc) { showToast('Please enter a description'); return; }
+  if (isNaN(amt) || amt <= 0) { showToast('Please enter a valid amount'); return; }
+
+  setSyncing('syncing');
+  try {
+    await dbAddTripExpense(currentTripData.group.id, desc, amt, paidBy, date);
+    closeModal('modal-add-trip-expense');
+    showToast('Trip expense added');
+    await selectTrip(currentTripData.group.id);
+  } catch (e) {
+    console.error(e);
+    setSyncing('error');
+    showToast('Failed to add trip expense');
+  }
+}
+
+async function deleteTripExpense(expenseId) {
+  if (!confirm('Delete this expense?')) return;
+  setSyncing('syncing');
+  try {
+    await dbDeleteTripExpense(expenseId);
+    showToast('Expense deleted');
+    await selectTrip(currentTripData.group.id);
+  } catch (e) {
+    console.error(e);
+    setSyncing('error');
+    showToast('Failed to delete expense');
+  }
+}
+
+async function deleteCurrentTrip() {
+  if (!confirm('🚨 Are you sure you want to delete this entire trip group? This deletes all group expenses and cannot be undone.')) return;
+  setSyncing('syncing');
+  try {
+    await dbDeleteTripGroup(currentTripData.group.id);
+    showToast('Trip group deleted');
+    closeTripDetails();
+  } catch (e) {
+    console.error(e);
+    setSyncing('error');
+    showToast('Failed to delete trip');
+  }
+}
+
+function calculateTripBalances() {
+  const settlementsContainer = document.getElementById('trip-settlements-list');
+  if (!settlementsContainer) return;
+
+  const members = currentTripData.members || [];
+  const expenses = currentTripData.expenses || [];
+
+  if (members.length === 0) {
+    settlementsContainer.innerHTML = '';
+    return;
+  }
+
+  const balances = {};
+  members.forEach(m => {
+    balances[m.email] = 0;
+  });
+
+  const totalSpent = expenses.reduce((sum, exp) => sum + parseFloat(exp.amount), 0);
+  const sharePerPerson = totalSpent / members.length;
+
+  expenses.forEach(exp => {
+    if (balances[exp.paid_by] !== undefined) {
+      balances[exp.paid_by] += parseFloat(exp.amount);
+    }
+  });
+
+  members.forEach(m => {
+    balances[m.email] -= sharePerPerson;
+  });
+
+  const debtors = [];
+  const creditors = [];
+
+  Object.keys(balances).forEach(email => {
+    const bal = balances[email];
+    if (bal < -0.01) {
+      debtors.push({ email, amount: -bal });
+    } else if (bal > 0.01) {
+      creditors.push({ email, amount: bal });
+    }
+  });
+
+  debtors.sort((a, b) => b.amount - a.amount);
+  creditors.sort((a, b) => b.amount - a.amount);
+
+  const transactions = [];
+  let dIdx = 0;
+  let cIdx = 0;
+
+  while (dIdx < debtors.length && cIdx < creditors.length) {
+    const debtor = debtors[dIdx];
+    const creditor = creditors[cIdx];
+    const amount = Math.min(debtor.amount, creditor.amount);
+
+    transactions.push({
+      from: debtor.email,
+      to: creditor.email,
+      amount: amount
+    });
+
+    debtor.amount -= amount;
+    creditor.amount -= amount;
+
+    if (debtor.amount < 0.01) dIdx++;
+    if (creditor.amount < 0.01) cIdx++;
+  }
+
+  let html = `
+    <div style="font-size:12px;color:var(--text2);margin-bottom:12px">
+      Total trip spent: <strong>₹${totalSpent.toLocaleString('en-IN')}</strong> · Share per person: <strong>₹${Math.round(sharePerPerson).toLocaleString('en-IN')}</strong>
+    </div>
+  `;
+
+  const myBal = balances[currentUser.email] || 0;
+  if (myBal > 0.01) {
+    html += `<div style="background:rgba(104,211,145,.1);color:var(--green);padding:10px;border-radius:10px;font-size:12px;font-weight:600;margin-bottom:12px;display:flex;justify-content:space-between"><span>You are owed:</span> <span>₹${myBal.toFixed(2)}</span></div>`;
+  } else if (myBal < -0.01) {
+    html += `<div style="background:rgba(252,129,129,.1);color:var(--red);padding:10px;border-radius:10px;font-size:12px;font-weight:600;margin-bottom:12px;display:flex;justify-content:space-between"><span>You owe:</span> <span>₹${Math.abs(myBal).toFixed(2)}</span></div>`;
+  } else {
+    html += `<div style="background:var(--surface2);color:var(--text3);padding:10px;border-radius:10px;font-size:12px;margin-bottom:12px;text-align:center">You are all settled! 🤝</div>`;
+  }
+
+  if (transactions.length === 0) {
+    html += `<div style="font-size:12px;color:var(--text3);text-align:center;padding:10px 0">No settlements needed.</div>`;
+  } else {
+    html += `
+      <div style="font-size:11px;text-transform:uppercase;color:var(--text3);margin-bottom:6px;font-weight:600">Suggested Payments</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+    `;
+
+    html += transactions.map(tx => {
+      const fromName = tx.from === currentUser.email ? 'You' : tx.from.split('@')[0];
+      const toName = tx.to === currentUser.email ? 'You' : tx.to.split('@')[0];
+
+      return `
+        <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;background:var(--surface2);padding:8px 12px;border-radius:8px">
+          <div>
+            <strong>${escapeHtml(fromName)}</strong> owes <strong>${escapeHtml(toName)}</strong>
+          </div>
+          <span style="font-family:var(--mono);font-weight:700;color:var(--accent)">₹${Math.round(tx.amount).toLocaleString('en-IN')}</span>
+        </div>
+      `;
+    }).join('');
+
+    html += `</div>`;
+  }
+
+  settlementsContainer.innerHTML = html;
 }

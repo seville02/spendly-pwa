@@ -546,3 +546,106 @@ async function dbDeleteAllInvoices(userId) {
     if (storageError) console.error('Storage clean up failed', storageError);
   }
 }
+
+// ─────────────────────────────────────────────────────
+// GROUP TRIP SPLITTER (Supabase Database)
+// ─────────────────────────────────────────────────────
+async function dbGetTrips(email) {
+  if (!email) return [];
+  // 1. Get all group IDs where this user email is a member
+  const { data: memberships, error: memError } = await _sb
+    .from('trip_members')
+    .select('group_id')
+    .eq('email', email);
+
+  if (memError) throw memError;
+  if (!memberships || memberships.length === 0) return [];
+
+  const groupIds = memberships.map(m => m.group_id);
+
+  // 2. Fetch the trip group details
+  const { data: groups, error: groupError } = await _sb
+    .from('trip_groups')
+    .select('*')
+    .in('id', groupIds)
+    .order('created_at', { ascending: false });
+
+  if (groupError) throw groupError;
+  return groups || [];
+}
+
+async function dbCreateTrip(userId, name, emails) {
+  // 1. Insert group record
+  const { data: group, error: groupError } = await _sb
+    .from('trip_groups')
+    .insert({ name, created_by: userId })
+    .select()
+    .single();
+
+  if (groupError) throw groupError;
+
+  // 2. Insert member records (including creator + invited emails)
+  const memberRows = emails.map(email => ({
+    group_id: group.id,
+    email: email.trim().toLowerCase()
+  }));
+
+  const { error: memError } = await _sb
+    .from('trip_members')
+    .insert(memberRows);
+
+  if (memError) throw memError;
+  return group;
+}
+
+async function dbGetTripDetails(groupId) {
+  // Fetch group, members, and expenses parallelly
+  const [groupRes, membersRes, expensesRes] = await Promise.all([
+    _sb.from('trip_groups').select('*').eq('id', groupId).single(),
+    _sb.from('trip_members').select('*').eq('group_id', groupId),
+    _sb.from('trip_expenses').select('*').eq('group_id', groupId).order('date', { ascending: false })
+  ]);
+
+  if (groupRes.error) throw groupRes.error;
+  if (membersRes.error) throw membersRes.error;
+  if (expensesRes.error) throw expensesRes.error;
+
+  return {
+    group: groupRes.data,
+    members: membersRes.data || [],
+    expenses: expensesRes.data || []
+  };
+}
+
+async function dbAddTripExpense(groupId, description, amount, paidBy, date) {
+  const { data, error } = await _sb
+    .from('trip_expenses')
+    .insert({
+      group_id: groupId,
+      description,
+      amount,
+      paid_by: paidBy.trim().toLowerCase(),
+      date: date || new Date().toISOString().split('T')[0]
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+async function dbDeleteTripExpense(expenseId) {
+  const { error } = await _sb
+    .from('trip_expenses')
+    .delete()
+    .eq('id', expenseId);
+  if (error) throw error;
+}
+
+async function dbDeleteTripGroup(groupId) {
+  const { error } = await _sb
+    .from('trip_groups')
+    .delete()
+    .eq('id', groupId);
+  if (error) throw error;
+}
