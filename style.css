@@ -832,6 +832,44 @@ body { display: flex; flex-direction: column; max-width: 480px; margin: 0 auto; 
     var(--bg);
 }
 
+/* Screen header — subtle green tint */
+#screen-savings .header {
+  background: linear-gradient(180deg, rgba(10,46,31,.6) 0%, transparent 100%);
+  border-bottom: 1px solid rgba(104,211,145,.12);
+}
+[data-theme="light"] #screen-savings .header {
+  background: linear-gradient(180deg, rgba(232,250,240,.8) 0%, transparent 100%);
+  border-bottom: 1px solid rgba(39,174,96,.1);
+}
+
+/* Hero glow div (decorative overlay) */
+.savings-hero-glow {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 70% -10%, rgba(104,211,145,.15) 0%, transparent 60%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Cash in hand input inside section card */
+#screen-savings .edit-field {
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-radius: 14px;
+  transition: border-color .2s, box-shadow .2s;
+}
+#screen-savings .edit-field:focus-within {
+  border-color: rgba(104,211,145,.5);
+  box-shadow: 0 0 0 3px rgba(104,211,145,.08);
+}
+[data-theme="light"] #screen-savings .edit-field:focus-within {
+  border-color: rgba(39,174,96,.45);
+  box-shadow: 0 0 0 3px rgba(39,174,96,.08);
+}
+
+/* Placeholder text for in-hand input */
+#savings-inhand-input::placeholder { color: var(--text3); opacity: .7; }
+
 /* Hero card */
 .savings-hero-card {
   margin: 0 16px 20px;
