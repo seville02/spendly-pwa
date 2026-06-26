@@ -1110,7 +1110,9 @@ function renderStats() {
     document.getElementById('s-count').textContent = txs.length;
     document.getElementById('s-avg').textContent = fmt(totalSpent / daysInMonth);
     document.getElementById('s-max').textContent = fmt(maxTx);
-    document.getElementById('s-net').textContent = fmt(totalIncome - totalSpent);
+    const budget = appData.budgets[monthKey(viewYear, viewMonth)] || 0;
+    const remainingBudget = budget - totalSpent;
+    document.getElementById('s-net').textContent = fmt(remainingBudget + totalIncome);
     const catTotals = {}; expenses.forEach(t => { catTotals[t.category] = (catTotals[t.category] || 0) + getTxMonthAmount(t, viewYear, viewMonth); });
     const topCat = Object.entries(catTotals).sort((a, b) => b[1] - a[1])[0];
     let insight = 'Add some transactions to see insights.';
@@ -1318,6 +1320,90 @@ function renderProfile() {
   if (cpEl) cpEl.style.display = useLocalDB ? 'none' : 'flex';
 
   renderCatBudgetSettings();
+  renderSavingsAccounts();
+}
+
+function renderSavingsAccounts() {
+  const container = document.getElementById('savings-accounts-container');
+  if (!container) return;
+
+  const accounts = appData.profile?.budgetMeta?.savingsAccounts || [];
+  const curSym = getCurrencySymbol();
+
+  if (accounts.length === 0) {
+    container.innerHTML = `<div style="font-size:12px;color:var(--text3);text-align:center;padding:12px;border:1px dashed var(--border2);border-radius:var(--r-sm)">No savings accounts added yet.</div>`;
+    document.getElementById('savings-total-val').textContent = fmt(0);
+    return;
+  }
+
+  container.innerHTML = accounts.map((acc, index) => {
+    return `<div class="edit-field" style="display:flex;align-items:center;gap:8px;margin-bottom:0;padding:0 14px">
+      <input type="text" placeholder="Account name" value="${acc.name || ''}" class="savings-acc-name" data-index="${index}" onblur="saveSavingsAccounts()" onkeydown="if(event.key==='Enter')this.blur()" style="flex:2;min-width:0;font-size:13px">
+      <div style="width:1px;height:24px;background:var(--border2)"></div>
+      <span style="font-size:13px;color:var(--text3);margin-left:4px">${curSym}</span>
+      <input type="number" placeholder="0" value="${acc.balance !== undefined ? acc.balance : ''}" class="savings-acc-balance" data-index="${index}" onblur="saveSavingsAccounts()" onkeydown="if(event.key==='Enter')this.blur()" style="flex:1.5;min-width:0;font-size:13px;font-family:var(--mono);text-align:right" step="any">
+      <button onclick="deleteSavingsAccount(${index})" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:18px;padding:4px;display:flex;align-items:center;justify-content:center;opacity:0.7">&times;</button>
+    </div>`;
+  }).join('');
+
+  const total = accounts.reduce((sum, acc) => sum + (parseFloat(acc.balance) || 0), 0);
+  document.getElementById('savings-total-val').textContent = fmt(total);
+}
+
+function addSavingsAccount() {
+  if (!appData.profile) appData.profile = {};
+  if (!appData.profile.budgetMeta) appData.profile.budgetMeta = {};
+  if (!appData.profile.budgetMeta.savingsAccounts) appData.profile.budgetMeta.savingsAccounts = [];
+
+  appData.profile.budgetMeta.savingsAccounts.push({ name: '', balance: '' });
+  renderSavingsAccounts();
+
+  // Focus the newly added name input
+  setTimeout(() => {
+    const names = document.querySelectorAll('.savings-acc-name');
+    if (names.length > 0) {
+      names[names.length - 1].focus();
+    }
+  }, 50);
+}
+
+function deleteSavingsAccount(index) {
+  if (!appData.profile?.budgetMeta?.savingsAccounts) return;
+  appData.profile.budgetMeta.savingsAccounts.splice(index, 1);
+  renderSavingsAccounts();
+  saveSavingsAccounts();
+}
+
+async function saveSavingsAccounts() {
+  if (!appData.profile) appData.profile = {};
+  if (!appData.profile.budgetMeta) appData.profile.budgetMeta = {};
+
+  const nameInputs = document.querySelectorAll('.savings-acc-name');
+  const balanceInputs = document.querySelectorAll('.savings-acc-balance');
+  const accounts = [];
+
+  nameInputs.forEach((input, i) => {
+    const name = input.value.trim();
+    const balanceVal = balanceInputs[i].value;
+    const balance = balanceVal === '' ? '' : parseFloat(balanceVal);
+    accounts.push({ name, balance });
+  });
+
+  appData.profile.budgetMeta.savingsAccounts = accounts;
+
+  // Calculate and update the total UI immediately
+  const total = accounts.reduce((sum, acc) => sum + (parseFloat(acc.balance) || 0), 0);
+  document.getElementById('savings-total-val').textContent = fmt(total);
+
+  // Sync to database
+  setSyncing('syncing');
+  try {
+    await dbSaveProfile(currentUser.id, appData.profile);
+    setSyncing('ok');
+  } catch (e) {
+    setSyncing('error');
+    showToast('Failed to save savings accounts: ' + e.message);
+  }
 }
 
 function uploadAvatar(event) {
@@ -2570,10 +2656,18 @@ async function handleBillUpload(event) {
     });
 
     const parsed = parseReceiptText(result.data.text);
-    if (parsed.length > 0) {
-      bsItems = bsItems.concat(parsed);
+    if (parsed.items && parsed.items.length > 0) {
+      bsItems = bsItems.concat(parsed.items);
       renderBsItems();
-      showToast(`Extracted ${parsed.length} items successfully! 🧾`);
+      
+      if (parsed.companyName) {
+        document.getElementById('bs-bill-name').value = parsed.companyName;
+      }
+      if (parsed.extraCharges > 0) {
+        document.getElementById('bs-extra-charges').value = parsed.extraCharges;
+      }
+      
+      showToast(`Extracted ${parsed.items.length} items successfully! 🧾`);
     } else {
       showToast('Could not extract items automatically. Please add manually or try another receipt.');
     }
@@ -2612,32 +2706,81 @@ function simulateBillScan() {
       statusDiv.style.display = 'none';
       bsItems = mockItems;
       renderBsItems();
+      document.getElementById('bs-bill-name').value = 'Pizza Corner';
+      document.getElementById('bs-extra-charges').value = 45;
       showToast('Extracted 6 items from demo receipt! 🧾');
     }
   }, 350);
 }
 
 function parseReceiptText(text) {
-  const lines = text.split('\n');
+  const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
   const items = [];
-  const priceRegex = /(?:rs\.?|inr|₹)?\s*(\d+(?:\.\d{1,2})?)\s*$/i;
+  let companyName = '';
+  let extraCharges = 0;
+  let detectedTotal = 0;
+
+  // 1. Try to find the company/merchant name at the very top (first 5 non-empty lines)
+  for (let i = 0; i < Math.min(lines.length, 5); i++) {
+    const line = lines[i];
+    if (
+      !/(\d{4}[-/]\d{2}[-/]\d{2})|(\d{2}[-/]\d{2}[-/]\d{4})/i.test(line) &&
+      !/\d{10}/.test(line) &&
+      !/@/.test(line) &&
+      !/www\.|http/i.test(line) &&
+      !/invoice|receipt|cashier|order|tax|date|tel|phone/i.test(line) &&
+      /^[a-zA-Z\s'&.-]{3,35}$/.test(line)
+    ) {
+      companyName = line;
+      break;
+    }
+  }
+
+  // 2. Parse items and extra charges
+  const priceRegex = /(?:rs\.?|inr|₹|usd|\$)?\s*(\d+(?:\.\d{1,2})?)\s*$/i;
 
   for (let line of lines) {
-    line = line.trim();
+    line = line.replace(/^[*\s•-]+/, '').trim();
     if (!line) continue;
-    if (/total|subtotal|tax|gst|vat|service|discount/i.test(line)) continue;
+
+    // Filter out date, time, receipt ID metadata completely
+    if (
+      /(\d{4}[-/]\d{2}[-/]\d{2})|(\d{2}[-/]\d{2}[-/]\d{4})/i.test(line) ||
+      /\b\d{2}:\d{2}(:\d{2})?\b/i.test(line) ||
+      /invoice|receipt|order\s+#|cashier|terminal|auth\s+code|card|visa|mc|amex|merchant\s+id/i.test(line)
+    ) {
+      continue;
+    }
 
     const match = line.match(priceRegex);
     if (match) {
       const priceVal = parseFloat(match[1]);
       let nameVal = line.replace(match[0], '').trim();
       nameVal = nameVal.replace(/[\s\.\:\-\=\+]+$/, '').trim();
+
+      // Clean up quantity prefixes like "1x", "2 x", "3 ", "4pcs "
+      nameVal = nameVal.replace(/^\d+\s*(?:x|pcs|qty)?\s+/i, '').trim();
+
       if (nameVal && priceVal > 0) {
-        items.push({ name: nameVal, price: priceVal });
+        // Check if this is an extra charge line
+        if (/tax|gst|cgst|sgst|vat|service\s+charge|delivery\s+fee|tip|surcharge/i.test(nameVal)) {
+          extraCharges += priceVal;
+        } else if (/total|grand\s+total|net\s+amount/i.test(nameVal)) {
+          detectedTotal = priceVal;
+        } else if (!/subtotal|discount/i.test(nameVal)) {
+          // Normal item
+          items.push({ name: nameVal, price: priceVal });
+        }
       }
     }
   }
-  return items;
+
+  return {
+    items,
+    companyName: companyName || 'Dinner Split',
+    extraCharges: extraCharges > 0 ? parseFloat(extraCharges.toFixed(2)) : 0,
+    total: detectedTotal
+  };
 }
 
 function generateSplitLink() {
