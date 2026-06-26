@@ -605,7 +605,7 @@ async function dbCreateTrip(userId, name, members) {
     user_id: m.user_id || null,
     username: m.username || null,
     display_name: m.display_name || m.username || m.email || 'Unknown',
-    email: m.email || null
+    email: m.email || ''   // empty string satisfies NOT NULL if no email provided
   }));
 
   const { error: memError } = await _sb
@@ -675,12 +675,13 @@ async function dbDeleteTripGroup(groupId) {
 /** Find a user profile by their @username handle. Returns { id, username, name } or null. */
 async function dbLookupByUsername(username) {
   const handle = username.replace(/^@/, '').trim().toLowerCase();
+  if (!handle) return null;
   const { data, error } = await _sb
     .from('profiles')
     .select('id, username, name')
     .eq('username', handle)
-    .single();
-  if (error && error.code !== 'PGRST116') throw error;
+    .maybeSingle();
+  if (error) throw error;
   return data || null;
 }
 

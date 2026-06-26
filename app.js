@@ -1780,6 +1780,58 @@ async function autoSaveProfile() {
   }
 }
 
+async function saveUsername() {
+  if (!currentUser) return;
+  const input = document.getElementById('profile-username-input');
+  const badge = document.getElementById('profile-username-badge');
+  const raw = (input?.value || '').trim().toLowerCase().replace(/[^a-z0-9_]/g, '');
+
+  // Enforce minimum length
+  if (raw && raw.length < 3) {
+    showToast('Username must be at least 3 characters');
+    if (input) input.value = appData.profile?.username || '';
+    return;
+  }
+
+  const current = appData.profile?.username || '';
+  if (raw === current) return; // no change
+
+  setSyncing('syncing');
+  try {
+    if (raw) {
+      // Check uniqueness — look up if another user already has this username
+      const existing = await dbLookupByUsername(raw);
+      if (existing && existing.id !== currentUser.id) {
+        showToast(`@${raw} is already taken — try another`);
+        if (input) input.value = current;
+        setSyncing('ok');
+        return;
+      }
+    }
+
+    // Save to Supabase
+    await dbSaveProfile(currentUser.id, { username: raw || null });
+    appData.profile = { ...appData.profile, username: raw || null };
+
+    // Update badge
+    if (badge) {
+      if (raw) {
+        badge.textContent = '@' + raw;
+        badge.style.display = 'inline-block';
+      } else {
+        badge.style.display = 'none';
+      }
+    }
+    setSyncing('ok');
+    showToast(raw ? `✓ Username set to @${raw}` : 'Username cleared');
+  } catch (e) {
+    setSyncing('error');
+    showToast('Failed to save username: ' + e.message);
+    if (input) input.value = current;
+  }
+}
+
+
 // ─────────────────────────────────────────────────────
 // CURRENCY PICKER
 // ─────────────────────────────────────────────────────

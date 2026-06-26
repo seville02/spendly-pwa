@@ -160,3 +160,34 @@ ON storage.objects FOR DELETE
 TO authenticated 
 USING (bucket_id = 'invoices');
 ```
+
+---
+
+## 6. Username Support & Trip Members Schema Update
+
+Run this SQL in your **Supabase SQL Editor** to enable `@username` search and fix the trip members table:
+
+```sql
+-- ── 1. Add username column to profiles (unique) ──
+ALTER TABLE public.profiles
+  ADD COLUMN IF NOT EXISTS username TEXT;
+
+CREATE UNIQUE INDEX IF NOT EXISTS profiles_username_unique
+  ON public.profiles (username)
+  WHERE username IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS profiles_username_idx
+  ON public.profiles (username);
+
+-- ── 2. Update trip_members for username-based membership ──
+ALTER TABLE public.trip_members
+  ALTER COLUMN email SET DEFAULT '';
+
+ALTER TABLE public.trip_members
+  ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  ADD COLUMN IF NOT EXISTS username TEXT,
+  ADD COLUMN IF NOT EXISTS display_name TEXT;
+```
+
+> [!NOTE]
+> After running this migration, users can set their `@username` from **Profile → Username** and be found by friends when creating a Group Trip.
