@@ -150,7 +150,8 @@ body { display: flex; flex-direction: column; max-width: 480px; margin: 0 auto; 
 .hero-stat-val.accent { color: #4fd1c5; }
 .progress-bar { width: 100%; height: 4px; background: var(--hero-progress-bg); border-radius: 100px; margin-top: 12px; overflow: hidden; }
 .progress-fill { height: 100%; border-radius: 100px; background: linear-gradient(90deg, #4fd1c5, #68d391); transition: width .5s ease; }
-.progress-fill.warn { background: linear-gradient(90deg, #f6ad55, #fc8181); }
+.progress-fill.warn { background: linear-gradient(90deg, #f6ad55, #ed8936); }
+.progress-fill.over { background: linear-gradient(90deg, #fc8181, #e53e3e); }
 
 
 /* ═══════════════════════════════════════
@@ -181,7 +182,7 @@ body { display: flex; flex-direction: column; max-width: 480px; margin: 0 auto; 
 /* ═══════════════════════════════════════
    QUICK ACTIONS
 ═══════════════════════════════════════ */
-.quick-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 0 16px 16px; }
+.quick-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin: 0 16px 16px; }
 .quick-btn { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 13px; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: background .15s, transform .1s; touch-action: manipulation; }
 .quick-btn:active { transform: scale(.96); background: var(--surface2); }
 .quick-icon { width: 34px; height: 34px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
@@ -853,6 +854,42 @@ body { display: flex; flex-direction: column; max-width: 480px; margin: 0 auto; 
 .savings-tx-amount { font-size: 14px; font-weight: 600; font-family: var(--mono); flex-shrink: 0; }
 .savings-tx-amount.deposit { color: var(--green); }
 .savings-tx-amount.withdraw { color: var(--red); }
+
+.savings-section-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 16px;
+  margin: 0 16px 16px;
+}
+.savings-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.savings-section-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+.savings-section-icon {
+  font-size: 16px;
+}
+.savings-section-action {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: background 0.15s;
+}
+.savings-section-action:hover {
+  background: var(--surface2);
+}
 
 /* ═══════════════════════════════════════
    BILL SPLITTER SCREEN STYLES

@@ -92,6 +92,108 @@ let appData = { transactions: [], budgets: {}, catBudgets: {}, debts: [], profil
 let localSettings = { theme: 'dark', pinEnabled: false, pinHash: '', currency: '₹', summaryDismissed: '' };
 let editingTxId = null;
 
+// ─────────────────────────────────────────────────────
+// XP / RANK SYSTEM
+// ─────────────────────────────────────────────────────
+const XP_RANKS = [
+  { label: 'Beginner', badge: '🌱', min: 0,    max: 50   },
+  { label: 'Bronze',   badge: '🥉', min: 50,   max: 170  },
+  { label: 'Silver',   badge: '🥈', min: 170,  max: 350  },
+  { label: 'Gold',     badge: '🥇', min: 350,  max: 700  },
+  { label: 'Platinum', badge: '💠', min: 700,  max: 1800 },
+  { label: 'Diamond',  badge: '💎', min: 1800, max: 3200 },
+  { label: 'Mythic',   badge: '🌟', min: 3200, max: 7000 },
+  { label: 'Legend',   badge: '👑', min: 7000, max: 10000 },
+];
+const XP_KEY = () => `spendly_xp_${currentUser?.id || 'local'}`;
+const XP_LASTMONTH_KEY = () => `spendly_xp_lastmonth_${currentUser?.id || 'local'}`;
+
+function getXP() { return parseInt(localStorage.getItem(XP_KEY()) || '0'); }
+function setXP(v) { localStorage.setItem(XP_KEY(), Math.max(0, v)); }
+
+function addXP(amount, reason) {
+  const prev = getXP();
+  const next = Math.min(10000, prev + amount);
+  setXP(next);
+  const prevRank = getRankInfo(prev);
+  const nextRank = getRankInfo(next);
+  if (nextRank.label !== prevRank.label) {
+    showToast(`🎉 Rank Up! You are now ${nextRank.badge} ${nextRank.label}!`);
+  } else if (amount > 0) {
+    showToast(`+${amount} XP · ${nextRank.badge} ${nextRank.label}`);
+  }
+  renderXPBar();
+}
+
+function getRankInfo(xp) {
+  for (let i = XP_RANKS.length - 1; i >= 0; i--) {
+    if (xp >= XP_RANKS[i].min) return XP_RANKS[i];
+  }
+  return XP_RANKS[0];
+}
+
+function renderXPBar() {
+  const xp = getXP();
+  const rank = getRankInfo(xp);
+  const nextRank = XP_RANKS[XP_RANKS.indexOf(rank) + 1];
+  const pct = nextRank
+    ? Math.min(100, ((xp - rank.min) / (rank.max - rank.min)) * 100)
+    : 100;
+
+  const badge = document.getElementById('xp-rank-badge');
+  const label = document.getElementById('xp-rank-label');
+  const fill  = document.getElementById('xp-bar-fill');
+  const pts   = document.getElementById('xp-points-label');
+  const next  = document.getElementById('xp-next-label');
+  const need  = document.getElementById('xp-needed-label');
+
+  if (!badge) return;
+  badge.textContent = rank.badge;
+  label.textContent = rank.label;
+  pts.textContent   = `${xp.toLocaleString()} XP`;
+  fill.style.width  = `${pct}%`;
+  if (nextRank) {
+    next.textContent = `Next: ${nextRank.badge} ${nextRank.label}`;
+    need.textContent = `${(rank.max - xp).toLocaleString()} XP to go`;
+  } else {
+    next.textContent = '👑 Max Rank Achieved!';
+    need.textContent = `${xp.toLocaleString()} XP`;
+  }
+}
+
+function checkMonthEndXPBonus() {
+  // Award bonus XP at month-end based on budget status
+  const key = XP_LASTMONTH_KEY();
+  const lastKey = monthKey(viewYear, viewMonth);
+  const done = localStorage.getItem(key);
+  if (done === lastKey) return; // already awarded this month
+
+  const now = new Date();
+  if (now.getDate() !== 1) return; // only runs on 1st of each month
+
+  // Check previous month spending
+  const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const prevKey = monthKey(prev.getFullYear(), prev.getMonth());
+  const budget = appData.budgets[prevKey] || 0;
+  if (!budget) return;
+  const spent = appData.transactions
+    .filter(t => t.monthKey === prevKey && t.type === 'expense')
+    .reduce((s, t) => s + t.amount, 0);
+  const pct = budget > 0 ? spent / budget : 0;
+
+  let bonus = 0;
+  let msg = '';
+  if (pct >= 1) { bonus = -50; msg = '⚠️ Over budget! -50 XP'; }
+  else if (pct >= 0.8) { bonus = 10; msg = '🟠 Orange zone: +10 XP'; }
+  else { bonus = 100; msg = '🟢 Green zone: +100 XP bonus!'; }
+
+  const prev2 = getXP();
+  setXP(prev2 + bonus);
+  localStorage.setItem(key, lastKey);
+  setTimeout(() => showToast(`Month-end: ${msg}`), 2000);
+  renderXPBar();
+}
+
 let viewYear = new Date().getFullYear();
 let viewMonth = new Date().getMonth();
 let selectedType = 'expense';
@@ -565,6 +667,7 @@ async function loadAllData(userId) {
     appData.profile = profile || {};
     setSyncing('ok');
     setTimeout(() => setSyncing('ok'), 2000);
+    setTimeout(() => { renderXPBar(); checkMonthEndXPBonus(); }, 500);
   } catch (e) {
     console.error('Load error', e);
     setSyncing('error');
@@ -667,7 +770,8 @@ function renderHome() {
   }
 
   fill.style.width = pct + '%';
-  fill.className = 'progress-fill' + (pct > 80 ? ' warn' : '');
+  fill.className = 'progress-fill' + (pct >= 100 ? ' over' : pct > 80 ? ' warn' : '');
+  fill.style.width = Math.min(pct, 100) + '%';
 
   statLabels[0].textContent = 'Budget';
   statVals[0].textContent = fmt(budget);
@@ -1272,6 +1376,7 @@ async function settleDebt(id) {
     await dbUpdateDebt(currentUser.id, id, { settled: true });
     const d = appData.debts.find(x => x.id === id); if (d) d.settled = true;
     setSyncing('ok'); closeModal('modal-debt-detail'); renderDebts(); showToast('Settled ✅');
+    addXP(5, 'debt_settled');
   } catch (e) {
     setSyncing('error');
     showToast('Failed to settle debt: ' + e.message);
@@ -1322,6 +1427,7 @@ function renderProfile() {
 
   renderCatBudgetSettings();
   renderSavingsAccounts(); // updates profile button label
+  renderXPBar();
 }
 
 // ─────────────────────────────────────────────────────
@@ -1425,6 +1531,10 @@ function renderSavingsScreen() {
   if (profileVal) {
     const totalFmt = fmt(total);
     profileVal.textContent = accounts.length > 0 ? `${totalFmt} across ${accounts.length} account${accounts.length > 1 ? 's' : ''}` : 'Manage your accounts & cash';
+  }
+  const homeSavingsVal = document.getElementById('home-savings-val');
+  if (homeSavingsVal) {
+    homeSavingsVal.textContent = fmt(total);
   }
 }
 
@@ -1848,6 +1958,7 @@ async function submitTransaction() {
     closeModal('modal-add');
     if (navigator.vibrate) navigator.vibrate(50);
     showToast(selectedType === 'expense' ? `-${fmt(amount)} recorded` : `+${fmt(amount)} added`);
+    addXP(2, 'transaction');
     viewYear = d.getFullYear(); viewMonth = d.getMonth();
     updateMonthLabels(); renderHome();
   } catch (e) {
@@ -2590,7 +2701,7 @@ function submitEvent() {
   dbSaveEvent(currentUser.id, event);
   closeModal('modal-add-event');
   if (editingEventId) { renderEventDetail(); showToast('Event updated'); }
-  else { navigateEventDetail(event.id); showToast(`"${name}" created 🎉`); }
+  else { addXP(5, 'event_created'); navigateEventDetail(event.id); showToast(`"${name}" created 🎉`); }
 }
 
 function deleteEvent() {
@@ -2600,6 +2711,18 @@ function deleteEvent() {
   closeModal('modal-add-event');
   navigateEvents();
   showToast('Event deleted');
+}
+
+function markEventComplete() {
+  const ev = dbGetEvents(currentUser.id).find(e => e.id === currentEventId);
+  if (!ev) return;
+  if (!confirm(`Mark "${ev.name}" as completed? It will move to history.`)) return;
+  ev.completed = true;
+  ev.completedAt = new Date().toISOString();
+  dbSaveEvent(currentUser.id, ev);
+  addXP(10, 'event_completed');
+  navigateEvents();
+  showToast('🎉 Event completed! +10 XP');
 }
 
 function deleteEventDirect(eventId, eventName) {
