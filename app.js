@@ -1403,46 +1403,10 @@ async function deleteDebt(id) {
 // ─────────────────────────────────────────────────────
 // PROFILE
 // ─────────────────────────────────────────────────────
-async function renderProfile() {
+function renderProfile() {
   const p = appData.profile || {}, s = getLocalSettings();
-
-  // ─── AUTOMATIC USERNAME GENERATION LOGIC ───
-  if (!p.username && currentUser && currentUser.email) {
-    let baseUsername = currentUser.email.split('@')[0].toLowerCase().replace(/[^a-z0-9_]/g, '');
-    if (baseUsername.length < 3) baseUsername += '321'; // Enforce minimum 3 character rule
-    let finalUsername = baseUsername;
-
-    try {
-      // Quietly check if username exists in database
-      const { data: existingUser } = await supabase
-        .from('profiles')
-        .select('username')
-        .eq('username', finalUsername)
-        .maybeSingle();
-
-      // If duplicate found, append a random 4-digit number
-      if (existingUser) {
-        finalUsername = `${baseUsername}${Math.floor(1000 + Math.random() * 9000)}`;
-      }
-
-      // Update backend database with no toast alerts
-      await supabase
-        .from('profiles')
-        .update({ username: finalUsername })
-        .eq('id', currentUser.id);
-
-      // Mutate local app memory so UI catches it immediately
-      p.username = finalUsername;
-      if (appData.profile) appData.profile.username = finalUsername;
-    } catch (err) {
-      console.error('Silent username generation failed:', err);
-    }
-  }
-  // ───────────────────────────────────────────
-
   document.getElementById('profile-name-input').value = p.name || '';
-
-  // Username field UI assignment
+  // Username field
   const unameInput = document.getElementById('profile-username-input');
   const unameBadge = document.getElementById('profile-username-badge');
   if (unameInput) unameInput.value = p.username || '';
@@ -1454,7 +1418,6 @@ async function renderProfile() {
       unameBadge.style.display = 'none';
     }
   }
-
   // Currency display — show flag + name
   const curSym = s.currency || detectCurrency();
   const curObj = CURRENCIES.find(c => c.symbol === curSym);
@@ -1462,7 +1425,6 @@ async function renderProfile() {
   document.getElementById('profile-currency-display').textContent = curLabel;
   document.getElementById('profile-display-name').textContent = p.name || currentUser?.email || 'My Account';
   document.getElementById('profile-email').textContent = currentUser?.email || '';
-
   const avatarTxt = document.getElementById('profile-avatar-txt');
   if (avatarTxt) {
     if (p.avatar) {
@@ -1471,11 +1433,9 @@ async function renderProfile() {
       avatarTxt.textContent = p.name ? p.name[0].toUpperCase() : '💼';
     }
   }
-
   document.getElementById('profile-sub').textContent = `Budget resets on the 1st · ${getResetMonthLabel()}`;
   const activeDebts = (appData.debts || []).filter(d => !d.settled).length;
   document.getElementById('debt-tracker-val').textContent = activeDebts > 0 ? `${activeDebts} active debt${activeDebts > 1 ? 's' : ''}` : 'Track who owes who';
-
   const pinOn = s.pinEnabled;
   document.getElementById('pin-toggle').className = 'toggle' + (pinOn ? ' on' : '');
   document.getElementById('pin-status-label').textContent = pinOn ? 'Enabled' : 'Disabled';
