@@ -1215,6 +1215,52 @@ body { display: flex; flex-direction: column; max-width: 480px; margin: 0 auto; 
 .savings-tx-amount.deposit { color: var(--green); }
 .savings-tx-amount.withdraw { color: var(--red); }
 
+/* Savings hero glow overlay (decorative, inside hero card) */
+.savings-hero-glow {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 70% -10%, rgba(104,211,145,.15) 0%, transparent 60%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Savings hero divider — gradient rule between amount and stats row */
+.savings-hero-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(104,211,145,.3) 30%, rgba(104,211,145,.3) 70%, transparent);
+  margin-bottom: 16px;
+  position: relative;
+  z-index: 1;
+}
+[data-theme="light"] .savings-hero-divider {
+  background: linear-gradient(90deg, transparent, rgba(39,174,96,.3) 30%, rgba(39,174,96,.3) 70%, transparent);
+}
+
+/* FD sub-row — indented Fixed Deposit entry under a parent account */
+.fd-sub-row {
+  margin-left: 20px !important;
+  margin-top: 4px !important;
+  background: rgba(79,209,197,0.03) !important;
+  border-color: rgba(79,209,197,0.15) !important;
+  padding: 10px 14px !important;
+  border-radius: 13px;
+  position: relative;
+}
+.fd-sub-row::before {
+  content: '';
+  position: absolute;
+  left: -14px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 10px;
+  height: 1px;
+  background: rgba(79,209,197,0.3);
+}
+[data-theme="light"] .fd-sub-row {
+  background: rgba(14,165,160,0.04) !important;
+  border-color: rgba(14,165,160,0.18) !important;
+}
+
 /* ═══════════════════════════════════════
    BILL SPLITTER SCREEN STYLES
 ═══════════════════════════════════════ */

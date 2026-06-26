@@ -175,7 +175,8 @@ Run this SQL in your **Supabase SQL Editor** to enable `@username` search and fi
 ```sql
 -- ── 1. Add username column to profiles (unique) ──
 ALTER TABLE public.profiles
-  ADD COLUMN IF NOT EXISTS username TEXT;
+  ADD COLUMN IF NOT EXISTS username TEXT,
+  ADD COLUMN IF NOT EXISTS username_locked BOOLEAN DEFAULT FALSE;
 
 CREATE UNIQUE INDEX IF NOT EXISTS profiles_username_unique
   ON public.profiles (username)
@@ -195,4 +196,4 @@ ALTER TABLE public.trip_members
 ```
 
 > [!NOTE]
-> After running this migration, users can set their `@username` from **Profile → Username** and be found by friends when creating a Group Trip.
+> After running this migration, users can set their `@username` from **Profile → Username** (which will lock once reset) and be found by friends when creating a Group Trip.

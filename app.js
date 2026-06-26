@@ -665,7 +665,9 @@ async function loadAllData(userId) {
       settled: d.settled, date: d.date,
     }));
     appData.profile = profile || {};
+    checkAndGenerateUsername();
     dbUpdateLastActive(userId);
+
     setSyncing('ok');
     setTimeout(() => setSyncing('ok'), 2000);
     setTimeout(() => { renderXPBar(); checkMonthEndXPBonus(); }, 500);
@@ -1404,12 +1406,42 @@ async function deleteDebt(id) {
 // PROFILE
 // ─────────────────────────────────────────────────────
 function renderProfile() {
+  checkAndGenerateUsername();
   const p = appData.profile || {}, s = getLocalSettings();
+
   document.getElementById('profile-name-input').value = p.name || '';
   // Username field
   const unameInput = document.getElementById('profile-username-input');
   const unameBadge = document.getElementById('profile-username-badge');
-  if (unameInput) unameInput.value = p.username || '';
+  if (unameInput) {
+    unameInput.value = p.username || '';
+    if (p.username_locked) {
+      unameInput.disabled = true;
+      unameInput.style.opacity = '0.6';
+      unameInput.style.cursor = 'not-allowed';
+      const parent = unameInput.parentElement;
+      if (parent) {
+        let lockIcon = parent.querySelector('.username-lock-icon');
+        if (!lockIcon) {
+          lockIcon = document.createElement('span');
+          lockIcon.className = 'username-lock-icon';
+          lockIcon.innerHTML = '🔒';
+          lockIcon.style.fontSize = '12px';
+          lockIcon.style.marginRight = '4px';
+          parent.insertBefore(lockIcon, unameInput);
+        }
+      }
+    } else {
+      unameInput.disabled = false;
+      unameInput.style.opacity = '';
+      unameInput.style.cursor = '';
+      const parent = unameInput.parentElement;
+      if (parent) {
+        const lockIcon = parent.querySelector('.username-lock-icon');
+        if (lockIcon) lockIcon.remove();
+      }
+    }
+  }
   if (unameBadge) {
     if (p.username) {
       unameBadge.textContent = '@' + p.username;
@@ -1448,38 +1480,41 @@ function renderProfile() {
   renderXPBar();
 }
 // ─── AUTOMATIC SILENT USERNAME GENERATION ───
-if (appData.profile && !appData.profile.username && currentUser?.email) {
-  (async () => {
-    try {
-      let baseUsername = currentUser.email.split('@')[0].toLowerCase().replace(/[^a-z0-9_]/g, '');
-      if (baseUsername.length < 3) baseUsername += '321';
-      let finalUsername = baseUsername;
+async function checkAndGenerateUsername() {
+  if (!appData.profile || appData.profile.username_locked || !currentUser?.email) return;
 
-      // Check database for duplicates
-      const { data: duplicate } = await supabase
-        .from('profiles')
-        .select('username')
-        .eq('username', finalUsername)
-        .maybeSingle();
+  const currentUsername = appData.profile.username;
+  if (currentUsername && !currentUsername.includes('@')) return; // Already has a clean username
 
-      if (duplicate) {
+  try {
+    let baseUsername = currentUser.email.split('@')[0].toLowerCase().replace(/[^a-z0-9_]/g, '');
+    if (baseUsername.length < 3) baseUsername += '321';
+    let finalUsername = baseUsername;
+
+    // Check database for duplicates
+    let attempts = 0;
+    let isDuplicate = true;
+    while (isDuplicate && attempts < 10) {
+      const duplicate = await dbLookupByUsername(finalUsername);
+      if (duplicate && duplicate.id !== currentUser.id) {
         finalUsername = `${baseUsername}${Math.floor(1000 + Math.random() * 9000)}`;
+        attempts++;
+      } else {
+        isDuplicate = false;
       }
-
-      // Save quietly to database
-      await supabase
-        .from('profiles')
-        .update({ username: finalUsername })
-        .eq('id', currentUser.id);
-
-      // Update app memory & UI immediately
-      appData.profile.username = finalUsername;
-      renderProfile();
-    } catch (e) {
-      console.error("Auto-username error:", e);
     }
-  })();
+
+    // Save quietly to database
+    await dbUpdateUsername(currentUser.id, finalUsername);
+
+    // Update app memory & UI immediately
+    appData.profile.username = finalUsername;
+    renderProfile();
+  } catch (e) {
+    console.error("Auto-username error:", e);
+  }
 }
+
 
 // ─────────────────────────────────────────────────────
 // SAVINGS SCREEN
@@ -1916,6 +1951,11 @@ async function autoSaveProfile() {
 
 async function saveUsername() {
   if (!currentUser) return;
+  if (appData.profile?.username_locked) {
+    showToast('Username is locked and cannot be changed.');
+    renderProfile();
+    return;
+  }
   const input = document.getElementById('profile-username-input');
   const badge = document.getElementById('profile-username-badge');
   const raw = (input?.value || '').trim().toLowerCase().replace(/[^a-z0-9_]/g, '');
@@ -1943,9 +1983,9 @@ async function saveUsername() {
       }
     }
 
-    // Save to Supabase
-    await dbSaveProfile(currentUser.id, { username: raw || null });
-    appData.profile = { ...appData.profile, username: raw || null };
+    // Save to Supabase and lock it
+    await dbSaveProfile(currentUser.id, { username: raw || null, username_locked: true });
+    appData.profile = { ...appData.profile, username: raw || null, username_locked: true };
 
     // Update badge
     if (badge) {
@@ -1957,7 +1997,8 @@ async function saveUsername() {
       }
     }
     setSyncing('ok');
-    showToast(raw ? `✓ Username set to @${raw}` : 'Username cleared');
+    showToast(raw ? `✓ Username set to @${raw} (Locked)` : 'Username cleared');
+    renderProfile();
   } catch (e) {
     setSyncing('error');
     showToast('Failed to save username: ' + e.message);
@@ -2855,6 +2896,12 @@ function renderEventDetail() {
         <div class="progress-fill${pct >= 100 ? ' over' : pct >= 80 ? ' warn' : ''}" style="width:${Math.min(pct, 100)}%"></div>
       </div>
       <div style="font-size:11px;color:var(--text3);text-align:right;margin-bottom:12px">${Math.round(pct)}% funded</div>
+    ` : ''}
+    ${!ev.completed ? `
+      <button class="submit-btn" style="background:rgba(104,211,145,.1);color:var(--green);border:1px solid rgba(104,211,145,.25);margin-bottom:16px;font-size:13px;height:40px;display:flex;align-items:center;justify-content:center;gap:6px;width:100%" onclick="markEventComplete()">
+        <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" width="16" height="16"><polyline points="20 6 9 17 4 12"/></svg>
+        Mark Event as Completed
+      </button>
     ` : ''}`;
 
   document.getElementById('ev-items-list').innerHTML = items.length === 0

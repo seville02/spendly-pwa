@@ -685,6 +685,16 @@ async function dbLookupByUsername(username) {
   return data || null;
 }
 
+/** Update the username for a user profile. */
+async function dbUpdateUsername(userId, username) {
+  const { error } = await _sb
+    .from('profiles')
+    .update({ username: username })
+    .eq('id', userId);
+  if (error) throw error;
+}
+
+
 // ─────────────────────────────────────────────────────
 // NOTIFICATIONS
 // ─────────────────────────────────────────────────────
