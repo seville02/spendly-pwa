@@ -370,18 +370,11 @@
       </div>
     </div>
   </div>
-  <div style="padding:0 16px;margin-bottom:14px">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-      <div style="font-size:10px;font-weight:500;letter-spacing:.07em;text-transform:uppercase;color:var(--text3)">Savings Accounts</div>
-      <button onclick="addSavingsAccount()" style="font-size:11px;font-weight:600;color:var(--accent);background:none;border:none;cursor:pointer;padding:0">+ Add Account</button>
-    </div>
-    <div id="savings-accounts-container" style="display:flex;flex-direction:column;gap:8px"></div>
-    <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r-sm);margin-top:8px;font-size:13px;font-weight:600">
-      <span style="color:var(--text2)">Total Savings</span>
-      <span id="savings-total-val" style="color:var(--green)">₹0</span>
-    </div>
-  </div>
   <div class="settings-list">
+    <div class="settings-item" onclick="navigate('savings')">
+      <div class="settings-left"><div class="settings-icon">💰</div><div><div class="settings-label">Total Savings</div><div class="settings-val" id="savings-profile-val">Manage your accounts &amp; cash</div></div></div>
+      <svg class="chevron" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+    </div>
     <div class="settings-item" onclick="navigate('debts')">
       <div class="settings-left"><div class="settings-icon">🤝</div><div><div class="settings-label">Debt Tracker</div><div class="settings-val" id="debt-tracker-val">Track who owes who</div></div></div>
       <svg class="chevron" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
@@ -422,6 +415,146 @@
   <input type="file" id="import-file" accept=".csv" style="display:none" onchange="importData(event)">
   <div style="height:10px"></div>
   <div style="padding:0 16px;font-size:11px;color:var(--text3);text-align:center;line-height:1.7">Spendly v4.0 · Synced via Supabase · Data encrypted</div>
+</div>
+
+<!-- ═══ SCREEN: SAVINGS ═══ -->
+<div class="screen" id="screen-savings">
+  <div class="header">
+    <div class="header-row">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="icon-btn" onclick="navigate('profile')" style="flex-shrink:0">
+          <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" width="20" height="20"><polyline points="15 18 9 12 15 6"/></svg>
+        </div>
+        <span style="font-size:17px;font-weight:700">My Savings</span>
+      </div>
+      <div class="icon-btn" onclick="openAddSavingsAccountModal()" title="Add account">
+        <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" width="22" height="22"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- Total savings hero -->
+  <div class="savings-hero-card">
+    <div class="savings-hero-label">TOTAL SAVINGS</div>
+    <div class="savings-hero-amount">
+      <span class="savings-hero-currency" id="savings-hero-currency">₹</span>
+      <span class="savings-hero-num" id="savings-hero-total">0</span>
+    </div>
+    <div class="savings-hero-sub" id="savings-hero-sub">Across all accounts</div>
+    <div class="savings-hero-row">
+      <div class="savings-hero-stat">
+        <div class="savings-hero-stat-label">ACCOUNTS</div>
+        <div class="savings-hero-stat-val" id="savings-count">0</div>
+      </div>
+      <div class="savings-hero-stat">
+        <div class="savings-hero-stat-label">IN HAND</div>
+        <div class="savings-hero-stat-val" id="savings-inhand-display">₹0</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- In-hand cash quick edit -->
+  <div style="padding:0 16px;margin-bottom:16px">
+    <div style="font-size:10px;font-weight:500;letter-spacing:.07em;text-transform:uppercase;color:var(--text3);margin-bottom:8px">💵 Cash in Hand</div>
+    <div class="edit-field">
+      <span class="edit-field-label">Amount</span>
+      <input type="number" id="savings-inhand-input" placeholder="0" step="any" inputmode="decimal"
+        style="flex:1;background:none;border:none;outline:none;padding:12px 0;font-size:14px;font-family:var(--mono);color:var(--text)"
+        onblur="saveInHandCash(this.value)" onkeydown="if(event.key==='Enter')this.blur()">
+    </div>
+  </div>
+
+  <!-- Accounts list -->
+  <div style="padding:0 16px;margin-bottom:6px">
+    <div style="font-size:10px;font-weight:500;letter-spacing:.07em;text-transform:uppercase;color:var(--text3);margin-bottom:8px">🏦 Bank &amp; Savings Accounts</div>
+    <div id="savings-accounts-list"></div>
+    <button onclick="openAddSavingsAccountModal()" class="savings-add-btn">
+      <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Add Account
+    </button>
+  </div>
+
+  <!-- Recent savings transactions -->
+  <div style="padding:0 16px;margin-bottom:20px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <div style="font-size:10px;font-weight:500;letter-spacing:.07em;text-transform:uppercase;color:var(--text3)">📋 Savings Log</div>
+      <button onclick="openAddSavingsTransactionModal()" style="font-size:11px;font-weight:600;color:var(--accent);background:none;border:none;cursor:pointer;padding:0">+ Add Entry</button>
+    </div>
+    <div id="savings-transactions-list"></div>
+  </div>
+
+  <div style="height:20px"></div>
+</div>
+
+<!-- ═══ MODAL: ADD SAVINGS ACCOUNT ═══ -->
+<div class="modal-overlay" id="modal-savings-account">
+  <div class="modal-sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Add Savings Account</div>
+    <div class="form-group">
+      <label class="form-label">Account Name</label>
+      <input class="form-input" type="text" id="savings-acc-name-input" placeholder="e.g. HDFC Savings, Jio Payments Bank...">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Current Balance</label>
+      <div class="amount-wrap">
+        <span class="amount-prefix" id="savings-modal-currency">₹</span>
+        <input class="form-input with-prefix" type="number" id="savings-acc-balance-input" placeholder="0" step="any" inputmode="decimal">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Account Type</label>
+      <select class="form-input" id="savings-acc-type-input" style="font-family:var(--font)">
+        <option value="bank">🏦 Bank Account</option>
+        <option value="savings">💰 Savings Account</option>
+        <option value="fd">📈 Fixed Deposit</option>
+        <option value="rd">🗓️ Recurring Deposit</option>
+        <option value="mutual_fund">📊 Mutual Fund</option>
+        <option value="ppf">🏛️ PPF / NPS</option>
+        <option value="crypto">🪙 Crypto</option>
+        <option value="gold">🥇 Gold / Jewellery</option>
+        <option value="other">📌 Other</option>
+      </select>
+    </div>
+    <button class="submit-btn" onclick="submitSavingsAccount()">Save Account</button>
+    <div style="height:6px"></div>
+    <button class="submit-btn secondary" onclick="closeModal('modal-savings-account')">Cancel</button>
+    <div style="height:12px"></div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: ADD SAVINGS TRANSACTION ═══ -->
+<div class="modal-overlay" id="modal-savings-tx">
+  <div class="modal-sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Add Savings Entry</div>
+    <div class="form-group">
+      <label class="form-label">Type</label>
+      <div style="display:flex;gap:8px;margin-top:4px">
+        <button id="savings-tx-type-deposit" onclick="setSavingsTxType('deposit')" class="submit-btn" style="flex:1;padding:10px;font-size:13px">💰 Deposit</button>
+        <button id="savings-tx-type-withdraw" onclick="setSavingsTxType('withdraw')" class="submit-btn secondary" style="flex:1;padding:10px;font-size:13px">💸 Withdraw</button>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Account</label>
+      <select class="form-input" id="savings-tx-account-select" style="font-family:var(--font)"></select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Amount</label>
+      <div class="amount-wrap">
+        <span class="amount-prefix" id="savings-tx-currency">₹</span>
+        <input class="form-input with-prefix" type="number" id="savings-tx-amount" placeholder="0" step="any" inputmode="decimal">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Note (optional)</label>
+      <input class="form-input" type="text" id="savings-tx-note" placeholder="e.g. Monthly savings, Bonus deposit...">
+    </div>
+    <button class="submit-btn" onclick="submitSavingsTransaction()">Add Entry</button>
+    <div style="height:6px"></div>
+    <button class="submit-btn secondary" onclick="closeModal('modal-savings-tx')">Cancel</button>
+    <div style="height:12px"></div>
+  </div>
 </div>
 
 <!-- ═══ SCREEN: EVENTS ═══ -->
