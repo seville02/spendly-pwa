@@ -104,6 +104,15 @@ async function _dbSaveProfileRaw(userId, profile) {
   if (error) throw error;
 }
 
+async function dbUpdateLastActive(userId) {
+  if (!userId) return;
+  const { error } = await _sb
+    .from('profiles')
+    .update({ last_active_at: new Date().toISOString(), inactive_email_sent: false })
+    .eq('id', userId);
+  if (error) console.error('Failed to update last active timestamp', error);
+}
+
 // ─────────────────────────────────────────────────────
 // TRANSACTIONS
 // ─────────────────────────────────────────────────────

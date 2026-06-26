@@ -665,6 +665,7 @@ async function loadAllData(userId) {
       settled: d.settled, date: d.date,
     }));
     appData.profile = profile || {};
+    dbUpdateLastActive(userId);
     setSyncing('ok');
     setTimeout(() => setSyncing('ok'), 2000);
     setTimeout(() => { renderXPBar(); checkMonthEndXPBonus(); }, 500);
