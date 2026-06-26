@@ -217,7 +217,7 @@
   </div>
 
   <!-- Category budgets mini -->
-  <div id="cat-budget-home" style="display:none">
+  <div id="cat-budget-home" style="display:none; margin-top: 14px;">
     <div class="section-header" style="padding:0 16px;margin-bottom:10px">
       <div class="section-title">Category Budgets</div>
       <div class="section-action" onclick="openCatBudgetModal()">Edit</div>
@@ -404,10 +404,6 @@
     </div>
   </div>
   <div class="settings-list">
-    <div class="settings-item" onclick="navigate('savings')">
-      <div class="settings-left"><div class="settings-icon">💰</div><div><div class="settings-label">Total Savings</div><div class="settings-val" id="savings-profile-val">Manage your accounts &amp; cash</div></div></div>
-      <svg class="chevron" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
-    </div>
     <div class="settings-item" onclick="navigate('debts')">
       <div class="settings-left"><div class="settings-icon">🤝</div><div><div class="settings-label">Debt Tracker</div><div class="settings-val" id="debt-tracker-val">Track who owes who</div></div></div>
       <svg class="chevron" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
@@ -422,10 +418,6 @@
     </div>
     <div class="settings-item" onclick="navigate('invoices')">
       <div class="settings-left"><div class="settings-icon">📁</div><div><div class="settings-label">Invoices Vault</div><div class="settings-val" id="profile-invoices-val">Store &amp; view your bills</div></div></div>
-      <svg class="chevron" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
-    </div>
-    <div class="settings-item" onclick="openCatBudgetModal()">
-      <div class="settings-left"><div class="settings-icon">📊</div><div><div class="settings-label">Category Budgets</div><div class="settings-val">Set per-category limits</div></div></div>
       <svg class="chevron" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
     </div>
     <div class="settings-item" onclick="openPinSetup()">
@@ -516,10 +508,16 @@
       <button onclick="openAddSavingsAccountModal()" class="savings-section-action">+ Add</button>
     </div>
     <div id="savings-accounts-list"></div>
-    <button onclick="openAddSavingsAccountModal()" class="savings-add-btn" id="savings-add-btn-main">
-      <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-      Add Account
-    </button>
+    <div style="display:flex;gap:10px;margin-top:10px">
+      <button onclick="openAddSavingsAccountModal()" class="savings-add-btn" id="savings-add-btn-main" style="flex:1">
+        <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Add Account
+      </button>
+      <button onclick="openAddSavingsFDModal()" class="savings-add-btn" id="savings-add-fd-btn" style="flex:1;background:rgba(79,209,197,0.06);border-color:rgba(79,209,197,0.25);color:var(--accent)">
+        <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Add FD
+      </button>
+    </div>
   </div>
 
   <!-- Savings Log -->
@@ -593,7 +591,6 @@
       <select class="form-input" id="savings-acc-type-input" style="font-family:var(--font)">
         <option value="bank">🏦 Bank Account</option>
         <option value="savings">💰 Savings Account</option>
-        <option value="fd">📈 Fixed Deposit</option>
         <option value="rd">🗓️ Recurring Deposit</option>
         <option value="mutual_fund">📊 Mutual Fund</option>
         <option value="ppf">🏛️ PPF / NPS</option>
@@ -639,6 +636,33 @@
     <button class="submit-btn" onclick="submitSavingsTransaction()">Add Entry</button>
     <div style="height:6px"></div>
     <button class="submit-btn secondary" onclick="closeModal('modal-savings-tx')">Cancel</button>
+    <div style="height:12px"></div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: ADD FIXED DEPOSIT ═══ -->
+<div class="modal-overlay" id="modal-savings-fd">
+  <div class="modal-sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Add Fixed Deposit</div>
+    <div class="form-group">
+      <label class="form-label">FD Name / Reference</label>
+      <input class="form-input" type="text" id="savings-fd-name-input" placeholder="e.g. FD 1, Tax Saver FD...">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Principal Amount</label>
+      <div class="amount-wrap">
+        <span class="amount-prefix" id="savings-fd-currency">₹</span>
+        <input class="form-input with-prefix" type="number" id="savings-fd-amount-input" placeholder="0" step="any" inputmode="decimal">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Link to Bank / Savings Account</label>
+      <select class="form-input" id="savings-fd-parent-select" style="font-family:var(--font)"></select>
+    </div>
+    <button class="submit-btn" onclick="submitSavingsFD()">Add Fixed Deposit</button>
+    <div style="height:6px"></div>
+    <button class="submit-btn secondary" onclick="closeModal('modal-savings-fd')">Cancel</button>
     <div style="height:12px"></div>
   </div>
 </div>
