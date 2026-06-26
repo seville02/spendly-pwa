@@ -1317,7 +1317,7 @@ function renderProfile() {
   document.getElementById('pin-status-label').textContent = pinOn ? 'Enabled' : 'Disabled';
 
   const cpEl = document.getElementById('settings-change-password-item');
-  if (cpEl) cpEl.style.display = useLocalDB ? 'none' : 'flex';
+  if (cpEl) cpEl.style.display = (typeof useLocalDB !== 'undefined' && useLocalDB) ? 'none' : 'flex';
 
   renderCatBudgetSettings();
   renderSavingsAccounts();
@@ -1558,7 +1558,7 @@ async function saveCatBudget(cat, val) {
     if (!appData.catBudgets[key]) appData.catBudgets[key] = {};
     if (n > 0) appData.catBudgets[key][cat] = n; else delete appData.catBudgets[key][cat];
     setSyncing('ok');
-    showToast(n > 0 ? `${cat} budget: ${fmt(n)}` : `${cat} budget removed`);
+    showToast(n > 0 ? `✓ Saved — ${cat}: ${fmt(n)}` : `✓ ${cat} budget removed`);
     renderHome();
     renderProfile();
   } catch (e) {
