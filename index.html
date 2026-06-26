@@ -395,11 +395,11 @@
         <button id="username-copy-btn" onclick="copyUsername()" title="Copy your @username" style="background:var(--accent-dim);color:var(--accent);border:none;border-radius:8px;padding:4px 8px;font-size:11px;font-weight:600;cursor:pointer;flex-shrink:0">Copy</button>
       </div>
     </div>
-    <div class="edit-field" onclick="openCurrencyPicker()" style="cursor:pointer">
+    <div class="edit-field clickable-profile-field" onclick="openCurrencyPicker()" style="cursor:pointer; transition: background-color 0.2s; min-height: 43px;">
       <span class="edit-field-label">Currency</span>
-      <div style="display:flex;align-items:center;gap:6px;flex:1;justify-content:flex-end">
-        <span id="profile-currency-display" style="font-size:13px;color:var(--text2);text-align:right">&#x20B9; Indian Rupee</span>
-        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+      <div style="display:flex;align-items:center;gap:8px;flex:1;justify-content:flex-end;padding: 12px 0;">
+        <span id="profile-currency-display" style="font-size:13px;color:var(--text2);text-align:right;font-weight: 500;">&#x20B9; Indian Rupee</span>
+        <svg class="chevron" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
       </div>
     </div>
   </div>
