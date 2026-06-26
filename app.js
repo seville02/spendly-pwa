@@ -2690,52 +2690,85 @@ function getEventIcon(name) {
   return '🎯';
 }
 
+let currentEventsTab = 'active';
+
+function switchEventsTab(tab) {
+  currentEventsTab = tab;
+  document.getElementById('ev-tab-active').className = 'stats-tab' + (tab === 'active' ? ' active' : '');
+  document.getElementById('ev-tab-history').className = 'stats-tab' + (tab === 'history' ? ' active' : '');
+  
+  if (tab === 'active') {
+    document.getElementById('events-list').style.display = 'block';
+    document.getElementById('events-history-list').style.display = 'none';
+  } else {
+    document.getElementById('events-list').style.display = 'none';
+    document.getElementById('events-history-list').style.display = 'block';
+  }
+  renderEvents();
+}
+
 function renderEvents() {
   const events = dbGetEvents(currentUser.id);
   const allItems = dbGetEventItems(currentUser.id);
-  const container = document.getElementById('events-list');
-  if (!events.length) {
-    container.innerHTML = `<div class="empty-state" style="padding-top:60px"><div class="empty-icon">🎯</div><div class="empty-title">No events yet</div><div class="empty-sub">Tap + to plan your first event</div></div>`;
-    return;
-  }
-  container.innerHTML = events.map((ev, idx) => {
-    const sym = ev.currency || getCurrencySymbol();
-    const curObj = CURRENCIES.find(c => c.symbol === sym);
-    const curLabel = curObj ? `${curObj.flag} ${curObj.code}` : sym;
-    const items = allItems.filter(i => i.eventId === ev.id);
-    const totalPaid = items.reduce((s, i) => s + (i.amountPaid || 0), 0);
-    const totalItemEst = items.reduce((s, i) => s + (i.totalCost || 0), 0);
-    const budget = ev.estimatedBudget || totalItemEst;
-    const pct = budget > 0 ? Math.min((totalPaid / budget) * 100, 100) : 0;
-    const stillOwed = items.reduce((s, i) => s + Math.max(0, (i.totalCost || 0) - (i.amountPaid || 0)), 0);
-    return `<div class="event-card ev-animate" style="animation-delay: ${idx * 60}ms" onclick="navigateEventDetail('${ev.id}')">
-      <div class="ev-card-header">
-        <div style="display:flex;align-items:center;gap:12px;min-width:0">
-          <div class="ev-icon-wrapper">${getEventIcon(ev.name)}</div>
-          <div style="min-width:0">
-            <div class="ev-card-name" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${ev.name}</div>
-            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-              ${ev.targetDate ? `<div class="ev-date">📅 ${new Date(ev.targetDate + 'T12:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</div>` : ''}
-              <div class="ev-date" style="color:var(--accent)">${curLabel}</div>
+  
+  // Split events based on completed status
+  const activeEvents = events.filter(e => !e.completed);
+  const historyEvents = events.filter(e => e.completed);
+
+  const activeContainer = document.getElementById('events-list');
+  const historyContainer = document.getElementById('events-history-list');
+
+  // Render helper
+  const makeListHtml = (list, type) => {
+    if (!list.length) {
+      return `<div class="empty-state" style="padding-top:60px">
+        <div class="empty-icon">🎯</div>
+        <div class="empty-title">No ${type} events yet</div>
+        <div class="empty-sub">${type === 'active' ? 'Tap + to plan your first event' : 'Completed events will appear here'}</div>
+      </div>`;
+    }
+    return list.map((ev, idx) => {
+      const sym = ev.currency || getCurrencySymbol();
+      const curObj = CURRENCIES.find(c => c.symbol === sym);
+      const curLabel = curObj ? `${curObj.flag} ${curObj.code}` : sym;
+      const items = allItems.filter(i => i.eventId === ev.id);
+      const totalPaid = items.reduce((s, i) => s + (i.amountPaid || 0), 0);
+      const totalItemEst = items.reduce((s, i) => s + (i.totalCost || 0), 0);
+      const budget = ev.estimatedBudget || totalItemEst;
+      const pct = budget > 0 ? Math.min((totalPaid / budget) * 100, 100) : 0;
+      const stillOwed = items.reduce((s, i) => s + Math.max(0, (i.totalCost || 0) - (i.amountPaid || 0)), 0);
+      return `<div class="event-card ev-animate" style="animation-delay: ${idx * 60}ms" onclick="navigateEventDetail('${ev.id}')">
+        <div class="ev-card-header">
+          <div style="display:flex;align-items:center;gap:12px;min-width:0">
+            <div class="ev-icon-wrapper">${getEventIcon(ev.name)}</div>
+            <div style="min-width:0">
+              <div class="ev-card-name" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${ev.name}</div>
+              <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                ${ev.targetDate ? `<div class="ev-date">📅 ${new Date(ev.targetDate + 'T12:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</div>` : ''}
+                <div class="ev-date" style="color:var(--accent)">${curLabel}</div>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+            <span class="ev-badge">${items.length} item${items.length !== 1 ? 's' : ''}</span>
+            <div class="ev-delete-btn-direct" onclick="event.stopPropagation(); deleteEventDirect('${ev.id}', '${ev.name.replace(/'/g, "\\'")}')" title="Delete event">
+              <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
             </div>
           </div>
         </div>
-        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
-          <span class="ev-badge">${items.length} item${items.length !== 1 ? 's' : ''}</span>
-          <div class="ev-delete-btn-direct" onclick="event.stopPropagation(); deleteEventDirect('${ev.id}', '${ev.name.replace(/'/g, "\\'")}')" title="Delete event">
-            <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
-          </div>
+        <div class="ev-stats-row">
+          <div class="ev-stat-item"><div class="ev-stat-val green">${fmtEvent(totalPaid, sym)}</div><div class="ev-stat-lbl">Paid</div></div>
+          ${stillOwed > 0 ? `<div class="ev-stat-item"><div class="ev-stat-val red">${fmtEvent(stillOwed, sym)}</div><div class="ev-stat-lbl">Still Owed</div></div>` : ''}
+          ${budget > 0 ? `<div class="ev-stat-item"><div class="ev-stat-val accent">${fmtEvent(budget, sym)}</div><div class="ev-stat-lbl">${ev.estimatedBudget ? 'Est. Budget' : 'Items Est.'}</div></div>` : ''}
         </div>
-      </div>
-      <div class="ev-stats-row">
-        <div class="ev-stat-item"><div class="ev-stat-val green">${fmtEvent(totalPaid, sym)}</div><div class="ev-stat-lbl">Paid</div></div>
-        ${stillOwed > 0 ? `<div class="ev-stat-item"><div class="ev-stat-val red">${fmtEvent(stillOwed, sym)}</div><div class="ev-stat-lbl">Still Owed</div></div>` : ''}
-        ${budget > 0 ? `<div class="ev-stat-item"><div class="ev-stat-val accent">${fmtEvent(budget, sym)}</div><div class="ev-stat-lbl">${ev.estimatedBudget ? 'Est. Budget' : 'Items Est.'}</div></div>` : ''}
-      </div>
-      ${budget > 0 ? `<div class="progress-bar" style="margin-top:12px"><div class="progress-fill${pct >= 100 ? ' over' : pct >= 80 ? ' warn' : ''}" style="width:${Math.min(pct,100)}%"></div></div>
-      <div style="font-size:11px;color:var(--text3);text-align:right;margin-top:4px">${Math.round(pct)}% funded</div>` : ''}
-    </div>`;
-  }).join('<div class="event-separator"></div>');
+        ${budget > 0 ? `<div class="progress-bar" style="margin-top:12px"><div class="progress-fill${pct >= 100 ? ' over' : pct >= 80 ? ' warn' : ''}" style="width:${Math.min(pct,100)}%"></div></div>
+        <div style="font-size:11px;color:var(--text3);text-align:right;margin-top:4px">${Math.round(pct)}% funded</div>` : ''}
+      </div>`;
+    }).join('<div class="event-separator"></div>');
+  };
+
+  activeContainer.innerHTML = makeListHtml(activeEvents, 'active');
+  historyContainer.innerHTML = makeListHtml(historyEvents, 'completed');
 }
 
 function navigateEventDetail(eventId) {
@@ -2758,6 +2791,11 @@ function renderEventDetail() {
   document.getElementById('ev-detail-date').textContent = ev.targetDate
     ? `📅 ${new Date(ev.targetDate + 'T12:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}`
     : '';
+
+  const completeBtn = document.getElementById('ev-complete-btn');
+  if (completeBtn) {
+    completeBtn.style.display = ev.completed ? 'none' : 'block';
+  }
 
   const sym = ev.currency || getCurrencySymbol();
   const curObj = CURRENCIES.find(c => c.symbol === sym);
@@ -2891,9 +2929,9 @@ function markEventComplete() {
   ev.completed = true;
   ev.completedAt = new Date().toISOString();
   dbSaveEvent(currentUser.id, ev);
-  addXP(10, 'event_completed');
+  addXP(50, 'event_completed');
   navigateEvents();
-  showToast('🎉 Event completed! +10 XP');
+  showToast('🎉 Event completed! +50 XP');
 }
 
 function deleteEventDirect(eventId, eventName) {

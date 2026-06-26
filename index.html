@@ -682,7 +682,14 @@
       </div>
     </div>
   </div>
+  <div class="stats-tabs-wrap" style="margin-bottom: 12px; padding-top: 6px;">
+    <div class="stats-tabs">
+      <div class="stats-tab active" id="ev-tab-active" onclick="switchEventsTab('active')">Active</div>
+      <div class="stats-tab" id="ev-tab-history" onclick="switchEventsTab('history')">History</div>
+    </div>
+  </div>
   <div id="events-list" style="padding:4px 16px 20px"></div>
+  <div id="events-history-list" style="padding:4px 16px 20px; display: none;"></div>
 </div>
 
 <!-- ═══ SCREEN: EVENT DETAIL ═══ -->
