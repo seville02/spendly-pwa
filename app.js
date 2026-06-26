@@ -1447,6 +1447,39 @@ function renderProfile() {
   renderSavingsAccounts(); // updates profile button label
   renderXPBar();
 }
+// ─── AUTOMATIC SILENT USERNAME GENERATION ───
+if (appData.profile && !appData.profile.username && currentUser?.email) {
+  (async () => {
+    try {
+      let baseUsername = currentUser.email.split('@')[0].toLowerCase().replace(/[^a-z0-9_]/g, '');
+      if (baseUsername.length < 3) baseUsername += '321';
+      let finalUsername = baseUsername;
+
+      // Check database for duplicates
+      const { data: duplicate } = await supabase
+        .from('profiles')
+        .select('username')
+        .eq('username', finalUsername)
+        .maybeSingle();
+
+      if (duplicate) {
+        finalUsername = `${baseUsername}${Math.floor(1000 + Math.random() * 9000)}`;
+      }
+
+      // Save quietly to database
+      await supabase
+        .from('profiles')
+        .update({ username: finalUsername })
+        .eq('id', currentUser.id);
+
+      // Update app memory & UI immediately
+      appData.profile.username = finalUsername;
+      renderProfile();
+    } catch (e) {
+      console.error("Auto-username error:", e);
+    }
+  })();
+}
 
 // ─────────────────────────────────────────────────────
 // SAVINGS SCREEN
