@@ -2463,33 +2463,6 @@ async function saveBudget() {
       metaObj = { type: 'salary', salaryAmount: validSalary, frequency: 'weekly', payday: payday };
     }
   }
-  function switchBudgetModalTab(tab) {
-    const budgetTab = document.getElementById('tab-content-budget');
-    const salaryTab = document.getElementById('tab-content-salary');
-
-    const budgetBtn = document.getElementById('btn-tab-budget');
-    const salaryBtn = document.getElementById('btn-tab-salary');
-
-    const saveBtn = document.getElementById('save-btn');
-
-    if (tab === 'budget') {
-      budgetTab.style.display = 'block';
-      salaryTab.style.display = 'none';
-
-      budgetBtn.classList.add('active');
-      salaryBtn.classList.remove('active');
-
-      saveBtn.textContent = 'Save Budget';
-    } else {
-      budgetTab.style.display = 'none';
-      salaryTab.style.display = 'block';
-
-      budgetBtn.classList.remove('active');
-      salaryBtn.classList.add('active');
-
-      saveBtn.textContent = 'Save Salary';
-    }
-  }
   // Save metadata to Supabase profile
   try {
     if (!appData.profile) appData.profile = {};
@@ -2513,6 +2486,37 @@ async function saveBudget() {
   renderProfile();
 }
 
+function switchBudgetModalTab(tab) {
+  activeBudgetModalTab = tab;
+
+  const tabBudgetBtn = document.getElementById('btn-tab-budget');
+  const tabSalaryBtn = document.getElementById('btn-tab-salary');
+  const tabBudgetContent = document.getElementById('tab-content-budget');
+  const tabSalaryContent = document.getElementById('tab-content-salary');
+  const saveBtn = document.getElementById('save-btn');
+
+  if (tab === 'budget') {
+    tabBudgetBtn.classList.add('active');
+    tabSalaryBtn.classList.remove('active');
+
+    tabBudgetContent.style.display = 'block';
+    tabSalaryContent.style.display = 'none';
+
+    saveBtn.textContent = 'Save Budget';
+
+    setTimeout(() => document.getElementById('input-budget').focus(), 50);
+  } else {
+    tabBudgetBtn.classList.remove('active');
+    tabSalaryBtn.classList.add('active');
+
+    tabBudgetContent.style.display = 'none';
+    tabSalaryContent.style.display = 'block';
+
+    saveBtn.textContent = 'Save Salary';
+
+    setTimeout(() => document.getElementById('input-salary').focus(), 50);
+  }
+}
 // ─────────────────────────────────────────────────────
 // MONTH SELECTOR
 // ─────────────────────────────────────────────────────
