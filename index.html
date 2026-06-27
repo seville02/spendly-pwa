@@ -158,7 +158,12 @@
   <!-- Hero card -->
   <div class="hero-card">
     <div class="hero-glow"></div>
-    <div class="hero-label">Remaining Budget</div>
+    <div class="hero-label" style="display:flex;align-items:center;justify-content:center;gap:6px">
+      <span>Remaining Budget</span>
+      <span onclick="toggleHideAmounts(event)" class="eye-toggle-icon" style="cursor:pointer;font-size:12px;opacity:0.7;display:inline-flex;align-items:center;vertical-align:middle" title="Hide/Show balance">
+        <svg fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" width="14" height="14"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+      </span>
+    </div>
     <div class="hero-amount">
       <span class="hero-currency" id="hero-currency">₹</span>
       <span class="hero-num" id="remaining-amt">0</span>
@@ -261,7 +266,7 @@
     <div class="search-bar">
       <div class="search-input-wrap">
         <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input class="search-input" type="text" id="search-input" placeholder="Search transactions…" oninput="renderTransactions()">
+        <input class="search-input" type="text" id="search-input" placeholder="Search transactions…" oninput="transactionsPage=1; renderTransactions()">
       </div>
     </div>
     <div class="cat-scroll" id="filter-chips"></div>
@@ -392,12 +397,15 @@
       <span class="edit-field-label">Name</span>
       <input type="text" id="profile-name-input" placeholder="Your name" onblur="autoSaveProfile()" onkeydown="if(event.key==='Enter'){autoSaveProfile();this.blur()}">
     </div>
-    <div class="edit-field">
-      <span class="edit-field-label">@Username</span>
-      <div style="display:flex;align-items:center;gap:6px;flex:1">
-        <input type="text" id="profile-username-input" placeholder="your_handle (no spaces)" style="flex:1" onblur="saveUsername()" onkeydown="if(event.key==='Enter'){saveUsername();this.blur()}" oninput="this.value=this.value.toLowerCase().replace(/[^a-z0-9_]/g,'')">
-        <button id="username-copy-btn" onclick="copyUsername()" title="Copy your @username" style="background:var(--accent-dim);color:var(--accent);border:none;border-radius:8px;padding:4px 8px;font-size:11px;font-weight:600;cursor:pointer;flex-shrink:0">Copy</button>
+    <div class="edit-field" style="flex-direction:column; align-items:stretch; gap:4px;">
+      <div style="display:flex; align-items:center; width:100%;">
+        <span class="edit-field-label" style="width:90px; flex-shrink:0;">@Username</span>
+        <div style="display:flex;align-items:center;gap:6px;flex:1">
+          <input type="text" id="profile-username-input" placeholder="your_handle (no spaces)" style="flex:1" onblur="saveUsername()" onkeydown="if(event.key==='Enter'){saveUsername();this.blur()}" oninput="this.value=this.value.toLowerCase().replace(/[^a-z0-9_]/g,'')">
+          <button id="username-copy-btn" onclick="copyUsername()" title="Copy your @username" style="background:var(--accent-dim);color:var(--accent);border:none;border-radius:8px;padding:4px 8px;font-size:11px;font-weight:600;cursor:pointer;flex-shrink:0">Copy</button>
+        </div>
       </div>
+      <span style="font-size:10px;color:var(--text3);margin-left:90px;margin-top:2px;">Username can only be changed once.</span>
     </div>
     <div class="edit-field clickable-profile-field" onclick="openCurrencyPicker()" style="cursor:pointer; transition: background-color 0.2s; min-height: 43px;">
       <span class="edit-field-label">Currency</span>
@@ -469,7 +477,12 @@
   <!-- Total savings hero -->
   <div class="savings-hero-card">
     <div class="savings-hero-glow"></div>
-    <div class="savings-hero-label">TOTAL SAVINGS</div>
+    <div class="savings-hero-label" style="display:flex;align-items:center;justify-content:center;gap:6px">
+      <span>TOTAL SAVINGS</span>
+      <span onclick="toggleHideAmounts(event)" class="eye-toggle-icon" style="cursor:pointer;font-size:12px;opacity:0.7;display:inline-flex;align-items:center;vertical-align:middle" title="Hide/Show balance">
+        <svg fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" width="14" height="14"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+      </span>
+    </div>
     <div class="savings-hero-amount">
       <span class="savings-hero-currency" id="savings-hero-currency">₹</span>
       <span class="savings-hero-num" id="savings-hero-total">0</span>
@@ -563,7 +576,7 @@
   <div class="search-bar" style="margin-bottom: 12px; margin-top: 8px;">
     <div class="search-input-wrap">
       <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input class="search-input" type="text" id="invoice-search-input" placeholder="Search invoices by name or details…" oninput="renderInvoices()">
+      <input class="search-input" type="text" id="invoice-search-input" placeholder="Search invoices by name or details…" oninput="invoicesPage=1; renderInvoices()">
     </div>
   </div>
 

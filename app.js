@@ -91,6 +91,14 @@ let currentUser = null;
 let appData = { transactions: [], budgets: {}, catBudgets: {}, debts: [], profile: {} };
 let localSettings = { theme: 'dark', pinEnabled: false, pinHash: '', currency: '₹', summaryDismissed: '' };
 let editingTxId = null;
+let transactionsPage = 1;
+const PAGE_SIZE = 15;
+let invoicesPage = 1;
+const INVOICES_PAGE_SIZE = 15;
+let notificationsPage = 1;
+let notificationsList = [];
+const NOTIFICATIONS_PAGE_SIZE = 15;
+let isSyncingPending = false;
 
 // ─────────────────────────────────────────────────────
 // XP / RANK SYSTEM
@@ -223,6 +231,55 @@ function saveLocalSettings(s) {
     if (s.theme) localStorage.setItem('spendly_theme', s.theme);
   } catch (e) { /* ignore */ }
 }
+
+// ─────────────────────────────────────────────────────
+// HIDE AMOUNTS TOGGLE
+// ─────────────────────────────────────────────────────
+const HIDE_KEY = 'spendly_hide_amounts';
+let isAmountsHidden = (() => {
+  try { return localStorage.getItem(HIDE_KEY) === 'true'; } catch (e) { return false; }
+})();
+
+const EYE_OPEN_SVG = `<svg fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" width="14" height="14"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`;
+const EYE_CLOSED_SVG = `<svg fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" width="14" height="14"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`;
+
+function toggleHideAmounts(e) {
+  if (e) e.stopPropagation();
+  isAmountsHidden = !isAmountsHidden;
+  try { localStorage.setItem(HIDE_KEY, isAmountsHidden); } catch (err) {}
+  applyHideAmountsUI();
+}
+
+function applyHideAmountsUI() {
+  const MASK = '••••••';
+  const eyeIcons = document.querySelectorAll('.eye-toggle-icon');
+  eyeIcons.forEach(icon => { icon.innerHTML = isAmountsHidden ? EYE_CLOSED_SVG : EYE_OPEN_SVG; });
+
+  // Budget remaining hero
+  const heroAmt = document.getElementById('remaining-amt');
+  const heroCur = document.getElementById('hero-currency');
+  if (heroAmt) {
+    if (!isAmountsHidden) {
+      heroAmt.setAttribute('data-real', heroAmt.textContent);
+    }
+    const realVal = heroAmt.getAttribute('data-real') || heroAmt.textContent;
+    if (heroCur) heroCur.style.visibility = isAmountsHidden ? 'hidden' : 'visible';
+    heroAmt.textContent = isAmountsHidden ? MASK : realVal;
+  }
+
+  // Savings hero
+  const savAmt = document.getElementById('savings-hero-total');
+  const savCur = document.getElementById('savings-hero-currency');
+  if (savAmt) {
+    if (!isAmountsHidden) {
+      savAmt.setAttribute('data-real', savAmt.textContent);
+    }
+    const realVal = savAmt.getAttribute('data-real') || savAmt.textContent;
+    if (savCur) savCur.style.visibility = isAmountsHidden ? 'hidden' : 'visible';
+    savAmt.textContent = isAmountsHidden ? MASK : realVal;
+  }
+}
+
 
 // ─────────────────────────────────────────────────────
 // CURRENCY — dynamic detection
@@ -668,19 +725,36 @@ async function loadAllData(userId) {
     checkAndGenerateUsername();
     dbUpdateLastActive(userId);
 
+    saveAppDataLocally();
+
     setSyncing('ok');
     setTimeout(() => setSyncing('ok'), 2000);
     setTimeout(() => { renderXPBar(); checkMonthEndXPBonus(); }, 500);
+    
+    updateNotifBellCount();
+    syncPendingTransactions();
   } catch (e) {
     console.error('Load error', e);
-    setSyncing('error');
-    showToast('Failed to load data. Please check connection.');
+    if (loadAppDataLocally()) {
+      setSyncing('error');
+      showToast('Offline mode: loaded cached data');
+      renderHome();
+      const active = document.querySelector('.screen.active');
+      if (active && active.id === 'screen-transactions') renderTransactions();
+      if (active && active.id === 'screen-stats') renderStats();
+      updateNotifBellCount();
+    } else {
+      setSyncing('error');
+      showToast('Failed to load data. Please check connection.');
+    }
   }
 }
 
 // ─────────────────────────────────────────────────────
 // NAVIGATE
 // ─────────────────────────────────────────────────────
+const _screenHistory = ['home'];
+
 function navigate(screen) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
@@ -688,13 +762,18 @@ function navigate(screen) {
   const n = document.getElementById('nav-' + screen); if (n) n.classList.add('active');
   document.getElementById('screen-' + screen).scrollTop = 0;
   if (screen === 'home') renderHome();
-  if (screen === 'transactions') renderTransactions();
+  if (screen === 'transactions') { transactionsPage = 1; renderTransactions(); }
   if (screen === 'stats') renderStats();
   if (screen === 'debts') renderDebts();
   if (screen === 'profile') renderProfile();
   if (screen === 'bill-splitter') renderBillSplitter();
   if (screen === 'savings') renderSavingsScreen();
   if (screen === 'invoices') renderInvoicesScreen();
+  // Track for Android back
+  if (_screenHistory[_screenHistory.length - 1] !== screen) {
+    _screenHistory.push(screen);
+    history.pushState({ screen }, '');
+  }
 }
 
 function focusSearch() {
@@ -753,8 +832,9 @@ function renderHome() {
   const truePct = budget > 0 ? (spent / budget) * 100 : 0;
   const pct = Math.min(truePct, 100);
 
+  let formattedRemaining = '';
   if (budget > 0) {
-    heroNum.textContent = Math.abs(remaining).toLocaleString('en-IN', {
+    formattedRemaining = Math.abs(remaining).toLocaleString('en-IN', {
       minimumFractionDigits: remaining % 1 === 0 ? 0 : 2,
       maximumFractionDigits: 2
     });
@@ -766,13 +846,15 @@ function renderHome() {
       heroNum.style.color = 'var(--hero-text)';
     }
   } else {
-    heroNum.textContent = remaining.toLocaleString('en-IN', {
+    formattedRemaining = remaining.toLocaleString('en-IN', {
       minimumFractionDigits: remaining % 1 === 0 ? 0 : 2,
       maximumFractionDigits: 2
     });
     heroSub.textContent = 'No budget set for this month';
     heroNum.style.color = remaining < 0 ? 'var(--red)' : 'var(--hero-text)';
   }
+  heroNum.textContent = formattedRemaining;
+  heroNum.setAttribute('data-real', formattedRemaining);
 
   fill.style.width = pct + '%';
   fill.className = 'progress-fill' + (truePct >= 100 ? ' over' : truePct >= 80 ? ' warn' : '');
@@ -819,6 +901,9 @@ function renderHome() {
   document.getElementById('recent-list').innerHTML = recent.length === 0
     ? `<div class="empty-state"><div class="empty-icon">💸</div><div class="empty-title">No transactions yet</div><div class="empty-sub">Tap + to add your first expense</div></div>`
     : recent.map(t => txHTML(t, false)).join('');
+
+  // Apply hidden preference to new values
+  applyHideAmountsUI();
 }
 
 function renderSummaryBanner() {
@@ -1167,19 +1252,33 @@ function renderTransactions() {
     container.innerHTML = recoverBanner + `<div class="empty-state"><div class="empty-icon">🔍</div><div class="empty-title">No transactions</div><div class="empty-sub">${search ? 'No results for "' + search + '"' : 'Nothing matches this filter'}</div></div>`;
     return;
   }
+  const paginatedTxs = txs.slice(0, transactionsPage * PAGE_SIZE);
   const groups = {};
-  txs.forEach(tx => {
+  paginatedTxs.forEach(tx => {
     const k = parseDate(tx.datetime).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
     if (!groups[k]) groups[k] = []; groups[k].push(tx);
   });
-  container.innerHTML = Object.entries(groups).map(([date, items]) => {
+  let html = Object.entries(groups).map(([date, items]) => {
     const dayTotal = items.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
     return `<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px 6px"><span style="font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--text3)">${date}</span><span style="font-size:11px;font-family:var(--mono);color:var(--text3)">${dayTotal > 0 ? '-' + fmt(dayTotal) : ''}</span></div><div style="padding:0 16px"><div class="tx-list">${items.map(t => txHTML(t, true)).join('')}</div></div>`;
   }).join('');
+
+  if (transactionsPage * PAGE_SIZE < txs.length) {
+    html += `
+      <div style="padding: 16px; text-align: center;">
+        <button onclick="loadMoreTransactions()" style="background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:10px;padding:8px 24px;font-size:13px;font-weight:600;cursor:pointer;touch-action:manipulation">Load More</button>
+      </div>`;
+  }
+  container.innerHTML = html;
   setTimeout(() => initSwipe(container), 50);
 }
 
-function filterCat(el, cat) { filterCategory = cat; renderTransactions(); }
+function loadMoreTransactions() {
+  transactionsPage++;
+  renderTransactions();
+}
+
+function filterCat(el, cat) { transactionsPage = 1; filterCategory = cat; renderTransactions(); }
 
 // ─────────────────────────────────────────────────────
 // STATS
@@ -1504,11 +1603,12 @@ async function checkAndGenerateUsername() {
       }
     }
 
-    // Save quietly to database
+    // Save quietly to database without locking
     await dbUpdateUsername(currentUser.id, finalUsername);
 
-    // Update app memory & UI immediately
+    // Update app memory & UI immediately (do NOT set username_locked to true for auto-gen)
     appData.profile.username = finalUsername;
+    appData.profile.username_locked = false;
     renderProfile();
   } catch (e) {
     console.error("Auto-username error:", e);
@@ -1557,16 +1657,22 @@ function renderSavingsScreen() {
 
   // Hero
   document.getElementById('savings-hero-currency').textContent = curSym;
-  document.getElementById('savings-hero-total').textContent = total.toLocaleString('en-IN', {
+  const formattedTotal = total.toLocaleString('en-IN', {
     minimumFractionDigits: total % 1 === 0 ? 0 : 2,
     maximumFractionDigits: 2
   });
+  const savTotalEl = document.getElementById('savings-hero-total');
+  savTotalEl.textContent = formattedTotal;
+  savTotalEl.setAttribute('data-real', formattedTotal);
   document.getElementById('savings-count').textContent = accounts.length;
   document.getElementById('savings-inhand-display').textContent = fmt(inHand);
   document.getElementById('savings-hero-sub').textContent =
     accounts.length > 0
       ? `${accounts.length} account${accounts.length > 1 ? 's' : ''} + cash in hand`
       : 'Add your accounts to get started';
+
+  // Apply hidden preference to new values
+  applyHideAmountsUI();
 
   // In-hand cash input
   const inHandInput = document.getElementById('savings-inhand-input');
@@ -2197,8 +2303,12 @@ async function submitTransaction() {
   };
   setSyncing('syncing');
   try {
+    if (!navigator.onLine) {
+      throw new Error('offline');
+    }
     await dbInsertTransaction(currentUser.id, tx);
     appData.transactions.unshift(tx);
+    saveAppDataLocally();
     setSyncing('ok');
     closeModal('modal-add');
     if (navigator.vibrate) navigator.vibrate(50);
@@ -2207,8 +2317,30 @@ async function submitTransaction() {
     viewYear = d.getFullYear(); viewMonth = d.getMonth();
     updateMonthLabels(); renderHome();
   } catch (e) {
-    setSyncing('error');
-    showToast('Failed to record transaction: ' + e.message);
+    const isOffline = e.message === 'offline' || e.message?.includes('fetch') || e.status === 0 || !navigator.onLine;
+    if (isOffline) {
+      const pendingKey = `spendly_pending_tx_${currentUser.id}`;
+      let pending = [];
+      try {
+        pending = JSON.parse(localStorage.getItem(pendingKey) || '[]');
+      } catch (err) {}
+      if (!pending.some(p => p.id === tx.id)) {
+        pending.push(tx);
+        localStorage.setItem(pendingKey, JSON.stringify(pending));
+      }
+      appData.transactions.unshift(tx);
+      saveAppDataLocally();
+      setSyncing('error');
+      closeModal('modal-add');
+      if (navigator.vibrate) navigator.vibrate(50);
+      showToast('Offline: transaction saved locally');
+      addXP(2, 'transaction');
+      viewYear = d.getFullYear(); viewMonth = d.getMonth();
+      updateMonthLabels(); renderHome();
+    } else {
+      setSyncing('error');
+      showToast('Failed to record transaction: ' + e.message);
+    }
   }
 }
 
@@ -2353,6 +2485,7 @@ function openMonthSelector() {
   setTimeout(() => { const a = list.querySelector('.active'); if (a) a.scrollIntoView({ block: 'center' }); }, 60);
 }
 function selectMonth(y, m) {
+  transactionsPage = 1;
   viewYear = y; viewMonth = m; updateMonthLabels(); closeModal('modal-month');
   filterTimeScope = 'month';
   const a = document.querySelector('.screen.active');
@@ -2361,6 +2494,7 @@ function selectMonth(y, m) {
   if (a.id === 'screen-stats') renderStats();
 }
 function selectAllTime() {
+  transactionsPage = 1;
   filterTimeScope = 'all';
   closeModal('modal-month');
   ['nav-month-label', 'nav-month-label-2', 'nav-month-label-3'].forEach(id => {
@@ -2670,13 +2804,51 @@ function closeModal(id) {
     el.classList.remove('open');
   }
 }
-window.addEventListener('popstate', function () {
-  const open = document.querySelector('.modal-overlay.open');
-  if (open) { open.classList.remove('open'); return; }
-  const active = document.querySelector('.screen.active');
-  if (active && active.id !== 'screen-home') { navigate('home'); history.pushState({}, ''); }
+
+window.addEventListener('popstate', function (e) {
+  // 1. Close any open modal first
+  const openOverlay = document.querySelector('.modal-overlay.open');
+  if (openOverlay) {
+    openOverlay.classList.remove('open');
+    return;
+  }
+
+  // 2. Retrace screen history
+  if (_screenHistory.length > 1) {
+    _screenHistory.pop();
+    const prev = _screenHistory[_screenHistory.length - 1];
+    history.pushState({ screen: prev }, '');
+    if (prev === 'events') {
+      // raw navigate to events without re-pushing to _screenHistory
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      document.getElementById('screen-events').classList.add('active');
+      if (typeof renderEvents === 'function') renderEvents();
+    } else {
+      // raw navigate without re-pushing to _screenHistory
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      const sc = document.getElementById('screen-' + prev);
+      if (sc) { sc.classList.add('active'); sc.scrollTop = 0; }
+      const ni = document.getElementById('nav-' + prev); if (ni) ni.classList.add('active');
+      if (prev === 'home') renderHome();
+      if (prev === 'transactions') { transactionsPage = 1; renderTransactions(); }
+      if (prev === 'stats') renderStats();
+      if (prev === 'debts') renderDebts();
+      if (prev === 'profile') renderProfile();
+      if (prev === 'bill-splitter' && typeof renderBillSplitter === 'function') renderBillSplitter();
+      if (prev === 'savings' && typeof renderSavingsScreen === 'function') renderSavingsScreen();
+      if (prev === 'invoices' && typeof renderInvoicesScreen === 'function') renderInvoicesScreen();
+    }
+    return;
+  }
+
+  // 3. Already at home root — re-push so next back press may exit
+  history.pushState({ screen: 'home' }, '');
 });
-history.pushState({}, '');
+
+// Prime history so first back press doesn't exit directly
+history.pushState({ screen: 'home' }, '');
 document.querySelectorAll('.modal-overlay').forEach(el => el.addEventListener('click', function (e) {
   if (e.target === this) {
     closeModal(this.id);
@@ -2714,6 +2886,7 @@ function showToast(msg) {
         await processRecurring();
         updateMonthLabels();
         renderHome();
+        applyHideAmountsUI();
         checkLock();
 
         // Trigger password change modal if returning from a recovery email link
@@ -2750,6 +2923,10 @@ function navigateEvents() {
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.getElementById('screen-events').classList.add('active');
   renderEvents();
+  if (_screenHistory[_screenHistory.length - 1] !== 'events') {
+    _screenHistory.push('events');
+    history.pushState({ screen: 'events' }, '');
+  }
 }
 
 function getEventIcon(name) {
@@ -3585,6 +3762,7 @@ async function renderInvoicesScreen() {
     navigate('profile');
     return;
   }
+  invoicesPage = 1;
   setSyncing('syncing');
   try {
     invoicesList = await dbGetInvoices(currentUser.id);
@@ -3636,7 +3814,9 @@ function renderInvoices() {
     return;
   }
 
-  listContainer.innerHTML = filtered.map(inv => {
+  const paginated = filtered.slice(0, invoicesPage * INVOICES_PAGE_SIZE);
+
+  let html = paginated.map(inv => {
     const ext = inv.file_name.split('.').pop().toLowerCase();
     let icon = '📄';
     let colorClass = 'other';
@@ -3681,6 +3861,19 @@ function renderInvoices() {
       </div>
     `;
   }).join('');
+
+  if (invoicesPage * INVOICES_PAGE_SIZE < filtered.length) {
+    html += `
+      <div style="padding: 16px; text-align: center;">
+        <button onclick="loadMoreInvoices()" style="background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:10px;padding:8px 24px;font-size:13px;font-weight:600;cursor:pointer;touch-action:manipulation">Load More</button>
+      </div>`;
+  }
+  listContainer.innerHTML = html;
+}
+
+function loadMoreInvoices() {
+  invoicesPage++;
+  renderInvoices();
 }
 
 function openAddInvoiceModal() {
@@ -3730,7 +3923,11 @@ async function submitInvoice() {
     await renderInvoicesScreen();
   } catch (err) {
     console.error('Invoice upload failed', err);
-    showToast(`Upload failed: ${err.message}`);
+    if (err.message && err.message.includes('Bucket not found')) {
+      showToast('Storage bucket missing — create "invoices" bucket in Supabase Storage settings');
+    } else {
+      showToast(`Upload failed: ${err.message}`);
+    }
   } finally {
     submitBtn.disabled = false;
     submitText.textContent = 'Upload & Save';
@@ -4257,3 +4454,172 @@ function calculateTripBalances() {
 
   settlementsContainer.innerHTML = html;
 }
+
+// ─────────────────────────────────────────────────────
+// NOTIFICATIONS & OFFLINE SYNC
+// ─────────────────────────────────────────────────────
+
+async function openNotifications() {
+  if (!currentUser) {
+    showToast('Please sign in to view notifications');
+    return;
+  }
+  notificationsPage = 1;
+  openModal('modal-notifications');
+  setSyncing('syncing');
+  try {
+    notificationsList = await dbGetNotifications(currentUser.id);
+    renderNotifications();
+    setSyncing('ok');
+    await dbMarkAllNotifsRead(currentUser.id);
+    updateNotifBellCount();
+  } catch (e) {
+    console.error('Failed to load notifications', e);
+    setSyncing('error');
+    notificationsList = [];
+    renderNotifications();
+  }
+}
+
+function renderNotifications() {
+  const container = document.getElementById('notifications-list');
+  if (!container) return;
+
+  const paginated = notificationsList.slice(0, notificationsPage * NOTIFICATIONS_PAGE_SIZE);
+
+  if (!paginated.length) {
+    container.innerHTML = `<div style="text-align:center;color:var(--text3);font-size:14px;padding:32px 0 16px"><div style="font-size:28px;margin-bottom:8px">🔔</div>No notifications yet</div>`;
+    return;
+  }
+
+  let html = paginated.map(notif => {
+    const isUnread = !notif.is_read;
+    const dateStr = new Date(notif.created_at).toLocaleDateString('en-IN', {
+      day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
+    });
+    return `
+      <div style="background:${isUnread ? 'rgba(79,209,197,0.06)' : 'var(--surface2)'};border:1px solid ${isUnread ? 'rgba(79,209,197,0.2)' : 'var(--border)'};border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:4px;position:relative">
+        ${isUnread ? `<div style="position:absolute;top:12px;right:12px;width:6px;height:6px;background:var(--accent);border-radius:50%"></div>` : ''}
+        <div style="font-size:13px;color:var(--text);padding-right:12px">${escapeHtml(notif.message)}</div>
+        <div style="font-size:10px;color:var(--text3)">${dateStr}</div>
+      </div>
+    `;
+  }).join('');
+
+  if (notificationsPage * NOTIFICATIONS_PAGE_SIZE < notificationsList.length) {
+    html += `
+      <div style="padding: 12px 0 0; text-align: center;">
+        <button onclick="loadMoreNotifications()" style="width:100%;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:10px;padding:10px;font-size:13px;font-weight:600;cursor:pointer;touch-action:manipulation">Load More</button>
+      </div>`;
+  }
+
+  container.innerHTML = html;
+}
+
+function loadMoreNotifications() {
+  notificationsPage++;
+  renderNotifications();
+}
+
+async function markAllNotifsRead() {
+  if (!currentUser) return;
+  try {
+    await dbMarkAllNotifsRead(currentUser.id);
+    notificationsList.forEach(n => n.is_read = true);
+    renderNotifications();
+    updateNotifBellCount();
+    showToast('All notifications marked as read');
+  } catch (e) {
+    console.error('Failed to mark all read', e);
+  }
+}
+
+async function updateNotifBellCount() {
+  if (!currentUser) return;
+  try {
+    const unread = await dbCountUnreadNotifs(currentUser.id);
+    const badge = document.getElementById('notif-badge');
+    if (badge) {
+      if (unread > 0) {
+        badge.style.display = 'block';
+        badge.textContent = unread > 9 ? '9+' : unread;
+      } else {
+        badge.style.display = 'none';
+      }
+    }
+  } catch (e) {
+    console.error('Failed to count unread notifications', e);
+  }
+}
+
+function saveAppDataLocally() {
+  if (currentUser) {
+    localStorage.setItem(`spendly_appdata_${currentUser.id}`, JSON.stringify(appData));
+  }
+}
+
+function loadAppDataLocally() {
+  if (currentUser) {
+    const raw = localStorage.getItem(`spendly_appdata_${currentUser.id}`);
+    if (raw) {
+      try {
+        appData = JSON.parse(raw);
+        return true;
+      } catch (e) {}
+    }
+  }
+  return false;
+}
+
+async function syncPendingTransactions() {
+  if (isSyncingPending) return;
+  if (!navigator.onLine || !currentUser) return;
+  const pendingKey = `spendly_pending_tx_${currentUser.id}`;
+  let pending = [];
+  try {
+    const raw = localStorage.getItem(pendingKey);
+    if (raw) pending = JSON.parse(raw);
+  } catch (e) {
+    console.error("Failed to parse pending transactions", e);
+  }
+  if (!pending.length) return;
+
+  isSyncingPending = true;
+  setSyncing('syncing');
+  
+  let successCount = 0;
+  let failed = [];
+
+  for (const tx of pending) {
+    try {
+      await dbBulkInsertTransactions(currentUser.id, [tx]);
+      successCount++;
+    } catch (e) {
+      if (e.code === '23505') {
+        successCount++;
+      } else {
+        console.error("Failed to sync transaction", tx.id, e);
+        failed.push(tx);
+      }
+    }
+  }
+
+  if (failed.length > 0) {
+    localStorage.setItem(pendingKey, JSON.stringify(failed));
+    setSyncing('error');
+  } else {
+    localStorage.removeItem(pendingKey);
+    setSyncing('ok');
+    showToast(`Synced ${successCount} offline transaction(s)`);
+  }
+  isSyncingPending = false;
+}
+
+window.addEventListener('online', () => {
+  showToast('Connection restored. Syncing...');
+  syncPendingTransactions();
+});
+window.addEventListener('offline', () => {
+  showToast('You are offline. Transactions will be saved locally.');
+});
+

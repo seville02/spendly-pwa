@@ -922,6 +922,7 @@ body { display: flex; flex-direction: column; max-width: 480px; margin: 0 auto; 
   margin-bottom: 6px;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
 }
 .savings-hero-label::before {
@@ -937,28 +938,38 @@ body { display: flex; flex-direction: column; max-width: 480px; margin: 0 auto; 
 .savings-hero-amount {
   display: flex;
   align-items: baseline;
+  justify-content: center;
   gap: 5px;
   margin-bottom: 5px;
   position: relative;
   z-index: 1;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 .savings-hero-currency {
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 300;
   font-family: var(--mono);
   color: rgba(226,232,240,.65);
   line-height: 1;
+  flex-shrink: 0;
 }
 [data-theme="light"] .savings-hero-currency { color: rgba(26,58,42,.6); }
 
 .savings-hero-num {
-  font-size: clamp(32px, 12vw, 52px);
+  font-size: clamp(24px, 8vw, 44px);
   font-weight: 200;
-  letter-spacing: -2px;
+  letter-spacing: -1px;
   color: #e2e8f0;
   font-family: var(--mono);
-  line-height: 1;
+  line-height: 1.1;
   text-shadow: 0 2px 20px rgba(104,211,145,.25);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
 }
 [data-theme="light"] .savings-hero-num { color: #1a3a2a; text-shadow: none; }
 
@@ -968,6 +979,7 @@ body { display: flex; flex-direction: column; max-width: 480px; margin: 0 auto; 
   margin-bottom: 20px;
   position: relative;
   z-index: 1;
+  text-align: center;
 }
 [data-theme="light"] .savings-hero-sub { color: rgba(22,101,52,.6); }
 
