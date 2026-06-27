@@ -2463,7 +2463,33 @@ async function saveBudget() {
       metaObj = { type: 'salary', salaryAmount: validSalary, frequency: 'weekly', payday: payday };
     }
   }
+  function switchBudgetModalTab(tab) {
+    const budgetTab = document.getElementById('tab-content-budget');
+    const salaryTab = document.getElementById('tab-content-salary');
 
+    const budgetBtn = document.getElementById('btn-tab-budget');
+    const salaryBtn = document.getElementById('btn-tab-salary');
+
+    const saveBtn = document.getElementById('save-btn');
+
+    if (tab === 'budget') {
+      budgetTab.style.display = 'block';
+      salaryTab.style.display = 'none';
+
+      budgetBtn.classList.add('active');
+      salaryBtn.classList.remove('active');
+
+      saveBtn.textContent = 'Save Budget';
+    } else {
+      budgetTab.style.display = 'none';
+      salaryTab.style.display = 'block';
+
+      budgetBtn.classList.remove('active');
+      salaryBtn.classList.add('active');
+
+      saveBtn.textContent = 'Save Salary';
+    }
+  }
   // Save metadata to Supabase profile
   try {
     if (!appData.profile) appData.profile = {};
