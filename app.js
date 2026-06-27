@@ -1593,10 +1593,18 @@ function renderProfile() {
 }
 // ─── AUTOMATIC SILENT USERNAME GENERATION ───
 async function checkAndGenerateUsername() {
-  if (!appData.profile || appData.profile.username_locked || !currentUser?.email) return;
+  if (!appData.profile || !currentUser?.email) return;
 
   const currentUsername = appData.profile.username;
-  if (currentUsername && !currentUsername.includes('@')) return; // Already has a clean username
+
+  // Already has a generated/custom username
+  if (
+    currentUsername &&
+    currentUsername !== currentUser.email &&
+    !currentUsername.includes('@')
+  ) {
+    return;
+  }
 
   try {
     let baseUsername = currentUser.email.split('@')[0].toLowerCase().replace(/[^a-z0-9_]/g, '');

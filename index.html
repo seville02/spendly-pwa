@@ -1,1548 +1,2060 @@
 <!DOCTYPE html>
 <html lang="en" data-theme="dark">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#0a0f1e" id="theme-meta">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Spendly">
-<title>Spendly</title>
-<link rel="manifest" href="manifest.json">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css">
-<!-- Supabase JS -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<!-- Chart.js -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
-<!-- Config (credentials) -->
-<script src="config.js"></script>
-<!-- Database layer -->
-<script src="db.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0a0f1e" id="theme-meta">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Spendly">
+  <title>Spendly</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <!-- Supabase JS -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- Chart.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+  <!-- Config (credentials) -->
+  <script src="config.js"></script>
+  <!-- Database layer -->
+  <script src="db.js"></script>
 </head>
+
 <body>
 
-<!-- ══════════ SYNC INDICATOR ══════════ -->
-<div class="sync-indicator" id="sync-indicator"></div>
+  <!-- ══════════ SYNC INDICATOR ══════════ -->
+  <div class="sync-indicator" id="sync-indicator"></div>
 
-<!-- ══════════ AUTH SCREEN ══════════ -->
-<div id="auth-screen">
-  <div class="auth-logo-wrap">
-    <!-- S mark logo -->
-    <svg class="auth-logo-svg" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M75 28C75 18 66 10 50 10C34 10 25 18 25 28C25 38 33 43 50 48C67 53 75 58 75 70C75 82 66 90 50 90C34 90 25 82 25 70" stroke="url(#sg1)" stroke-width="14" stroke-linecap="round"/>
-      <defs>
-        <linearGradient id="sg1" x1="25" y1="10" x2="75" y2="90" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stop-color="#4fd1c5"/>
-          <stop offset="50%" stop-color="#e8533a"/>
-          <stop offset="100%" stop-color="#f6a650"/>
-        </linearGradient>
-      </defs>
-    </svg>
-    <div class="auth-wordmark">
-      <!-- Text logo: spendly wordmark with dot and arrow -->
-      <svg viewBox="0 0 180 40" width="160" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <text x="0" y="30" font-family="DM Sans, sans-serif" font-weight="600" font-size="28" fill="var(--text)">spendly</text>
-        <circle cx="13" cy="37" r="3.5" fill="#e8533a"/>
-        <line x1="95" y1="8" x2="108" y2="2" stroke="#e8533a" stroke-width="2.5" stroke-linecap="round"/>
-        <line x1="108" y1="2" x2="103" y2="9" stroke="#e8533a" stroke-width="2.5" stroke-linecap="round"/>
-        <line x1="108" y1="2" x2="101" y2="4" stroke="#e8533a" stroke-width="2.5" stroke-linecap="round"/>
+  <!-- ══════════ AUTH SCREEN ══════════ -->
+  <div id="auth-screen">
+    <div class="auth-logo-wrap">
+      <!-- S mark logo -->
+      <svg class="auth-logo-svg" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path
+          d="M75 28C75 18 66 10 50 10C34 10 25 18 25 28C25 38 33 43 50 48C67 53 75 58 75 70C75 82 66 90 50 90C34 90 25 82 25 70"
+          stroke="url(#sg1)" stroke-width="14" stroke-linecap="round" />
+        <defs>
+          <linearGradient id="sg1" x1="25" y1="10" x2="75" y2="90" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stop-color="#4fd1c5" />
+            <stop offset="50%" stop-color="#e8533a" />
+            <stop offset="100%" stop-color="#f6a650" />
+          </linearGradient>
+        </defs>
       </svg>
-    </div>
-    <div class="auth-tagline">Smart expense tracking</div>
-  </div>
-  <div class="auth-card">
-    <div class="auth-title" id="auth-title">Welcome back</div>
-    <div class="auth-sub" id="auth-sub">Sign in to your Spendly account</div>
-    <div class="auth-tabs" id="auth-tabs-container">
-      <div class="auth-tab active" id="auth-tab-signin" onclick="setAuthTab('signin')">Sign In</div>
-      <div class="auth-tab" id="auth-tab-signup" onclick="setAuthTab('signup')">Sign Up</div>
-    </div>
-    <div id="auth-back-link" onclick="setAuthTab('signin')" style="display:none;font-size:12px;color:var(--text3);cursor:pointer;margin-bottom:14px;text-align:center;text-decoration:underline">← Back to Sign In</div>
-    <div id="auth-name-wrap" style="display:none">
-      <input class="auth-input" type="text" id="auth-name" placeholder="Your name" onkeydown="if(event.key==='Enter')document.getElementById('auth-email').focus()">
-    </div>
-    <input class="auth-input" type="email" id="auth-email" placeholder="Email address" inputmode="email" onkeydown="if(event.key==='Enter')document.getElementById('auth-password').focus()">
-    <div id="auth-password-wrap" style="position: relative; width: 100%">
-      <input class="auth-input" type="password" id="auth-password" placeholder="Password" style="padding-right: 44px" onkeydown="if(event.key==='Enter')handleAuth()">
-      <span id="auth-password-toggle" onclick="togglePasswordVisibility()" style="position: absolute; right: 14px; top: 13px; cursor: pointer; color: var(--text3); display: flex; align-items: center; justify-content: center; height: 20px; transition: color .15s">
-        <svg fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" width="18" height="18">
-          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-          <circle cx="12" cy="12" r="3"/>
+      <div class="auth-wordmark">
+        <!-- Text logo: spendly wordmark with dot and arrow -->
+        <svg viewBox="0 0 180 40" width="160" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <text x="0" y="30" font-family="DM Sans, sans-serif" font-weight="600" font-size="28"
+            fill="var(--text)">spendly</text>
+          <circle cx="13" cy="37" r="3.5" fill="#e8533a" />
+          <line x1="95" y1="8" x2="108" y2="2" stroke="#e8533a" stroke-width="2.5" stroke-linecap="round" />
+          <line x1="108" y1="2" x2="103" y2="9" stroke="#e8533a" stroke-width="2.5" stroke-linecap="round" />
+          <line x1="108" y1="2" x2="101" y2="4" stroke="#e8533a" stroke-width="2.5" stroke-linecap="round" />
         </svg>
-      </span>
-    </div>
-    <div id="auth-forgot-link" onclick="setAuthTab('forgot')" style="font-size:12px;color:var(--accent);text-align:right;cursor:pointer;margin-top:6px;margin-bottom:14px">Forgot Password?</div>
-    <button class="auth-btn" id="auth-btn" onclick="handleAuth()">Sign In</button>
-    <div class="auth-error" id="auth-error"></div>
-    <div class="auth-footer">Your data is encrypted and synced<br>across all your devices via Supabase.</div>
-  </div>
-</div>
-
-<!-- ══════════ PIN LOCK ══════════ -->
-<div id="lock-screen">
-  <svg viewBox="0 0 100 100" width="52" height="52" style="margin-bottom:16px">
-    <path d="M75 28C75 18 66 10 50 10C34 10 25 18 25 28C25 38 33 43 50 48C67 53 75 58 75 70C75 82 66 90 50 90C34 90 25 82 25 70" stroke="url(#slg)" stroke-width="14" stroke-linecap="round"/>
-    <defs><linearGradient id="slg" x1="25" y1="10" x2="75" y2="90" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#4fd1c5"/><stop offset="50%" stop-color="#e8533a"/><stop offset="100%" stop-color="#f6a650"/></linearGradient></defs>
-  </svg>
-  <div class="lock-sub">Enter your PIN to continue</div>
-  <div class="pin-dots">
-    <div class="pin-dot" id="pd0"></div>
-    <div class="pin-dot" id="pd1"></div>
-    <div class="pin-dot" id="pd2"></div>
-    <div class="pin-dot" id="pd3"></div>
-  </div>
-  <div class="pin-pad">
-    <div class="pin-key" onclick="pinPress('1')">1</div>
-    <div class="pin-key" onclick="pinPress('2')">2</div>
-    <div class="pin-key" onclick="pinPress('3')">3</div>
-    <div class="pin-key" onclick="pinPress('4')">4</div>
-    <div class="pin-key" onclick="pinPress('5')">5</div>
-    <div class="pin-key" onclick="pinPress('6')">6</div>
-    <div class="pin-key" onclick="pinPress('7')">7</div>
-    <div class="pin-key" onclick="pinPress('8')">8</div>
-    <div class="pin-key" onclick="pinPress('9')">9</div>
-    <div class="pin-key empty"></div>
-    <div class="pin-key" onclick="pinPress('0')">0</div>
-    <div class="pin-key del" onclick="pinDel()">
-      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="20" height="20"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"/><line x1="18" y1="9" x2="12" y2="15"/><line x1="12" y1="9" x2="18" y2="15"/></svg>
-    </div>
-  </div>
-  <div class="pin-error-msg" id="pin-error"></div>
-</div>
-
-<!-- ══════════ HOME ══════════ -->
-<div class="screen active" id="screen-home">
-  <div class="header">
-    <div class="header-row">
-      <!-- SVG wordmark logo in header -->
-      <div class="header-logo">
-        <svg class="header-logo-mark" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M75 28C75 18 66 10 50 10C34 10 25 18 25 28C25 38 33 43 50 48C67 53 75 58 75 70C75 82 66 90 50 90C34 90 25 82 25 70" stroke="url(#hg1)" stroke-width="14" stroke-linecap="round"/>
-          <defs><linearGradient id="hg1" x1="25" y1="10" x2="75" y2="90" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#4fd1c5"/><stop offset="50%" stop-color="#e8533a"/><stop offset="100%" stop-color="#f6a650"/></linearGradient></defs>
-        </svg>
-        <span class="header-logo-name">spend<em>ly</em></span>
       </div>
-      <div class="header-right">
-        <div class="month-pill" onclick="openMonthSelector()">
-          <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-          <span id="nav-month-label">May 2026</span>
-          <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
-        </div>
-        <div class="icon-btn" onclick="focusSearch()">
-          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        </div>
-        <div class="icon-btn" onclick="toggleTheme()">
-          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
-        </div>
-        <div class="icon-btn" onclick="openNotifications()" id="notif-bell-btn" style="position:relative">
-          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="20" height="20"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-          <span id="notif-badge" style="display:none;position:absolute;top:4px;right:4px;min-width:8px;height:8px;background:#ef4444;border-radius:50%;font-size:8px;font-weight:700;color:#fff;border:1.5px solid var(--bg);line-height:1;padding:1px 2px;box-sizing:border-box"></span>
-        </div>
-
+      <div class="auth-tagline">Smart expense tracking</div>
+    </div>
+    <div class="auth-card">
+      <div class="auth-title" id="auth-title">Welcome back</div>
+      <div class="auth-sub" id="auth-sub">Sign in to your Spendly account</div>
+      <div class="auth-tabs" id="auth-tabs-container">
+        <div class="auth-tab active" id="auth-tab-signin" onclick="setAuthTab('signin')">Sign In</div>
+        <div class="auth-tab" id="auth-tab-signup" onclick="setAuthTab('signup')">Sign Up</div>
       </div>
-    </div>
-  </div>
-
-  <!-- Month-end summary banner -->
-  <div class="summary-banner" id="summary-banner">
-    <div class="summary-banner-title">📊 Last Month Recap</div>
-    <div class="summary-banner-row"><span>Total Spent</span><span id="sb-spent" style="font-family:var(--mono);font-weight:600">—</span></div>
-    <div class="summary-banner-row"><span>Top Category</span><span id="sb-top-cat">—</span></div>
-    <div class="summary-banner-row"><span>vs Budget</span><span id="sb-vs-budget">—</span></div>
-    <div class="summary-banner-close" onclick="dismissSummaryBanner()">Dismiss ✕</div>
-  </div>
-
-  <!-- Hero card -->
-  <div class="hero-card">
-    <div class="hero-glow"></div>
-    <div class="hero-label" style="display:flex;align-items:center;justify-content:center;gap:6px">
-      <span>Remaining Budget</span>
-      <span onclick="toggleHideAmounts(event)" class="eye-toggle-icon" style="cursor:pointer;font-size:12px;opacity:0.7;display:inline-flex;align-items:center;vertical-align:middle" title="Hide/Show balance">
-        <svg fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" width="14" height="14"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-      </span>
-    </div>
-    <div class="hero-amount">
-      <span class="hero-currency" id="hero-currency">₹</span>
-      <span class="hero-num" id="remaining-amt">0</span>
-    </div>
-    <div class="hero-sub" id="hero-sub">No budget set for this month</div>
-    <div class="daily-limit-pill" id="daily-limit-pill" style="display:none">
-      <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-      <span id="daily-limit-text">₹0/day left</span>
-    </div>
-    <div class="hero-stats">
-      <div class="hero-stat"><div class="hero-stat-label">Budget</div><div class="hero-stat-val accent" id="stat-budget">₹0</div></div>
-      <div class="hero-stat"><div class="hero-stat-label">Spent</div><div class="hero-stat-val red" id="stat-spent">₹0</div></div>
-      <div class="hero-stat"><div class="hero-stat-label">Savings</div><div class="hero-stat-val green" id="stat-income">₹0</div></div>
-    </div>
-    <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
-  </div>
-
-  <div class="budget-banner" id="budget-banner"><span>⚠️</span><span id="budget-banner-text"></span></div>
-
-  <!-- Streak -->
-  <div class="streak-card" id="streak-card" style="display:none">
-    <div class="streak-emoji" id="streak-emoji">🔥</div>
-    <div>
-      <div class="streak-title" id="streak-title">3 month streak!</div>
-      <div class="streak-sub" id="streak-sub">Under budget 3 months in a row</div>
-    </div>
-  </div>
-
-  <!-- AI Summary -->
-  <div id="ai-summary-section" style="display:none">
-    <div class="ai-summary-card">
-      <div class="ai-summary-header">
-        <div class="ai-summary-title">✨ AI Summary</div>
-        <div class="ai-generate-btn" id="ai-generate-btn" onclick="generateAISummary()">
-          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-          Generate
-        </div>
+      <div id="auth-back-link" onclick="setAuthTab('signin')"
+        style="display:none;font-size:12px;color:var(--text3);cursor:pointer;margin-bottom:14px;text-align:center;text-decoration:underline">
+        ← Back to Sign In</div>
+      <div id="auth-name-wrap" style="display:none">
+        <input class="auth-input" type="text" id="auth-name" placeholder="Your name"
+          onkeydown="if(event.key==='Enter')document.getElementById('auth-email').focus()">
       </div>
-      <div class="ai-summary-body" id="ai-summary-body"></div>
-    </div>
-  </div>
-
-  <div class="quick-row">
-    <div class="quick-btn" onclick="openAddExpense()">
-      <div class="quick-icon" style="background:var(--red-dim);color:var(--red)">📤</div>
-      <div><div class="quick-btn-label">Add Expense</div><div class="quick-btn-sub">Deduct from budget</div></div>
-    </div>
-    <div class="quick-btn" onclick="openSetBudget()">
-      <div class="quick-icon" style="background:var(--green-dim);color:var(--green)">🎯</div>
-      <div><div class="quick-btn-label">Set Budget</div><div class="quick-btn-sub">Monthly limit</div></div>
-    </div>
-    <div class="quick-btn" onclick="openCatBudgetModal()">
-      <div class="quick-icon" style="background:var(--accent-dim);color:var(--accent)">📊</div>
-      <div><div class="quick-btn-label">Category Budgets</div><div class="quick-btn-sub">Limits per category</div></div>
-    </div>
-    <div class="quick-btn" onclick="navigate('savings')">
-      <div class="quick-icon" style="background:rgba(104,211,145,.12);color:var(--green)">💰</div>
-      <div><div class="quick-btn-label">Total Savings</div><div class="quick-btn-sub" id="home-savings-val">₹0</div></div>
-    </div>
-  </div>
-
-  <!-- Category budgets mini -->
-  <div id="cat-budget-home" style="display:none; margin-top: 14px;">
-    <div class="section-header" style="padding:0 16px;margin-bottom:10px">
-      <div class="section-title">Category Budgets</div>
-      <div class="section-action" onclick="openCatBudgetModal()">Edit</div>
-    </div>
-    <div class="cat-budget-grid" id="cat-budget-home-list"></div>
-  </div>
-
-  <div class="section">
-    <div class="section-header">
-      <div class="section-title">Recent</div>
-      <div class="section-action" onclick="navigate('transactions')">See all</div>
-    </div>
-    <div class="tx-list" id="recent-list">
-      <div class="empty-state"><div class="empty-icon">💸</div><div class="empty-title">No transactions yet</div><div class="empty-sub">Tap + to add your first expense</div></div>
-    </div>
-  </div>
-</div>
-
-<!-- ══════════ TRANSACTIONS ══════════ -->
-<div class="screen" id="screen-transactions">
-  <div class="tx-sticky-top">
-    <div class="header" style="position:relative;padding-top:calc(var(--safe-top) + 12px);padding-bottom:10px;background:var(--bg)">
-      <div class="header-row">
-        <div class="header-logo">
-          <svg class="header-logo-mark" viewBox="0 0 100 100" fill="none"><path d="M75 28C75 18 66 10 50 10C34 10 25 18 25 28C25 38 33 43 50 48C67 53 75 58 75 70C75 82 66 90 50 90C34 90 25 82 25 70" stroke="url(#hg2)" stroke-width="14" stroke-linecap="round"/><defs><linearGradient id="hg2" x1="25" y1="10" x2="75" y2="90" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#4fd1c5"/><stop offset="50%" stop-color="#e8533a"/><stop offset="100%" stop-color="#f6a650"/></linearGradient></defs></svg>
-          <span class="header-logo-name">spend<em>ly</em></span>
-        </div>
-        <div class="month-pill" onclick="openMonthSelector()">
-          <span id="nav-month-label-2">May 2026</span>
-          <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
-        </div>
-        <div class="clear-all-btn" onclick="clearAllTransactions()" title="Clear all transactions">
-          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
-        </div>
-      </div>
-    </div>
-    <div class="search-bar">
-      <div class="search-input-wrap">
-        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input class="search-input" type="text" id="search-input" placeholder="Search transactions…" oninput="transactionsPage=1; renderTransactions()">
-      </div>
-    </div>
-    <div class="cat-scroll" id="filter-chips"></div>
-  </div>
-  <div id="all-tx-list" style="padding-top:8px"></div>
-</div>
-
-<!-- ══════════ STATS ══════════ -->
-<div class="screen" id="screen-stats">
-  <div class="header">
-    <div class="header-row">
-      <div class="header-logo">
-        <svg class="header-logo-mark" viewBox="0 0 100 100" fill="none"><path d="M75 28C75 18 66 10 50 10C34 10 25 18 25 28C25 38 33 43 50 48C67 53 75 58 75 70C75 82 66 90 50 90C34 90 25 82 25 70" stroke="url(#hg3)" stroke-width="14" stroke-linecap="round"/><defs><linearGradient id="hg3" x1="25" y1="10" x2="75" y2="90" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#4fd1c5"/><stop offset="50%" stop-color="#e8533a"/><stop offset="100%" stop-color="#f6a650"/></linearGradient></defs></svg>
-        <span class="header-logo-name">spend<em>ly</em></span>
-      </div>
-      <div class="month-pill" onclick="openMonthSelector()">
-        <span id="nav-month-label-3">May 2026</span>
-        <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
-      </div>
-    </div>
-  </div>
-  <div class="stats-tabs-wrap">
-    <div class="stats-tabs">
-      <div class="stats-tab active" onclick="setStatsTab(this,'overview')">Overview</div>
-      <div class="stats-tab" onclick="setStatsTab(this,'categories')">Categories</div>
-      <div class="stats-tab" onclick="setStatsTab(this,'merchants')">Merchants</div>
-      <div class="stats-tab" onclick="setStatsTab(this,'daily')">Daily</div>
-      <div class="stats-tab" onclick="setStatsTab(this,'compare')">Monthly</div>
-    </div>
-  </div>
-  <div id="stats-overview">
-    <div class="summary-grid">
-      <div class="summary-card"><div class="summary-card-label">Total Spent</div><div class="summary-card-val" id="s-spent" style="color:var(--red)">₹0</div></div>
-      <div class="summary-card"><div class="summary-card-label">Total Savings</div><div class="summary-card-val" id="s-income" style="color:var(--green)">₹0</div></div>
-      <div class="summary-card"><div class="summary-card-label">Transactions</div><div class="summary-card-val" id="s-count" style="color:var(--blue)">0</div></div>
-      <div class="summary-card"><div class="summary-card-label">Avg / Day</div><div class="summary-card-val" id="s-avg" style="color:var(--amber)">₹0</div></div>
-      <div class="summary-card"><div class="summary-card-label">Biggest Spend</div><div class="summary-card-val" id="s-max" style="color:var(--purple)">₹0</div></div>
-      <div class="summary-card"><div class="summary-card-label">Net Savings</div><div class="summary-card-val" id="s-net" style="color:var(--accent)">₹0</div></div>
-    </div>
-    <div class="insight-card"><div class="insight-icon">💡</div><div class="insight-text" id="insight-text">Add some transactions to see insights.</div></div>
-    <div class="chart-card"><div class="chart-title">Spending by category</div><div class="chart-wrap"><canvas id="donut-chart"></canvas></div></div>
-  </div>
-  <div id="stats-categories" style="display:none">
-    <div class="chart-card">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-        <div class="chart-title" style="margin-bottom:0">Category breakdown</div>
-        <div class="stats-toggle-pill" style="display:flex;background:var(--surface2);border-radius:10px;padding:3px;gap:2px">
-          <div class="stats-toggle-btn active" id="stats-cat-toggle-expense" onclick="switchStatsCatTab('expense')" style="padding:4px 10px;font-size:11px;font-weight:600;color:#0a0f1e;background:var(--accent);border-radius:8px;cursor:pointer;transition:all .15s">Expenses</div>
-          <div class="stats-toggle-btn" id="stats-cat-toggle-income" onclick="switchStatsCatTab('income')" style="padding:4px 10px;font-size:11px;font-weight:600;color:var(--text3);border-radius:8px;cursor:pointer;transition:all .15s">Savings</div>
-        </div>
-      </div>
-      <div class="category-bars" id="cat-bars"></div>
-    </div>
-  </div>
-  <div id="stats-merchants" style="display:none">
-    <div class="chart-card"><div class="chart-title">Top merchants / payees</div><div class="merchant-list" id="merchant-list"></div></div>
-  </div>
-  <div id="stats-daily" style="display:none">
-    <div class="chart-card"><div class="chart-title">Daily spending</div><div class="chart-wrap tall"><canvas id="bar-chart"></canvas></div></div>
-    <div class="chart-card"><div class="chart-title">Cumulative spend</div><div class="chart-wrap"><canvas id="line-chart"></canvas></div></div>
-  </div>
-  <div id="stats-compare" style="display:none">
-    <div class="chart-card"><div class="chart-title">Last 6 months</div><div class="chart-wrap tall"><canvas id="compare-chart"></canvas></div></div>
-    <div class="chart-card"><div class="chart-title">Month-by-month</div><div id="compare-table-wrap"></div></div>
-  </div>
-</div>
-
-<!-- ══════════ DEBTS ══════════ -->
-<div class="screen" id="screen-debts">
-  <div class="header">
-    <div class="header-row">
-      <div style="display:flex;align-items:center;gap:10px">
-        <div class="icon-btn" onclick="navigate('profile')">
-          <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" width="16" height="16"><polyline points="15 18 9 12 15 6"/></svg>
-        </div>
-        <div class="header-logo">
-          <svg class="header-logo-mark" viewBox="0 0 100 100" fill="none"><path d="M75 28C75 18 66 10 50 10C34 10 25 18 25 28C25 38 33 43 50 48C67 53 75 58 75 70C75 82 66 90 50 90C34 90 25 82 25 70" stroke="url(#hg4)" stroke-width="14" stroke-linecap="round"/><defs><linearGradient id="hg4" x1="25" y1="10" x2="75" y2="90" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#4fd1c5"/><stop offset="50%" stop-color="#e8533a"/><stop offset="100%" stop-color="#f6a650"/></linearGradient></defs></svg>
-          <span class="header-logo-name" style="font-size:15px">Debts</span>
-        </div>
-      </div>
-      <div class="icon-btn" onclick="openAddDebt()">
-        <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" width="16" height="16"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-      </div>
-    </div>
-  </div>
-  <div class="debt-summary">
-    <div class="debt-sum-card"><div class="debt-sum-label">You Owe</div><div class="debt-sum-val" id="debt-total-owe" style="color:var(--red)">₹0</div></div>
-    <div class="debt-sum-card"><div class="debt-sum-label">You're Owed</div><div class="debt-sum-val" id="debt-total-lent" style="color:var(--green)">₹0</div></div>
-  </div>
-  <div class="debt-list" id="debt-list">
-    <div class="empty-state"><div class="empty-icon">🤝</div><div class="empty-title">No debts tracked</div><div class="empty-sub">Tap + to add who owes who</div></div>
-  </div>
-</div>
-
-<!-- ══════════ PROFILE ══════════ -->
-<div class="screen" id="screen-profile">
-  <div class="profile-header">
-    <div class="avatar" id="profile-avatar" onclick="document.getElementById('avatar-file-input').click()">
-      <span id="profile-avatar-txt">💼</span>
-      <div class="avatar-edit-overlay">📸</div>
-    </div>
-    <input type="file" id="avatar-file-input" accept="image/*" style="display:none" onchange="uploadAvatar(event)">
-    <div class="profile-name" id="profile-display-name">My Account</div>
-    <div class="profile-email" id="profile-email"></div>
-    <div id="profile-username-badge" style="font-size:11px;font-weight:600;color:var(--accent);background:var(--accent-dim);border-radius:20px;padding:3px 10px;margin-top:4px;display:none">@username</div>
-    <div class="profile-sub" id="profile-sub">Budget resets on the 6th</div>
-  </div>
-  <!-- XP Rank Bar -->
-  <div id="xp-bar-container" style="padding:0 16px 14px">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-      <div style="display:flex;align-items:center;gap:6px">
-        <span id="xp-rank-badge" style="font-size:17px">🌱</span>
-        <span id="xp-rank-label" style="font-size:12px;font-weight:600;color:var(--text)">Beginner</span>
-      </div>
-      <span id="xp-points-label" style="font-size:11px;font-family:var(--mono);color:var(--text3)">0 XP</span>
-    </div>
-    <div style="height:5px;background:var(--surface2);border-radius:100px;overflow:hidden">
-      <div id="xp-bar-fill" style="height:100%;border-radius:100px;background:linear-gradient(90deg,#9f7aea,#667eea);transition:width .5s ease;width:0%"></div>
-    </div>
-    <div style="display:flex;justify-content:space-between;margin-top:3px">
-      <span id="xp-next-label" style="font-size:10px;color:var(--text3)">Next: Bronze</span>
-      <span id="xp-needed-label" style="font-size:10px;color:var(--text3)">50 XP to go</span>
-    </div>
-  </div>
-  <div style="padding:0 16px;margin-bottom:14px">
-    <div style="font-size:10px;font-weight:500;letter-spacing:.07em;text-transform:uppercase;color:var(--text3);margin-bottom:10px">Profile</div>
-    <div class="edit-field">
-      <span class="edit-field-label">Name</span>
-      <input type="text" id="profile-name-input" placeholder="Your name" onblur="autoSaveProfile()" onkeydown="if(event.key==='Enter'){autoSaveProfile();this.blur()}">
-    </div>
-    <div class="edit-field" style="flex-direction:column; align-items:stretch; gap:4px;">
-      <div style="display:flex; align-items:center; width:100%;">
-        <span class="edit-field-label" style="width:90px; flex-shrink:0;">@Username</span>
-        <div style="display:flex;align-items:center;gap:6px;flex:1">
-          <input type="text" id="profile-username-input" placeholder="your_handle (no spaces)" style="flex:1" onblur="saveUsername()" onkeydown="if(event.key==='Enter'){saveUsername();this.blur()}" oninput="this.value=this.value.toLowerCase().replace(/[^a-z0-9_]/g,'')">
-          <button id="username-copy-btn" onclick="copyUsername()" title="Copy your @username" style="background:var(--accent-dim);color:var(--accent);border:none;border-radius:8px;padding:4px 8px;font-size:11px;font-weight:600;cursor:pointer;flex-shrink:0">Copy</button>
-        </div>
-      </div>
-      <span style="font-size:10px;color:var(--text3);margin-left:90px;margin-top:2px;">Username can only be changed once.</span>
-    </div>
-    <div class="edit-field clickable-profile-field" onclick="openCurrencyPicker()" style="cursor:pointer; transition: background-color 0.2s; min-height: 43px;">
-      <span class="edit-field-label">Currency</span>
-      <div style="display:flex;align-items:center;gap:8px;flex:1;justify-content:flex-end;padding: 12px 0;">
-        <span id="profile-currency-display" style="font-size:13px;color:var(--text2);text-align:right;font-weight: 500;">&#x20B9; Indian Rupee</span>
-        <svg class="chevron" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
-      </div>
-    </div>
-  </div>
-  <div class="settings-list">
-    <div class="settings-item" onclick="navigate('debts')">
-      <div class="settings-left"><div class="settings-icon">🤝</div><div><div class="settings-label">Debt Tracker</div><div class="settings-val" id="debt-tracker-val">Track who owes who</div></div></div>
-      <svg class="chevron" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
-    </div>
-    <div class="settings-item" onclick="navigateEvents()">
-      <div class="settings-left"><div class="settings-icon">🎉</div><div><div class="settings-label">Event Planner</div><div class="settings-val" id="ev-profile-val">Plan &amp; track event costs</div></div></div>
-      <svg class="chevron" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
-    </div>
-    <div class="settings-item" onclick="navigate('bill-splitter')">
-      <div class="settings-left"><div class="settings-icon">🧾</div><div><div class="settings-label">Bill Splitter</div><div class="settings-val">Scan receipts &amp; share cost</div></div></div>
-      <svg class="chevron" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
-    </div>
-    <div class="settings-item" onclick="navigate('invoices')">
-      <div class="settings-left"><div class="settings-icon">📁</div><div><div class="settings-label">Invoices Vault</div><div class="settings-val" id="profile-invoices-val">Store &amp; view your bills</div></div></div>
-      <svg class="chevron" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
-    </div>
-    <div class="settings-item" onclick="openPinSetup()">
-      <div class="settings-left"><div class="settings-icon">🔒</div><div><div class="settings-label">PIN Lock</div><div class="settings-val" id="pin-status-label">Disabled</div></div></div>
-      <div class="toggle" id="pin-toggle" onclick="event.stopPropagation();openPinSetup()"><div class="toggle-knob"></div></div>
-    </div>
-    <div class="settings-item" onclick="openChangePassword()" id="settings-change-password-item">
-      <div class="settings-left"><div class="settings-icon">🔐</div><div><div class="settings-label">Change Password</div><div class="settings-val">Update account password</div></div></div>
-      <svg class="chevron" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
-    </div>
-    <div class="settings-item" onclick="exportCSV()">
-      <div class="settings-left"><div class="settings-icon">📊</div><div><div class="settings-label">Export CSV</div><div class="settings-val">Open in Excel / Sheets</div></div></div>
-      <svg class="chevron" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
-    </div>
-    <div class="settings-item" onclick="openModal('modal-import-confirm')">
-      <div class="settings-left"><div class="settings-icon">📥</div><div><div class="settings-label">Import Backup</div><div class="settings-val">Restore from CSV export</div></div></div>
-      <svg class="chevron" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
-    </div>
-    <div class="settings-item" onclick="signOut()">
-      <div class="settings-left"><div class="settings-icon">🚪</div><div><div class="settings-label" style="color:var(--red)">Sign Out</div><div class="settings-val" id="profile-email-small"></div></div></div>
-      <svg class="chevron" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
-    </div>
-  </div>
-  <input type="file" id="import-file" accept=".csv" style="display:none" onchange="importData(event)">
-  <div style="height:10px"></div>
-  <div style="padding:0 16px;font-size:11px;color:var(--text3);text-align:center;line-height:1.7">Spendly v4.0 · Synced via Supabase · Data encrypted</div>
-</div>
-
-<!-- ═══ SCREEN: SAVINGS ═══ -->
-<div class="screen" id="screen-savings">
-  <div class="header">
-    <div class="header-row">
-      <div style="display:flex;align-items:center;gap:10px">
-        <div class="icon-btn" onclick="navigate('profile')" style="flex-shrink:0">
-          <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" width="20" height="20"><polyline points="15 18 9 12 15 6"/></svg>
-        </div>
-        <span style="font-size:17px;font-weight:700">My Savings</span>
-      </div>
-      <div class="icon-btn" onclick="openAddSavingsAccountModal()" title="Add account">
-        <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" width="22" height="22"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-      </div>
-    </div>
-  </div>
-
-  <!-- Total savings hero -->
-  <div class="savings-hero-card">
-    <div class="savings-hero-glow"></div>
-    <div class="savings-hero-label" style="display:flex;align-items:center;justify-content:center;gap:6px">
-      <span>TOTAL SAVINGS</span>
-      <span onclick="toggleHideAmounts(event)" class="eye-toggle-icon" style="cursor:pointer;font-size:12px;opacity:0.7;display:inline-flex;align-items:center;vertical-align:middle" title="Hide/Show balance">
-        <svg fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" width="14" height="14"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-      </span>
-    </div>
-    <div class="savings-hero-amount">
-      <span class="savings-hero-currency" id="savings-hero-currency">₹</span>
-      <span class="savings-hero-num" id="savings-hero-total">0</span>
-    </div>
-    <div class="savings-hero-sub" id="savings-hero-sub">Add accounts to get started</div>
-    <div class="savings-hero-divider"></div>
-    <div class="savings-hero-row">
-      <div class="savings-hero-stat">
-        <div class="savings-hero-stat-label">🏦 ACCOUNTS</div>
-        <div class="savings-hero-stat-val" id="savings-count">0</div>
-      </div>
-      <div class="savings-hero-stat">
-        <div class="savings-hero-stat-label">💵 IN HAND CASH</div>
-        <div class="savings-hero-stat-val" id="savings-inhand-display">₹0</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- In-hand cash -->
-  <div class="savings-section-card">
-    <div class="savings-section-header">
-      <span class="savings-section-icon">💵</span>
-      <span class="savings-section-title">Cash in Hand</span>
-    </div>
-    <div class="edit-field" style="margin-bottom:0">
-      <span class="edit-field-label">Amount</span>
-      <input type="number" id="savings-inhand-input" placeholder="Enter cash amount..." step="any" inputmode="decimal"
-        style="flex:1;background:none;border:none;outline:none;padding:13px 0;font-size:15px;font-family:var(--mono);color:var(--text)"
-        onblur="saveInHandCash(this.value)" onkeydown="if(event.key==='Enter')this.blur()">
-    </div>
-  </div>
-
-  <!-- Accounts -->
-  <div class="savings-section-card">
-    <div class="savings-section-header">
-      <div style="display:flex;align-items:center;gap:8px">
-        <span class="savings-section-icon">🏦</span>
-        <span class="savings-section-title">Bank &amp; Savings Accounts</span>
-      </div>
-      <button onclick="openAddSavingsAccountModal()" class="savings-section-action">+ Add</button>
-    </div>
-    <div id="savings-accounts-list"></div>
-    <div style="display:flex;gap:10px;margin-top:10px">
-      <button onclick="openAddSavingsAccountModal()" class="savings-add-btn" id="savings-add-btn-main" style="flex:1">
-        <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        Add Account
-      </button>
-      <button onclick="openAddSavingsFDModal()" class="savings-add-btn" id="savings-add-fd-btn" style="flex:1;background:rgba(79,209,197,0.06);border-color:rgba(79,209,197,0.25);color:var(--accent)">
-        <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        Add FD
-      </button>
-    </div>
-  </div>
-
-  <!-- Savings Log -->
-  <div class="savings-section-card" style="margin-bottom:24px">
-    <div class="savings-section-header">
-      <div style="display:flex;align-items:center;gap:8px">
-        <span class="savings-section-icon">📋</span>
-        <span class="savings-section-title">Savings Log</span>
-      </div>
-      <button onclick="openAddSavingsTransactionModal()" class="savings-section-action">+ Add Entry</button>
-    </div>
-    <div id="savings-transactions-list"></div>
-  </div>
-
-  <div style="height:20px"></div>
-</div>
-
-<!-- ══════════ INVOICES ══════════ -->
-<div class="screen" id="screen-invoices">
-  <div class="header">
-    <div class="header-row">
-      <div style="display:flex;align-items:center;gap:10px">
-        <div class="icon-btn" onclick="navigate('profile')" style="flex-shrink:0">
-          <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" width="20" height="20"><polyline points="15 18 9 12 15 6"/></svg>
-        </div>
-        <span style="font-size:17px;font-weight:700">Invoices Vault</span>
-      </div>
-      <div style="display:flex;gap:6px">
-        <div class="icon-btn" onclick="confirmDeleteAllInvoices()" title="Delete all invoices" style="color:var(--red)">
-          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="18" height="18"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
-        </div>
-        <div class="icon-btn" onclick="openAddInvoiceModal()" title="Add invoice">
-          <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" width="20" height="20"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="search-bar" style="margin-bottom: 12px; margin-top: 8px;">
-    <div class="search-input-wrap">
-      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input class="search-input" type="text" id="invoice-search-input" placeholder="Search invoices by name or details…" oninput="invoicesPage=1; renderInvoices()">
-    </div>
-  </div>
-
-  <div style="padding:0 16px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center">
-    <span style="font-size:11px;font-weight:500;text-transform:uppercase;color:var(--text3);letter-spacing:.05em" id="invoice-count-label">0 Invoices</span>
-  </div>
-
-  <div id="invoice-list" style="padding:0 16px 20px"></div>
-</div>
-
-<!-- ═══ MODAL: ADD SAVINGS ACCOUNT ═══ -->
-<div class="modal-overlay" id="modal-savings-account">
-  <div class="modal-sheet">
-    <div class="sheet-handle"></div>
-    <div class="sheet-title">Add Savings Account</div>
-    <div class="form-group">
-      <label class="form-label">Account Name</label>
-      <input class="form-input" type="text" id="savings-acc-name-input" placeholder="e.g. HDFC Savings, Jio Payments Bank...">
-    </div>
-    <div class="form-group">
-      <label class="form-label">Current Balance</label>
-      <div class="amount-wrap">
-        <span class="amount-prefix" id="savings-modal-currency">₹</span>
-        <input class="form-input with-prefix" type="number" id="savings-acc-balance-input" placeholder="0" step="any" inputmode="decimal">
-      </div>
-    </div>
-    <div class="form-group">
-      <label class="form-label">Account Type</label>
-      <select class="form-input" id="savings-acc-type-input" style="font-family:var(--font)">
-        <option value="bank">🏦 Bank Account</option>
-        <option value="savings">💰 Savings Account</option>
-        <option value="rd">🗓️ Recurring Deposit</option>
-        <option value="mutual_fund">📊 Mutual Fund</option>
-        <option value="ppf">🏛️ PPF / NPS</option>
-        <option value="crypto">🪙 Crypto</option>
-        <option value="gold">🥇 Gold / Jewellery</option>
-        <option value="other">📌 Other</option>
-      </select>
-    </div>
-    <button class="submit-btn" onclick="submitSavingsAccount()">Save Account</button>
-    <div style="height:6px"></div>
-    <button class="submit-btn secondary" onclick="closeModal('modal-savings-account')">Cancel</button>
-    <div style="height:12px"></div>
-  </div>
-</div>
-
-<!-- ═══ MODAL: ADD SAVINGS TRANSACTION ═══ -->
-<div class="modal-overlay" id="modal-savings-tx">
-  <div class="modal-sheet">
-    <div class="sheet-handle"></div>
-    <div class="sheet-title">Add Savings Entry</div>
-    <div class="form-group">
-      <label class="form-label">Type</label>
-      <div style="display:flex;gap:8px;margin-top:4px">
-        <button id="savings-tx-type-deposit" onclick="setSavingsTxType('deposit')" class="submit-btn" style="flex:1;padding:10px;font-size:13px">💰 Deposit</button>
-        <button id="savings-tx-type-withdraw" onclick="setSavingsTxType('withdraw')" class="submit-btn secondary" style="flex:1;padding:10px;font-size:13px">💸 Withdraw</button>
-      </div>
-    </div>
-    <div class="form-group">
-      <label class="form-label">Account</label>
-      <select class="form-input" id="savings-tx-account-select" style="font-family:var(--font)"></select>
-    </div>
-    <div class="form-group">
-      <label class="form-label">Amount</label>
-      <div class="amount-wrap">
-        <span class="amount-prefix" id="savings-tx-currency">₹</span>
-        <input class="form-input with-prefix" type="number" id="savings-tx-amount" placeholder="0" step="any" inputmode="decimal">
-      </div>
-    </div>
-    <div class="form-group">
-      <label class="form-label">Note (optional)</label>
-      <input class="form-input" type="text" id="savings-tx-note" placeholder="e.g. Monthly savings, Bonus deposit...">
-    </div>
-    <button class="submit-btn" onclick="submitSavingsTransaction()">Add Entry</button>
-    <div style="height:6px"></div>
-    <button class="submit-btn secondary" onclick="closeModal('modal-savings-tx')">Cancel</button>
-    <div style="height:12px"></div>
-  </div>
-</div>
-
-<!-- ═══ MODAL: ADD FIXED DEPOSIT ═══ -->
-<div class="modal-overlay" id="modal-savings-fd">
-  <div class="modal-sheet">
-    <div class="sheet-handle"></div>
-    <div class="sheet-title">Add Fixed Deposit</div>
-    <div class="form-group">
-      <label class="form-label">FD Name / Reference</label>
-      <input class="form-input" type="text" id="savings-fd-name-input" placeholder="e.g. FD 1, Tax Saver FD...">
-    </div>
-    <div class="form-group">
-      <label class="form-label">Principal Amount</label>
-      <div class="amount-wrap">
-        <span class="amount-prefix" id="savings-fd-currency">₹</span>
-        <input class="form-input with-prefix" type="number" id="savings-fd-amount-input" placeholder="0" step="any" inputmode="decimal">
-      </div>
-    </div>
-    <div class="form-group">
-      <label class="form-label">Link to Bank / Savings Account</label>
-      <select class="form-input" id="savings-fd-parent-select" style="font-family:var(--font)"></select>
-    </div>
-    <button class="submit-btn" onclick="submitSavingsFD()">Add Fixed Deposit</button>
-    <div style="height:6px"></div>
-    <button class="submit-btn secondary" onclick="closeModal('modal-savings-fd')">Cancel</button>
-    <div style="height:12px"></div>
-  </div>
-</div>
-
-<!-- ═══ SCREEN: EVENTS ═══ -->
-<div class="screen" id="screen-events">
-  <div class="header">
-    <div class="header-row">
-      <div style="display:flex;align-items:center;gap:10px">
-        <div class="icon-btn" onclick="navigate('profile')" style="flex-shrink:0">
-          <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" width="20" height="20"><polyline points="15 18 9 12 15 6"/></svg>
-        </div>
-        <span style="font-size:17px;font-weight:700">Event Planner</span>
-      </div>
-      <div class="icon-btn" onclick="openAddEvent()">
-        <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" width="22" height="22"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-      </div>
-    </div>
-  </div>
-  <div class="stats-tabs-wrap" style="margin-bottom: 12px; padding-top: 6px;">
-    <div class="stats-tabs">
-      <div class="stats-tab active" id="ev-tab-active" onclick="switchEventsTab('active')">Active</div>
-      <div class="stats-tab" id="ev-tab-history" onclick="switchEventsTab('history')">History</div>
-    </div>
-  </div>
-  <div id="events-list" style="padding:4px 16px 20px"></div>
-  <div id="events-history-list" style="padding:4px 16px 20px; display: none;"></div>
-</div>
-
-<!-- ═══ SCREEN: EVENT DETAIL ═══ -->
-<div class="screen" id="screen-event-detail">
-  <div class="header">
-    <div class="header-row">
-      <div style="display:flex;align-items:center;gap:10px;min-width:0">
-        <div class="icon-btn" onclick="navigateEvents()" style="flex-shrink:0">
-          <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" width="20" height="20"><polyline points="15 18 9 12 15 6"/></svg>
-        </div>
-        <div style="min-width:0">
-          <div id="ev-detail-name" style="font-size:16px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></div>
-          <div id="ev-detail-date" style="font-size:11px;color:var(--text3)"></div>
-        </div>
-      </div>
-      <div style="display:flex;gap:6px;flex-shrink:0">
-        <div class="icon-btn" id="ev-complete-btn" onclick="markEventComplete()" title="Mark as Complete" style="background:rgba(104,211,145,.12);color:var(--green)">
-          <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" width="18" height="18"><polyline points="20 6 9 17 4 12"/></svg>
-        </div>
-        <div class="icon-btn" onclick="openEditEvent()" title="Edit event">
-          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="18" height="18"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-        </div>
-      </div>
-    </div>
-  </div>
-  <div style="padding:0 16px">
-    <div id="ev-summary"></div>
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-      <div style="font-size:12px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--text3)">Expenses</div>
-      <button onclick="openAddEventItem()" class="ev-add-item-btn">+ Add</button>
-    </div>
-    <div id="ev-items-list"></div>
-  </div>
-  <div style="height:20px"></div>
-</div>
-
-<!-- ═══ SCREEN: BILL SPLITTER (PAYER FLOW) ═══ -->
-<div class="screen" id="screen-bill-splitter">
-  <div class="header">
-    <div class="header-row">
-      <div style="display:flex;align-items:center;gap:10px">
-        <div class="icon-btn" onclick="navigate('profile')" style="flex-shrink:0">
-          <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" width="20" height="20"><polyline points="15 18 9 12 15 6"/></svg>
-        </div>
-        <span style="font-size:17px;font-weight:700">Bill Splitter</span>
-      </div>
-    </div>
-  </div>
-
-  <div class="stats-tabs-wrap" style="margin-bottom: 12px; padding-top: 6px;">
-    <div class="stats-tabs">
-      <div class="stats-tab active" id="bs-tab-groups" onclick="switchBillSplitterTab('groups')">Group Trip Splitter</div>
-      <div class="stats-tab" id="bs-tab-scan" onclick="switchBillSplitterTab('scan')">Quick Split &amp; Scan</div>
-    </div>
-  </div>
-
-  <div id="bs-panel-groups" style="padding:0 16px 30px">
-    <!-- List of active trips -->
-    <div id="trip-groups-list-container">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-        <span style="font-size:11px;font-weight:500;text-transform:uppercase;color:var(--text3);letter-spacing:.05em">Active Trips</span>
-        <button onclick="openCreateTripModal()" style="background:var(--accent-dim);color:var(--accent);border:1px solid var(--accent);border-radius:20px;padding:5px 12px;font-size:11px;font-weight:600;cursor:pointer">+ New Trip</button>
-      </div>
-      <div id="trip-groups-list"></div>
-    </div>
-
-    <!-- Active trip details panel (shown when a trip is selected) -->
-    <div id="trip-details-panel" style="display:none">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;border-bottom:1px solid var(--border);padding-bottom:10px">
-        <div>
-          <h3 id="selected-trip-name" style="margin:0;font-size:18px;color:var(--text)">Trip Name</h3>
-          <span style="font-size:11px;color:var(--text3)">Group split details</span>
-        </div>
-        <div style="display:flex;gap:6px">
-          <button onclick="closeTripDetails()" style="background:var(--surface2);border:none;border-radius:8px;padding:6px 12px;font-size:12px;color:var(--text2);cursor:pointer">Back</button>
-          <button id="trip-delete-btn" onclick="deleteCurrentTrip()" style="background:rgba(239, 68, 68, 0.12);border:none;border-radius:8px;padding:6px 10px;color:#ef4444;cursor:pointer" title="Delete Trip">🗑️</button>
-        </div>
-      </div>
-
-      <!-- Add Expense Card Button -->
-      <div style="margin-bottom:16px">
-        <button class="submit-btn" onclick="openAddTripExpenseModal()" style="background:linear-gradient(90deg, var(--accent), var(--blue));color:#0a0f1e;font-weight:700">+ Add Trip Expense</button>
-      </div>
-
-      <!-- Settlements Breakdown -->
-      <div class="chart-card" style="margin:0 0 16px;padding:16px">
-        <div class="chart-title">Balances &amp; Settlements</div>
-        <div id="trip-settlements-list"></div>
-      </div>
-
-      <!-- Expenses List -->
-      <div class="chart-card" style="margin:0;padding:16px">
-        <div class="chart-title">Expenses log</div>
-        <div id="trip-expenses-list"></div>
-      </div>
-    </div>
-  </div>
-
-  <div id="bs-panel-scan" style="display:none; padding:0 16px 30px">
-    <!-- Scanner dropzone (Greyed out / Coming soon) -->
-    <div class="scanner-container" id="bs-upload-zone" style="opacity: 0.5; filter: grayscale(1); cursor: not-allowed; position: relative;">
-      <div style="position: absolute; top: 12px; right: 12px; background: var(--accent); color: #000; font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.05em; z-index: 10;">Coming Soon</div>
-      <div class="scanner-beam" id="bs-scanner-beam" style="display:none"></div>
-      <div style="font-size:36px;margin-bottom:8px">📸</div>
-      <div style="font-size:14px;font-weight:600;color:var(--text)">Scan Receipt / Upload Bill</div>
-      <div style="font-size:11px;color:var(--text3);margin-top:4px">Upload bill image to extract items automatically</div>
-      <input type="file" id="bs-file-input" accept="image/*" style="display:none" disabled>
-      <button class="scanner-btn" disabled style="cursor: not-allowed; opacity: 0.7;">Choose Image</button>
-      <div style="margin-top:10px;font-size:11px;color:var(--text2)">or</div>
-      <button class="scanner-btn-secondary" disabled style="cursor: not-allowed; opacity: 0.7;">⚡ Simulate Demo Scan</button>
-    </div>
-
-    <!-- Scanning status -->
-    <div id="bs-scan-status" style="display:none;text-align:center;margin:15px 0;font-size:13px;color:var(--accent)">
-      <span class="spinner" style="display:inline-block;margin-right:6px">⏳</span> <span id="bs-status-text">Uploading and scanning...</span>
-    </div>
-
-    <!-- Bill info card -->
-    <div class="chart-card" style="margin:16px 0 0;padding:16px">
-      <div class="chart-title">Bill Details</div>
-      
-      <div class="form-group">
-        <label class="form-label">Bill Name</label>
-        <input class="form-input" type="text" id="bs-bill-name" placeholder="e.g. Cafe Dinner, Goa Resort..." value="Dinner Split">
-      </div>
-
-      <div class="form-group">
-        <label class="form-label">Your Name (Payer)</label>
-        <input class="form-input" type="text" id="bs-payer-name" placeholder="Your Name">
-      </div>
-
-      <div class="form-group">
-        <label class="form-label">Your UPI ID (to receive payments)</label>
-        <input class="form-input" type="text" id="bs-payer-upi" placeholder="e.g. name@upi">
-      </div>
-
-      <div class="form-group">
-        <label class="form-label">Tax / Tip / Extra Charges (proportionate)</label>
-        <div class="amount-wrap">
-          <span class="amount-prefix">₹</span>
-          <input class="form-input with-prefix" type="number" id="bs-extra-charges" placeholder="0" step="any" inputmode="decimal">
-        </div>
-      </div>
-    </div>
-
-    <!-- Items list -->
-    <div class="chart-card" style="margin:16px 0 0;padding:16px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-        <div class="chart-title" style="margin-bottom:0">Items List</div>
-        <button onclick="addBsItem()" style="background:var(--accent-dim);color:var(--accent);border:1px solid var(--accent);border-radius:20px;padding:4px 12px;font-size:11px;font-weight:600;cursor:pointer">+ Add Item</button>
-      </div>
-      <div id="bs-items-list">
-        <div style="text-align:center;padding:20px 0;color:var(--text3);font-size:12px">No items yet. Upload a receipt or add manually.</div>
-      </div>
-    </div>
-
-    <!-- Share block -->
-    <div style="margin-top:20px">
-      <button class="submit-btn" id="bs-share-btn" onclick="generateSplitLink()" style="background:linear-gradient(90deg, var(--accent), var(--blue));color:#0a0f1e;font-weight:700">🔗 Generate &amp; Share Split Link</button>
-    </div>
-    
-    <!-- Link modal/card -->
-    <div id="bs-link-box" class="chart-card" style="display:none;margin-top:16px;padding:16px;border-color:var(--accent)">
-      <div style="font-size:13px;font-weight:600;color:var(--accent);margin-bottom:8px">Split Link Generated! 🎉</div>
-      <div style="font-size:11px;color:var(--text2);margin-bottom:10px">Send this link to your friends. They can open it on mobile and select their items.</div>
-      <div style="background:var(--surface2);padding:10px;border-radius:8px;font-family:var(--mono);font-size:10px;word-break:break-all;border:1px solid var(--border);color:var(--text2);user-select:all" id="bs-generated-url"></div>
-      <div style="display:flex;gap:10px;margin-top:12px">
-        <button onclick="copyBsLink()" class="ev-add-item-btn" style="flex:1">📋 Copy Link</button>
-        <button onclick="shareBsLink()" class="submit-btn" style="flex:1;margin:0;font-size:11px;padding:8px">💬 Share Now</button>
-      </div>
-    </div>
-  </div>
-</div>
-</div>
-
-<!-- ═══ SCREEN: GUEST SPLIT BILL (RECIPIENT FLOW) ═══ -->
-<div class="screen" id="screen-guest-split">
-  <div class="header">
-    <div class="header-row" style="justify-content:center">
-      <div style="display:flex;align-items:center;gap:8px">
-        <div class="ev-icon-wrapper" style="width:30px;height:30px;font-size:14px">🧾</div>
-        <span style="font-size:17px;font-weight:700">Spendly Bill Splitter</span>
-      </div>
-    </div>
-  </div>
-
-  <div style="padding:0 16px 40px">
-    <!-- Payer Banner -->
-    <div class="chart-card" style="margin:10px 0;padding:16px;background:rgba(79, 209, 197, 0.05);border-color:rgba(79, 209, 197, 0.2)">
-      <div style="font-size:14px;font-weight:600;color:var(--text)" id="gs-payer-title">Payer Name shared a bill</div>
-      <div style="font-size:18px;font-weight:700;color:var(--accent);margin-top:4px" id="gs-bill-title">Dinner Bill</div>
-      <div style="font-size:11px;color:var(--text3);margin-top:6px" id="gs-date-label"></div>
-    </div>
-
-    <!-- Instructions -->
-    <div style="font-size:12px;color:var(--text2);margin:16px 0 10px;text-align:center">👇 Select the items that you ordered:</div>
-
-    <!-- Items Grid Selector -->
-    <div id="gs-items-container">
-      <!-- Renders list of items to select -->
-    </div>
-
-    <!-- Guest Details Form -->
-    <div class="chart-card" style="margin:16px 0;padding:16px">
-      <div class="form-group" style="margin-bottom:0">
-        <label class="form-label">Your Name</label>
-        <input class="form-input" type="text" id="gs-guest-name" placeholder="Enter your name" oninput="updateGuestTotals()">
-      </div>
-    </div>
-
-    <!-- Live share card -->
-    <div class="chart-card" style="margin:16px 0;padding:20px;background:rgba(26,37,64,0.65);border-color:var(--border2);position:relative;overflow:hidden">
-      <div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--text3)">Your Share</div>
-      <div style="display:flex;align-items:baseline;gap:4px;margin-top:4px">
-        <span style="font-size:26px;font-weight:700;color:var(--green)" id="gs-share-currency">₹</span>
-        <span style="font-size:36px;font-weight:700;color:var(--green);font-family:var(--mono)" id="gs-share-total">0.00</span>
-      </div>
-      
-      <!-- Breakdown -->
-      <div style="border-top:1px solid var(--border);margin-top:12px;padding-top:10px;font-size:11px;color:var(--text2)">
-        <div style="display:flex;justify-content:space-between;margin-bottom:4px">
-          <span>Items cost</span><span id="gs-items-cost" style="font-family:var(--mono)">₹0.00</span>
-        </div>
-        <div style="display:flex;justify-content:space-between">
-          <span>Proportionate tax/tip share</span><span id="gs-tax-share" style="font-family:var(--mono)">₹0.00</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- UPI QR and Deep-links -->
-    <div id="gs-pay-section" style="display:none;text-align:center;margin-top:20px">
-      <div class="chart-title">QR Code Payment</div>
-      <div style="font-size:11px;color:var(--text3);margin-bottom:12px">Scan QR code using GPay, PhonePe, Paytm, or BHIM to pay instantly</div>
-      
-      <div class="qr-box" style="margin: 0 auto 16px;">
-        <img id="gs-qr-img" style="width:180px;height:180px;display:block;margin:0 auto;border-radius:12px" alt="UPI QR Code">
-      </div>
-      
-      <div style="display:flex;flex-direction:column;gap:10px;margin-top:16px">
-        <a id="gs-upi-link" href="#" class="submit-btn" style="background:var(--accent);color:#0a0f1e;font-weight:700;display:inline-flex;align-items:center;justify-content:center;text-decoration:none;gap:6px">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
-          Pay via UPI App
-        </a>
-        <button onclick="copyGsSummary()" class="ev-add-item-btn" style="padding:10px">📋 Copy Payment Message</button>
-        <button onclick="confirmGsPayment()" class="submit-btn" style="background:var(--green-dim);color:var(--green);border:1px solid var(--green);margin:0" id="gs-pay-confirm-btn">✅ I Have Transferred the Money</button>
-      </div>
-    </div>
-    
-    <!-- Unselected fallback -->
-    <div id="gs-unselected-fallback" style="text-align:center;color:var(--text3);font-size:12px;margin:20px 0">
-      Select at least one item to see payment options
-    </div>
-
-    <div style="height:30px"></div>
-    <div style="display:flex;justify-content:center;gap:12px">
-      <button onclick="window.location.hash=''; window.location.reload();" class="ev-add-item-btn" style="font-size:11px;padding:6px 14px">Go to Spendly Homepage</button>
-    </div>
-  </div>
-</div>
-
-<!-- BOTTOM NAV -->
-<nav class="bottom-nav">
-  <div class="nav-item active" id="nav-home" onclick="navigate('home')">
-    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-    <span class="nav-label">Home</span>
-  </div>
-  <div class="nav-item" id="nav-transactions" onclick="navigate('transactions')">
-    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-    <span class="nav-label">History</span>
-  </div>
-  <div class="nav-add" onclick="openAddExpense()">
-    <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-  </div>
-  <div class="nav-item" id="nav-stats" onclick="navigate('stats')">
-    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-    <span class="nav-label">Stats</span>
-  </div>
-  <div class="nav-item" id="nav-profile" onclick="navigate('profile')">
-    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-    <span class="nav-label">Profile</span>
-  </div>
-</nav>
-
-<!-- ═══ MODAL: ADD TRANSACTION ═══ -->
-<div class="modal-overlay" id="modal-add">
-  <div class="modal-sheet">
-    <div class="sheet-handle"></div>
-    <div class="sheet-title">Add Transaction</div>
-    <div class="type-toggle">
-      <div class="type-btn active-expense" id="type-expense" onclick="setType('expense')">💸 Expense</div>
-      <div class="type-btn" id="type-income" onclick="setType('income')">💰 Savings</div>
-    </div>
-    <div class="form-group">
-      <label class="form-label">Amount</label>
-      <div class="amount-wrap"><span class="amount-prefix">₹</span><input class="form-input with-prefix" type="number" id="input-amount" placeholder="0" inputmode="decimal" min="0" step="any" onkeydown="handleEnter(event,'input-desc')"></div>
-    </div>
-    <div class="quick-amounts">
-      <div class="quick-amt" onclick="setQuickAmt(100)">₹100</div>
-      <div class="quick-amt" onclick="setQuickAmt(200)">₹200</div>
-      <div class="quick-amt" onclick="setQuickAmt(500)">₹500</div>
-      <div class="quick-amt" onclick="setQuickAmt(1000)">₹1K</div>
-      <div class="quick-amt" onclick="setQuickAmt(2000)">₹2K</div>
-      <div class="quick-amt" onclick="setQuickAmt(5000)">₹5K</div>
-    </div>
-    <div class="form-group">
-      <label class="form-label">Description <span style="color:var(--text3);font-weight:400;text-transform:none;letter-spacing:0;font-size:10px">(optional)</span></label>
-      <input class="form-input" type="text" id="input-desc" placeholder="Who / what did you pay?" onkeydown="handleEnter(event,'input-notes')">
-    </div>
-    <div class="form-group">
-      <label class="form-label">Notes <span style="color:var(--text3);font-weight:400;text-transform:none;letter-spacing:0;font-size:10px">(optional)</span></label>
-      <input class="form-input" type="text" id="input-notes" placeholder="Extra details, receipt #…" onkeydown="handleEnter(event,'input-date')">
-    </div>
-    <div class="form-group" style="display:flex;gap:10px">
-      <div style="flex:2">
-        <label class="form-label">Date</label>
-        <input class="form-input" type="date" id="input-date" required onkeydown="handleEnter(event,'input-time')">
-      </div>
-      <div style="flex:1">
-        <label class="form-label">Time <span style="color:var(--text3);font-weight:400;text-transform:none;letter-spacing:0;font-size:10px">(optional)</span></label>
-        <input class="form-input" type="time" id="input-time" onkeydown="handleEnter(event,null)">
-      </div>
-    </div>
-    <div class="form-group" id="cat-group">
-      <label class="form-label">Category</label>
-      <div class="cat-grid" id="cat-grid"></div>
-    </div>
-    <div class="form-group">
-      <label class="form-label">Recurring</label>
-      <select class="form-input" id="input-recur">
-        <option value="none">One-time (Non-recurring)</option>
-        <option value="weekly">Weekly (based on weekday of selected date)</option>
-        <option value="monthly">Monthly (Recurring every month)</option>
-      </select>
-    </div>
-    <button class="submit-btn" onclick="submitTransaction()">Add Transaction</button>
-    <div style="height:12px"></div>
-  </div>
-</div>
-
-<!-- ═══ MODAL: SET BUDGET ═══ -->
-<div class="modal-overlay" id="modal-budget">
-  <div class="modal-sheet">
-    <div class="sheet-handle"></div>
-    <div class="sheet-title" id="budget-modal-title">Set Monthly Budget</div>
-    
-    <!-- Tab Toggle -->
-    <div class="modal-toggle-tabs">
-      <div class="modal-toggle-tab active" id="btn-tab-budget" onclick="switchBudgetModalTab('budget')">
-        <span class="tab-icon">🎯</span> Budget
-      </div>
-      <div class="modal-toggle-tab" id="btn-tab-salary" onclick="switchBudgetModalTab('salary')">
-        <span class="tab-icon">💼</span> Salary
-      </div>
-    </div>
-
-    <!-- Tab Content: Budget -->
-    <div id="tab-content-budget">
-      <div class="form-group">
-        <label class="form-label">Total Budget</label>
-        <div class="amount-wrap"><span class="amount-prefix">₹</span><input class="form-input with-prefix" type="number" id="input-budget" placeholder="0" inputmode="decimal" step="any" onkeydown="if(event.key==='Enter')saveBudget()"></div>
-      </div>
-      <div style="font-size:12px;color:var(--text3);margin-bottom:14px;line-height:1.6">Resets on the <strong style="color:var(--accent)" id="budget-day-label">1st</strong> of every month.</div>
-    </div>
-
-    <!-- Tab Content: Salary -->
-    <div id="tab-content-salary" style="display:none">
-      <div class="form-group">
-        <label class="form-label">Salary Amount</label>
-        <div class="amount-wrap"><span class="amount-prefix">₹</span><input class="form-input with-prefix" type="number" id="input-salary" placeholder="0" inputmode="decimal" step="any" onkeydown="if(event.key==='Enter')saveBudget()"></div>
-      </div>
-      
-      <div class="form-group">
-        <label class="form-label">Frequency</label>
-        <select class="form-input" id="select-salary-freq" onchange="toggleSalaryFreq()">
-          <option value="monthly">Monthly</option>
-          <option value="weekly">Weekly</option>
-        </select>
-      </div>
-
-      <div class="form-group" id="group-salary-payday" style="display:none">
-        <label class="form-label">Salary Pay Day</label>
-        <select class="form-input" id="select-salary-payday">
-          <option value="5">Friday</option>
-          <option value="1">Monday</option>
-          <option value="2">Tuesday</option>
-          <option value="3">Wednesday</option>
-          <option value="4">Thursday</option>
-          <option value="6">Saturday</option>
-          <option value="0">Sunday</option>
-        </select>
-      </div>
-    </div>
-
-    <button class="submit-btn" onclick="saveBudget()">Save Budget</button>
-    <div style="height:6px"></div>
-    <button class="submit-btn secondary" onclick="closeModal('modal-budget')">Cancel</button>
-    <div style="height:12px"></div>
-  </div>
-</div>
-
-<!-- ═══ MODAL: CATEGORY BUDGETS ═══ -->
-<div class="modal-overlay" id="modal-cat-budget">
-  <div class="modal-sheet">
-    <div class="sheet-handle"></div>
-    <div class="sheet-title">Category Budgets</div>
-    <div style="font-size:12px;color:var(--text3);margin-bottom:16px;text-align:center">Set monthly spending limits per category</div>
-    <div id="cat-budget-settings"></div>
-    <div style="height:12px"></div>
-  </div>
-</div>
-
-<!-- ═══ MODAL: MONTH ═══ -->
-<div class="modal-overlay" id="modal-month">
-  <div class="modal-sheet">
-    <div class="sheet-handle"></div>
-    <div class="sheet-title">Select Month</div>
-    <div class="month-list" id="month-list"></div>
-    <div style="height:12px"></div>
-  </div>
-</div>
-
-<!-- ═══ MODAL: TX DETAIL ═══ -->
-<div class="modal-overlay" id="modal-detail">
-  <div class="modal-sheet">
-    <div class="sheet-handle"></div>
-    <div id="detail-content"></div>
-    <div style="height:12px"></div>
-  </div>
-</div>
-
-<!-- ═══ MODAL: ADD DEBT ═══ -->
-<div class="modal-overlay" id="modal-debt">
-  <div class="modal-sheet">
-    <div class="sheet-handle"></div>
-    <div class="sheet-title">Track Debt</div>
-    <div class="type-toggle">
-      <div class="type-btn active-expense" id="debt-type-owe" onclick="setDebtType('owe')">😬 I Owe</div>
-      <div class="type-btn" id="debt-type-lent" onclick="setDebtType('lent')">💪 I Lent</div>
-    </div>
-    <div class="form-group"><label class="form-label">Person</label><input class="form-input" type="text" id="debt-person" placeholder="Name" onkeydown="handleEnter(event,'debt-amount')"></div>
-    <div class="form-group"><label class="form-label">Amount</label><div class="amount-wrap"><span class="amount-prefix">₹</span><input class="form-input with-prefix" type="number" id="debt-amount" placeholder="0" inputmode="decimal" step="any" onkeydown="handleEnter(event,'debt-note')"></div></div>
-    <div class="form-group"><label class="form-label">Note</label><input class="form-input" type="text" id="debt-note" placeholder="What for?" onkeydown="if(event.key==='Enter')submitDebt()"></div>
-    <button class="submit-btn" onclick="submitDebt()">Save</button>
-    <div style="height:12px"></div>
-  </div>
-</div>
-
-<!-- ═══ MODAL: DEBT DETAIL ═══ -->
-<div class="modal-overlay" id="modal-debt-detail">
-  <div class="modal-sheet">
-    <div class="sheet-handle"></div>
-    <div id="debt-detail-content"></div>
-    <div style="height:12px"></div>
-  </div>
-</div>
-
-<!-- ═══ MODAL: PIN SETUP ═══ -->
-<div class="modal-overlay" id="modal-pin">
-  <div class="modal-sheet">
-    <div class="sheet-handle"></div>
-    <div class="sheet-title" id="pin-modal-title">Set PIN Lock</div>
-    <div style="text-align:center;padding-bottom:8px">
-      <div style="font-size:13px;color:var(--text2);margin-bottom:20px" id="pin-modal-sub">Choose a 4-digit PIN</div>
-      <div class="pin-dots" style="justify-content:center">
-        <div class="pin-dot" id="spd0"></div><div class="pin-dot" id="spd1"></div>
-        <div class="pin-dot" id="spd2"></div><div class="pin-dot" id="spd3"></div>
-      </div>
-      <div class="pin-pad" style="margin:20px auto">
-        <div class="pin-key" onclick="setupPinPress('1')">1</div><div class="pin-key" onclick="setupPinPress('2')">2</div><div class="pin-key" onclick="setupPinPress('3')">3</div>
-        <div class="pin-key" onclick="setupPinPress('4')">4</div><div class="pin-key" onclick="setupPinPress('5')">5</div><div class="pin-key" onclick="setupPinPress('6')">6</div>
-        <div class="pin-key" onclick="setupPinPress('7')">7</div><div class="pin-key" onclick="setupPinPress('8')">8</div><div class="pin-key" onclick="setupPinPress('9')">9</div>
-        <div class="pin-key empty"></div><div class="pin-key" onclick="setupPinPress('0')">0</div>
-        <div class="pin-key del" onclick="setupPinDel()"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="18" height="18"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"/><line x1="18" y1="9" x2="12" y2="15"/><line x1="12" y1="9" x2="18" y2="15"/></svg></div>
-      </div>
-      <div class="pin-error-msg" id="pin-setup-error"></div>
-    </div>
-    <button class="submit-btn danger" id="disable-pin-btn" onclick="disablePin()" style="display:none">Disable PIN Lock</button>
-    <div style="height:6px"></div>
-    <button class="submit-btn secondary" onclick="closeModal('modal-pin');resetSetupPin()">Cancel</button>
-    <div style="height:12px"></div>
-  </div>
-</div>
-
-<!-- ═══ MODAL: IMPORT CONFIRM ═══ -->
-<div class="modal-overlay" id="modal-import-confirm">
-  <div class="modal-sheet">
-    <div class="sheet-handle"></div>
-    <div class="sheet-title">📥 Import Backup</div>
-    <div style="font-size:13px;color:var(--text2);line-height:1.65;margin-bottom:20px">
-      This will import transactions from a <strong style="color:var(--text)">Spendly CSV export</strong> file and add them to your existing data.
-      <br><br>
-      ℹ️ Your current data will <strong style="color:var(--text)">not</strong> be deleted — imported entries are added on top.
-    </div>
-    <button class="submit-btn" onclick="closeModal('modal-import-confirm');document.getElementById('import-file').click()">
-      📂 Choose CSV File
-    </button>
-    <div style="height:8px"></div>
-    <button class="submit-btn" style="background:var(--surface2);color:var(--text2)" onclick="closeModal('modal-import-confirm')">
-      Cancel
-    </button>
-    <div style="height:12px"></div>
-  </div>
-</div>
-
-<!-- ═══ MODAL: ADD EVENT ═══ -->
-<div class="modal-overlay" id="modal-add-event">
-  <div class="modal-sheet">
-    <div class="sheet-handle"></div>
-    <div class="sheet-title">New Event</div>
-    <div class="form-group">
-      <label class="form-label">Event Name</label>
-      <input class="form-input" type="text" id="input-event-name" placeholder="e.g. Wedding, Goa Trip, Birthday Party…">
-    </div>
-    <div class="form-group">
-      <label class="form-label">Currency</label>
-      <div class="edit-field" onclick="openEventCurrencyPicker()" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:var(--surface);border:1px solid var(--border);border-radius:12px">
-        <span id="event-currency-display" style="font-size:13px;color:var(--text)">₹ Indian Rupee (₹)</span>
-        <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
-      </div>
-    </div>
-    <div class="form-group">
-      <label class="form-label">Estimated Total Budget <span style="color:var(--text3);font-weight:400;font-size:10px">(optional)</span></label>
-      <div class="amount-wrap"><span class="amount-prefix" id="event-budget-prefix">₹</span><input class="form-input with-prefix" type="number" id="input-event-budget" placeholder="Leave blank if unsure" step="any" inputmode="decimal"></div>
-    </div>
-    <div class="form-group">
-      <label class="form-label">Target Date <span style="color:var(--text3);font-weight:400;font-size:10px">(optional)</span></label>
-      <input class="form-input" type="date" id="input-event-date">
-    </div>
-    <button class="submit-btn" id="ev-submit-btn" onclick="submitEvent()">Create Event</button>
-    <div style="height:6px"></div>
-    <button class="submit-btn" id="ev-delete-btn" onclick="deleteEvent()" style="display:none;background:var(--red-dim);color:var(--red);border:1px solid var(--red)">Delete Event</button>
-    <div style="height:6px"></div>
-    <button class="submit-btn" style="background:var(--surface2);color:var(--text2)" onclick="closeModal('modal-add-event')">Cancel</button>
-    <div style="height:12px"></div>
-  </div>
-</div>
-
-<!-- ═══ MODAL: ADD EVENT ITEM ═══ -->
-<div class="modal-overlay" id="modal-add-event-item">
-  <div class="modal-sheet">
-    <div class="sheet-handle"></div>
-    <div class="sheet-title">Add Expense</div>
-    <div class="form-group">
-      <label class="form-label">Vendor / Item</label>
-      <input class="form-input" type="text" id="input-ei-name" placeholder="e.g. Hall, MC, Catering, Band…">
-    </div>
-    <div class="form-group">
-      <label class="form-label">Amount Paid So Far</label>
-      <div class="amount-wrap"><span class="amount-prefix">₹</span><input class="form-input with-prefix" type="number" id="input-ei-paid" placeholder="0" step="any" inputmode="decimal"></div>
-    </div>
-    <div class="form-group">
-      <label class="form-label">Total Cost <span style="color:var(--text3);font-weight:400;font-size:10px">(optional — if full amount is known)</span></label>
-      <div class="amount-wrap"><span class="amount-prefix">₹</span><input class="form-input with-prefix" type="number" id="input-ei-total" placeholder="e.g. 1,00,000 if total is 1 lakh" step="any" inputmode="decimal"></div>
-      <div style="font-size:11px;color:var(--text3);margin-top:5px">Remaining balance = Total Cost − Amount Paid</div>
-    </div>
-    <div class="form-group">
-      <label class="form-label">Notes <span style="color:var(--text3);font-weight:400;font-size:10px">(optional)</span></label>
-      <input class="form-input" type="text" id="input-ei-notes" placeholder="e.g. Balance due by Dec 10, call to confirm…">
-    </div>
-    <button class="submit-btn" id="ei-submit-btn" onclick="submitEventItem()">Add</button>
-    <div style="height:6px"></div>
-    <button class="submit-btn" id="ei-delete-btn" onclick="deleteEventItem()" style="display:none;background:var(--red-dim);color:var(--red);border:1px solid var(--red)">Remove</button>
-    <div style="height:6px"></div>
-    <button class="submit-btn" style="background:var(--surface2);color:var(--text2)" onclick="closeModal('modal-add-event-item')">Cancel</button>
-    <div style="height:12px"></div>
-  </div>
-</div>
-
-<!-- ═══ MODAL: CURRENCY PICKER ═══ -->
-<div class="modal-overlay" id="modal-currency">
-  <div class="modal-sheet">
-    <div class="sheet-handle"></div>
-    <div class="sheet-title">Select Currency</div>
-    <div class="search-bar" style="margin-bottom:6px;padding:0">
-      <div class="search-input-wrap">
-        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input class="search-input" type="text" id="currency-search" placeholder="Search by name or code…" oninput="renderCurrencyList()">
-      </div>
-    </div>
-    <div id="currency-list" style="max-height:55vh;overflow-y:auto;padding:0 2px"></div>
-    <div style="height:12px"></div>
-  </div>
-</div>
-
-<!-- ═══ MODAL: EXPORT CSV ═══ -->
-<div class="modal-overlay" id="modal-export-csv">
-  <div class="modal-sheet">
-    <div class="sheet-handle"></div>
-    <div class="sheet-title">📊 Export CSV Report</div>
-    <div style="font-size:13px;color:var(--text2);line-height:1.65;margin-bottom:20px;text-align:center">
-      Select which transactions you want to include in the CSV file.
-    </div>
-    <button class="submit-btn" onclick="triggerExportCSV(false)">
-      📋 Export This Month Only
-    </button>
-    <div style="height:8px"></div>
-    <button class="submit-btn" style="background:var(--accent-dim);color:var(--accent);border:1px solid var(--accent)" onclick="triggerExportCSV(true)">
-      📅 Export All Time
-    </button>
-    <div style="height:8px"></div>
-    <button class="submit-btn secondary" onclick="closeModal('modal-export-csv')">
-      Cancel
-    </button>
-    <div style="height:12px"></div>
-  </div>
-</div>
-
-<!-- ═══ MODAL: EXPORT ACTION ═══ -->
-<div class="modal-overlay" id="modal-export-action">
-  <div class="modal-sheet">
-    <div class="sheet-handle"></div>
-    <div class="sheet-title">📤 Share or Download Report</div>
-    <div style="font-size:13px;color:var(--text2);line-height:1.65;margin-bottom:20px;text-align:center">
-      Choose how you'd like to export your report.
-    </div>
-    <button class="submit-btn" id="export-email-btn" onclick="executeExportAction('email')" style="background:linear-gradient(135deg,var(--accent),#7c3aed);color:#fff;border:none">
-      📧 Send to My Email
-    </button>
-    <div style="height:8px"></div>
-    <button class="submit-btn" id="export-share-btn" onclick="executeExportAction('share')">
-      ✉️ Email &amp; Share Report
-    </button>
-    <div style="height:8px"></div>
-    <button class="submit-btn" style="background:var(--accent-dim);color:var(--accent);border:1px solid var(--accent)" onclick="executeExportAction('download')">
-      💾 Download Directly
-    </button>
-    <div style="height:8px"></div>
-    <button class="submit-btn secondary" onclick="closeModal('modal-export-action')">
-      Cancel
-    </button>
-    <div style="height:12px"></div>
-  </div>
-</div>
-
-<!-- ═══ MODAL: EMAIL SENT ═══ -->
-<div class="modal-overlay" id="modal-email-sent">
-  <div class="modal-sheet">
-    <div class="sheet-handle"></div>
-    <div style="text-align:center;padding:12px 0 4px">
-      <div style="font-size:52px;margin-bottom:8px">📬</div>
-      <div class="sheet-title" style="margin-bottom:8px">Email Ready!</div>
-      <div style="font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:6px">
-        Your CSV has been <strong>downloaded</strong> and your email client has opened.<br>
-        Just <strong>attach the file</strong> and hit send!
-      </div>
-      <div id="email-sent-address" style="font-size:12px;color:var(--accent);background:var(--accent-dim);padding:6px 14px;border-radius:20px;display:inline-block;margin-bottom:18px"></div>
-    </div>
-    <button class="submit-btn" onclick="closeModal('modal-email-sent')" style="background:linear-gradient(135deg,var(--accent),#7c3aed);color:#fff;border:none">
-      ✅ Got It
-    </button>
-    <div style="height:12px"></div>
-  </div>
-</div>
-
-<!-- ═══ MODAL: CHANGE PASSWORD ═══ -->
-<div class="modal-overlay" id="modal-change-password">
-  <div class="modal-sheet">
-    <div class="sheet-handle"></div>
-    <div class="sheet-title">🔐 Change Password</div>
-    <div style="font-size:12px;color:var(--text3);margin-bottom:14px;text-align:center;line-height:1.6">Enter a new secure password for your account.</div>
-    <div class="form-group">
-      <label class="form-label">New Password</label>
-      <div style="position: relative; width: 100%">
-        <input class="form-input" type="password" id="input-new-password" placeholder="At least 6 characters" style="padding-right: 44px" onkeydown="if(event.key==='Enter')submitChangePassword()">
-        <span id="new-password-toggle" onclick="toggleNewPasswordVisibility()" style="position: absolute; right: 14px; top: 12px; cursor: pointer; color: var(--text3); display: flex; align-items: center; justify-content: center; height: 20px; transition: color .15s">
+      <input class="auth-input" type="email" id="auth-email" placeholder="Email address" inputmode="email"
+        onkeydown="if(event.key==='Enter')document.getElementById('auth-password').focus()">
+      <div id="auth-password-wrap" style="position: relative; width: 100%">
+        <input class="auth-input" type="password" id="auth-password" placeholder="Password" style="padding-right: 44px"
+          onkeydown="if(event.key==='Enter')handleAuth()">
+        <span id="auth-password-toggle" onclick="togglePasswordVisibility()"
+          style="position: absolute; right: 14px; top: 13px; cursor: pointer; color: var(--text3); display: flex; align-items: center; justify-content: center; height: 20px; transition: color .15s">
           <svg fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" width="18" height="18">
-            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-            <circle cx="12" cy="12" r="3"/>
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+            <circle cx="12" cy="12" r="3" />
           </svg>
         </span>
       </div>
+      <div id="auth-forgot-link" onclick="setAuthTab('forgot')"
+        style="font-size:12px;color:var(--accent);text-align:right;cursor:pointer;margin-top:6px;margin-bottom:14px">
+        Forgot Password?</div>
+      <button class="auth-btn" id="auth-btn" onclick="handleAuth()">Sign In</button>
+      <div class="auth-error" id="auth-error"></div>
+      <div class="auth-footer">Your data is encrypted and synced<br>across all your devices via Supabase.</div>
     </div>
-    <button class="submit-btn" onclick="submitChangePassword()">Update Password</button>
-    <div style="height:6px"></div>
-    <button class="submit-btn secondary" onclick="closeModal('modal-change-password')">Cancel</button>
-    <div style="height:12px"></div>
   </div>
-</div>
 
-<!-- ═══ MODAL: ADD INVOICE ═══ -->
-<div class="modal-overlay" id="modal-add-invoice">
-  <div class="modal-sheet">
-    <div class="sheet-handle"></div>
-    <div class="sheet-title">Upload Invoice / Bill</div>
-    
-    <div class="form-group">
-      <label class="form-label">Invoice Name / Vendor</label>
-      <input class="form-input" type="text" id="invoice-name-input" placeholder="e.g. Amazon, Electric Bill, Office Supplies">
+  <!-- ══════════ PIN LOCK ══════════ -->
+  <div id="lock-screen">
+    <svg viewBox="0 0 100 100" width="52" height="52" style="margin-bottom:16px">
+      <path
+        d="M75 28C75 18 66 10 50 10C34 10 25 18 25 28C25 38 33 43 50 48C67 53 75 58 75 70C75 82 66 90 50 90C34 90 25 82 25 70"
+        stroke="url(#slg)" stroke-width="14" stroke-linecap="round" />
+      <defs>
+        <linearGradient id="slg" x1="25" y1="10" x2="75" y2="90" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stop-color="#4fd1c5" />
+          <stop offset="50%" stop-color="#e8533a" />
+          <stop offset="100%" stop-color="#f6a650" />
+        </linearGradient>
+      </defs>
+    </svg>
+    <div class="lock-sub">Enter your PIN to continue</div>
+    <div class="pin-dots">
+      <div class="pin-dot" id="pd0"></div>
+      <div class="pin-dot" id="pd1"></div>
+      <div class="pin-dot" id="pd2"></div>
+      <div class="pin-dot" id="pd3"></div>
     </div>
-
-    <div class="form-group">
-      <label class="form-label">Date</label>
-      <input class="form-input" type="date" id="invoice-date-input">
-    </div>
-
-    <div class="form-group">
-      <label class="form-label">Additional Details / Notes</label>
-      <textarea class="form-input" id="invoice-details-input" placeholder="e.g. Total amount ₹2,499, Work expense..." style="height:60px;resize:none;padding:10px;font-family:var(--font)"></textarea>
-    </div>
-
-    <div class="form-group">
-      <label class="form-label">Document File</label>
-      <div class="file-upload-zone" onclick="document.getElementById('invoice-file-input').click()">
-        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="24" height="24" style="color:var(--accent);margin-bottom:6px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-        <span id="invoice-file-label" style="font-size:12px;font-weight:500;color:var(--text2)">Tap to choose file</span>
-        <span style="font-size:10px;color:var(--text3);margin-top:2px">Supports Images, HEIC, PDF, Excel, Word</span>
-      </div>
-      <input type="file" id="invoice-file-input" style="display:none" onchange="handleInvoiceFileSelected(event)" accept="image/*,.heic,.pdf,.xls,.xlsx,.doc,.docx">
-    </div>
-
-    <button class="submit-btn" id="invoice-submit-btn" onclick="submitInvoice()">
-      <span id="invoice-submit-text">Upload &amp; Save</span>
-    </button>
-    <div style="height:6px"></div>
-    <button class="submit-btn secondary" onclick="closeModal('modal-add-invoice')">Cancel</button>
-    <div style="height:12px"></div>
-  </div>
-</div>
-
-<!-- ═══ MODAL: CREATE TRIP GROUP ═══ -->
-<div class="modal-overlay" id="modal-create-trip">
-  <div class="modal-sheet">
-    <div class="sheet-handle"></div>
-    <div class="sheet-title">✈️ Create Trip Group</div>
-    <div style="font-size:12px;color:var(--text3);margin-bottom:14px;text-align:center;line-height:1.6">Share expenses with friends during trips. Anyone added who has the app can view and edit this group!</div>
-    
-    <div class="form-group">
-      <label class="form-label">Trip Name / Destination</label>
-      <input class="form-input" type="text" id="trip-name-input" placeholder="e.g. Goa Trip 2026, Ladakh Bike Tour">
-    </div>
-
-    <div class="form-group">
-      <label class="form-label">Add Members by @Username</label>
-      <!-- Search box -->
-      <div style="display:flex;gap:8px;margin-bottom:8px">
-        <input class="form-input" type="text" id="trip-username-search" placeholder="Search @username..." style="flex:1" oninput="searchTripUser()">
-        <button onclick="addSearchedUser()" style="background:var(--accent-dim);color:var(--accent);border:1px solid var(--accent);border-radius:12px;padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer;flex-shrink:0">Add</button>
-      </div>
-      <!-- Search result hint -->
-      <div id="trip-user-search-result" style="font-size:11px;min-height:18px;margin-bottom:6px"></div>
-      <!-- Added members list -->
-      <div id="trip-added-members" style="display:flex;flex-wrap:wrap;gap:6px"></div>
-      <span style="font-size:10px;color:var(--text3);margin-top:6px;display:block">You are added automatically. Friends must have a Spendly account with an @username set.</span>
-    </div>
-
-    <button class="submit-btn" onclick="submitCreateTrip()">Create Group</button>
-    <div style="height:6px"></div>
-    <button class="submit-btn secondary" onclick="closeModal('modal-create-trip')">Cancel</button>
-    <div style="height:12px"></div>
-  </div>
-</div>
-
-<!-- ═══ MODAL: ADD TRIP EXPENSE ═══ -->
-<div class="modal-overlay" id="modal-add-trip-expense">
-  <div class="modal-sheet">
-    <div class="sheet-handle"></div>
-    <div class="sheet-title">💸 Add Trip Expense</div>
-    
-    <div class="form-group">
-      <label class="form-label">Description</label>
-      <input class="form-input" type="text" id="trip-exp-desc" placeholder="e.g. Hotel Booking, Dinner, Fuel">
-    </div>
-
-    <div class="form-group">
-      <label class="form-label">Amount</label>
-      <div class="amount-wrap">
-        <span class="amount-prefix">₹</span>
-        <input class="form-input with-prefix" type="number" id="trip-exp-amount" placeholder="0" step="any" inputmode="decimal">
+    <div class="pin-pad">
+      <div class="pin-key" onclick="pinPress('1')">1</div>
+      <div class="pin-key" onclick="pinPress('2')">2</div>
+      <div class="pin-key" onclick="pinPress('3')">3</div>
+      <div class="pin-key" onclick="pinPress('4')">4</div>
+      <div class="pin-key" onclick="pinPress('5')">5</div>
+      <div class="pin-key" onclick="pinPress('6')">6</div>
+      <div class="pin-key" onclick="pinPress('7')">7</div>
+      <div class="pin-key" onclick="pinPress('8')">8</div>
+      <div class="pin-key" onclick="pinPress('9')">9</div>
+      <div class="pin-key empty"></div>
+      <div class="pin-key" onclick="pinPress('0')">0</div>
+      <div class="pin-key del" onclick="pinDel()">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="20" height="20">
+          <path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z" />
+          <line x1="18" y1="9" x2="12" y2="15" />
+          <line x1="12" y1="9" x2="18" y2="15" />
+        </svg>
       </div>
     </div>
-
-    <div class="form-group">
-      <label class="form-label">Paid By</label>
-      <select class="form-input" id="trip-exp-payer" style="font-family:var(--font)"></select>
-    </div>
-
-    <div class="form-group">
-      <label class="form-label">Date</label>
-      <input class="form-input" type="date" id="trip-exp-date">
-    </div>
-
-    <button class="submit-btn" onclick="submitTripExpense()">Add Expense</button>
-    <div style="height:6px"></div>
-    <button class="submit-btn secondary" onclick="closeModal('modal-add-trip-expense')">Cancel</button>
-    <div style="height:12px"></div>
+    <div class="pin-error-msg" id="pin-error"></div>
   </div>
-</div>
 
-<div class="toast" id="toast"></div>
+  <!-- ══════════ HOME ══════════ -->
+  <div class="screen active" id="screen-home">
+    <div class="header">
+      <div class="header-row">
+        <!-- SVG wordmark logo in header -->
+        <div class="header-logo">
+          <svg class="header-logo-mark" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path
+              d="M75 28C75 18 66 10 50 10C34 10 25 18 25 28C25 38 33 43 50 48C67 53 75 58 75 70C75 82 66 90 50 90C34 90 25 82 25 70"
+              stroke="url(#hg1)" stroke-width="14" stroke-linecap="round" />
+            <defs>
+              <linearGradient id="hg1" x1="25" y1="10" x2="75" y2="90" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stop-color="#4fd1c5" />
+                <stop offset="50%" stop-color="#e8533a" />
+                <stop offset="100%" stop-color="#f6a650" />
+              </linearGradient>
+            </defs>
+          </svg>
+          <span class="header-logo-name">spend<em>ly</em></span>
+        </div>
+        <div class="header-right">
+          <div class="month-pill" onclick="openMonthSelector()">
+            <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <rect x="3" y="4" width="18" height="18" rx="2" />
+              <line x1="16" y1="2" x2="16" y2="6" />
+              <line x1="8" y1="2" x2="8" y2="6" />
+              <line x1="3" y1="10" x2="21" y2="10" />
+            </svg>
+            <span id="nav-month-label">May 2026</span>
+            <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </div>
+          <div class="icon-btn" onclick="focusSearch()">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+          </div>
+          <div class="icon-btn" onclick="toggleTheme()">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="5" />
+              <line x1="12" y1="1" x2="12" y2="3" />
+              <line x1="12" y1="21" x2="12" y2="23" />
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+              <line x1="1" y1="12" x2="3" y2="12" />
+              <line x1="21" y1="12" x2="23" y2="12" />
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+            </svg>
+          </div>
+          <div class="icon-btn" onclick="openNotifications()" id="notif-bell-btn" style="position:relative">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="20" height="20">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+              <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+            </svg>
+            <span id="notif-badge"
+              style="display:none;position:absolute;top:4px;right:4px;min-width:8px;height:8px;background:#ef4444;border-radius:50%;font-size:8px;font-weight:700;color:#fff;border:1.5px solid var(--bg);line-height:1;padding:1px 2px;box-sizing:border-box"></span>
+          </div>
 
-<!-- App JS — loaded last so DOM is ready -->
-<script src="app.js"></script>
+        </div>
+      </div>
+    </div>
 
-<script>
-// Category budget modal opener (needs DOM + app.js both loaded)
-function openCatBudgetModal() {
-  renderCatBudgetSettings();
-  openModal('modal-cat-budget');
-}
+    <!-- Month-end summary banner -->
+    <div class="summary-banner" id="summary-banner">
+      <div class="summary-banner-title">📊 Last Month Recap</div>
+      <div class="summary-banner-row"><span>Total Spent</span><span id="sb-spent"
+          style="font-family:var(--mono);font-weight:600">—</span></div>
+      <div class="summary-banner-row"><span>Top Category</span><span id="sb-top-cat">—</span></div>
+      <div class="summary-banner-row"><span>vs Budget</span><span id="sb-vs-budget">—</span></div>
+      <div class="summary-banner-close" onclick="dismissSummaryBanner()">Dismiss ✕</div>
+    </div>
 
-// Inline Service Worker registration for robust updates and automatic recovery
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('sw.js')
-    .then(reg => {
-      reg.onupdatefound = () => {
-        const installingWorker = reg.installing;
-        if (installingWorker) {
-          installingWorker.onstatechange = () => {
-            if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
-              // Automatically reload to apply the update immediately
-              window.location.reload();
+    <!-- Hero card -->
+    <div class="hero-card">
+      <div class="hero-glow"></div>
+      <div class="hero-label" style="display:flex;align-items:center;gap:6px">
+        <span>Remaining Budget</span>
+        <span onclick="toggleHideAmounts(event)" class="eye-toggle-icon"
+          style="cursor:pointer;font-size:12px;opacity:0.7;display:inline-flex;align-items:center;vertical-align:middle"
+          title="Hide/Show balance">
+          <svg fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" width="14" height="14">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+            <circle cx="12" cy="12" r="3" />
+          </svg>
+        </span>
+      </div>
+      <div class="hero-amount">
+        <span class="hero-currency" id="hero-currency">₹</span>
+        <span class="hero-num" id="remaining-amt">0</span>
+      </div>
+      <div class="hero-sub" id="hero-sub">No budget set for this month</div>
+      <div class="daily-limit-pill" id="daily-limit-pill" style="display:none">
+        <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="10" />
+          <polyline points="12 6 12 12 16 14" />
+        </svg>
+        <span id="daily-limit-text">₹0/day left</span>
+      </div>
+      <div class="hero-stats">
+        <div class="hero-stat">
+          <div class="hero-stat-label">Budget</div>
+          <div class="hero-stat-val accent" id="stat-budget">₹0</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-label">Spent</div>
+          <div class="hero-stat-val red" id="stat-spent">₹0</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-label">Savings</div>
+          <div class="hero-stat-val green" id="stat-income">₹0</div>
+        </div>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="progress-fill" style="width:0%"></div>
+      </div>
+    </div>
+
+    <div class="budget-banner" id="budget-banner"><span>⚠️</span><span id="budget-banner-text"></span></div>
+
+    <!-- Streak -->
+    <div class="streak-card" id="streak-card" style="display:none">
+      <div class="streak-emoji" id="streak-emoji">🔥</div>
+      <div>
+        <div class="streak-title" id="streak-title">3 month streak!</div>
+        <div class="streak-sub" id="streak-sub">Under budget 3 months in a row</div>
+      </div>
+    </div>
+
+    <!-- AI Summary -->
+    <div id="ai-summary-section" style="display:none">
+      <div class="ai-summary-card">
+        <div class="ai-summary-header">
+          <div class="ai-summary-title">✨ AI Summary</div>
+          <div class="ai-generate-btn" id="ai-generate-btn" onclick="generateAISummary()">
+            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+            </svg>
+            Generate
+          </div>
+        </div>
+        <div class="ai-summary-body" id="ai-summary-body"></div>
+      </div>
+    </div>
+
+    <div class="quick-row">
+      <div class="quick-btn" onclick="openAddExpense()">
+        <div class="quick-icon" style="background:var(--red-dim);color:var(--red)">📤</div>
+        <div>
+          <div class="quick-btn-label">Add Expense</div>
+          <div class="quick-btn-sub">Deduct from budget</div>
+        </div>
+      </div>
+      <div class="quick-btn" onclick="openSetBudget()">
+        <div class="quick-icon" style="background:var(--green-dim);color:var(--green)">🎯</div>
+        <div>
+          <div class="quick-btn-label">Set Budget</div>
+          <div class="quick-btn-sub">Monthly limit</div>
+        </div>
+      </div>
+      <div class="quick-btn" onclick="openCatBudgetModal()">
+        <div class="quick-icon" style="background:var(--accent-dim);color:var(--accent)">📊</div>
+        <div>
+          <div class="quick-btn-label">Category Budgets</div>
+          <div class="quick-btn-sub">Limits per category</div>
+        </div>
+      </div>
+      <div class="quick-btn" onclick="navigate('savings')">
+        <div class="quick-icon" style="background:rgba(104,211,145,.12);color:var(--green)">💰</div>
+        <div>
+          <div class="quick-btn-label">Total Savings</div>
+          <div class="quick-btn-sub" id="home-savings-val">₹0</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Category budgets mini -->
+    <div id="cat-budget-home" style="display:none; margin-top: 14px;">
+      <div class="section-header" style="padding:0 16px;margin-bottom:10px">
+        <div class="section-title">Category Budgets</div>
+        <div class="section-action" onclick="openCatBudgetModal()">Edit</div>
+      </div>
+      <div class="cat-budget-grid" id="cat-budget-home-list"></div>
+    </div>
+
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title">Recent</div>
+        <div class="section-action" onclick="navigate('transactions')">See all</div>
+      </div>
+      <div class="tx-list" id="recent-list">
+        <div class="empty-state">
+          <div class="empty-icon">💸</div>
+          <div class="empty-title">No transactions yet</div>
+          <div class="empty-sub">Tap + to add your first expense</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ TRANSACTIONS ══════════ -->
+  <div class="screen" id="screen-transactions">
+    <div class="tx-sticky-top">
+      <div class="header"
+        style="position:relative;padding-top:calc(var(--safe-top) + 12px);padding-bottom:10px;background:var(--bg)">
+        <div class="header-row">
+          <div class="header-logo">
+            <svg class="header-logo-mark" viewBox="0 0 100 100" fill="none">
+              <path
+                d="M75 28C75 18 66 10 50 10C34 10 25 18 25 28C25 38 33 43 50 48C67 53 75 58 75 70C75 82 66 90 50 90C34 90 25 82 25 70"
+                stroke="url(#hg2)" stroke-width="14" stroke-linecap="round" />
+              <defs>
+                <linearGradient id="hg2" x1="25" y1="10" x2="75" y2="90" gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stop-color="#4fd1c5" />
+                  <stop offset="50%" stop-color="#e8533a" />
+                  <stop offset="100%" stop-color="#f6a650" />
+                </linearGradient>
+              </defs>
+            </svg>
+            <span class="header-logo-name">spend<em>ly</em></span>
+          </div>
+          <div class="month-pill" onclick="openMonthSelector()">
+            <span id="nav-month-label-2">May 2026</span>
+            <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </div>
+          <div class="clear-all-btn" onclick="clearAllTransactions()" title="Clear all transactions">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <polyline points="3 6 5 6 21 6" />
+              <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+              <path d="M10 11v6" />
+              <path d="M14 11v6" />
+              <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+            </svg>
+          </div>
+        </div>
+      </div>
+      <div class="search-bar">
+        <div class="search-input-wrap">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <circle cx="11" cy="11" r="8" />
+            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
+          <input class="search-input" type="text" id="search-input" placeholder="Search transactions…"
+            oninput="transactionsPage=1; renderTransactions()">
+        </div>
+      </div>
+      <div class="cat-scroll" id="filter-chips"></div>
+    </div>
+    <div id="all-tx-list" style="padding-top:8px"></div>
+  </div>
+
+  <!-- ══════════ STATS ══════════ -->
+  <div class="screen" id="screen-stats">
+    <div class="header">
+      <div class="header-row">
+        <div class="header-logo">
+          <svg class="header-logo-mark" viewBox="0 0 100 100" fill="none">
+            <path
+              d="M75 28C75 18 66 10 50 10C34 10 25 18 25 28C25 38 33 43 50 48C67 53 75 58 75 70C75 82 66 90 50 90C34 90 25 82 25 70"
+              stroke="url(#hg3)" stroke-width="14" stroke-linecap="round" />
+            <defs>
+              <linearGradient id="hg3" x1="25" y1="10" x2="75" y2="90" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stop-color="#4fd1c5" />
+                <stop offset="50%" stop-color="#e8533a" />
+                <stop offset="100%" stop-color="#f6a650" />
+              </linearGradient>
+            </defs>
+          </svg>
+          <span class="header-logo-name">spend<em>ly</em></span>
+        </div>
+        <div class="month-pill" onclick="openMonthSelector()">
+          <span id="nav-month-label-3">May 2026</span>
+          <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </div>
+      </div>
+    </div>
+    <div class="stats-tabs-wrap">
+      <div class="stats-tabs">
+        <div class="stats-tab active" onclick="setStatsTab(this,'overview')">Overview</div>
+        <div class="stats-tab" onclick="setStatsTab(this,'categories')">Categories</div>
+        <div class="stats-tab" onclick="setStatsTab(this,'merchants')">Merchants</div>
+        <div class="stats-tab" onclick="setStatsTab(this,'daily')">Daily</div>
+        <div class="stats-tab" onclick="setStatsTab(this,'compare')">Monthly</div>
+      </div>
+    </div>
+    <div id="stats-overview">
+      <div class="summary-grid">
+        <div class="summary-card">
+          <div class="summary-card-label">Total Spent</div>
+          <div class="summary-card-val" id="s-spent" style="color:var(--red)">₹0</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-card-label">Total Savings</div>
+          <div class="summary-card-val" id="s-income" style="color:var(--green)">₹0</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-card-label">Transactions</div>
+          <div class="summary-card-val" id="s-count" style="color:var(--blue)">0</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-card-label">Avg / Day</div>
+          <div class="summary-card-val" id="s-avg" style="color:var(--amber)">₹0</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-card-label">Biggest Spend</div>
+          <div class="summary-card-val" id="s-max" style="color:var(--purple)">₹0</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-card-label">Net Savings</div>
+          <div class="summary-card-val" id="s-net" style="color:var(--accent)">₹0</div>
+        </div>
+      </div>
+      <div class="insight-card">
+        <div class="insight-icon">💡</div>
+        <div class="insight-text" id="insight-text">Add some transactions to see insights.</div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Spending by category</div>
+        <div class="chart-wrap"><canvas id="donut-chart"></canvas></div>
+      </div>
+    </div>
+    <div id="stats-categories" style="display:none">
+      <div class="chart-card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+          <div class="chart-title" style="margin-bottom:0">Category breakdown</div>
+          <div class="stats-toggle-pill"
+            style="display:flex;background:var(--surface2);border-radius:10px;padding:3px;gap:2px">
+            <div class="stats-toggle-btn active" id="stats-cat-toggle-expense" onclick="switchStatsCatTab('expense')"
+              style="padding:4px 10px;font-size:11px;font-weight:600;color:#0a0f1e;background:var(--accent);border-radius:8px;cursor:pointer;transition:all .15s">
+              Expenses</div>
+            <div class="stats-toggle-btn" id="stats-cat-toggle-income" onclick="switchStatsCatTab('income')"
+              style="padding:4px 10px;font-size:11px;font-weight:600;color:var(--text3);border-radius:8px;cursor:pointer;transition:all .15s">
+              Savings</div>
+          </div>
+        </div>
+        <div class="category-bars" id="cat-bars"></div>
+      </div>
+    </div>
+    <div id="stats-merchants" style="display:none">
+      <div class="chart-card">
+        <div class="chart-title">Top merchants / payees</div>
+        <div class="merchant-list" id="merchant-list"></div>
+      </div>
+    </div>
+    <div id="stats-daily" style="display:none">
+      <div class="chart-card">
+        <div class="chart-title">Daily spending</div>
+        <div class="chart-wrap tall"><canvas id="bar-chart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Cumulative spend</div>
+        <div class="chart-wrap"><canvas id="line-chart"></canvas></div>
+      </div>
+    </div>
+    <div id="stats-compare" style="display:none">
+      <div class="chart-card">
+        <div class="chart-title">Last 6 months</div>
+        <div class="chart-wrap tall"><canvas id="compare-chart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Month-by-month</div>
+        <div id="compare-table-wrap"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ DEBTS ══════════ -->
+  <div class="screen" id="screen-debts">
+    <div class="header">
+      <div class="header-row">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="icon-btn" onclick="navigate('profile')">
+            <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" width="16" height="16">
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+          </div>
+          <div class="header-logo">
+            <svg class="header-logo-mark" viewBox="0 0 100 100" fill="none">
+              <path
+                d="M75 28C75 18 66 10 50 10C34 10 25 18 25 28C25 38 33 43 50 48C67 53 75 58 75 70C75 82 66 90 50 90C34 90 25 82 25 70"
+                stroke="url(#hg4)" stroke-width="14" stroke-linecap="round" />
+              <defs>
+                <linearGradient id="hg4" x1="25" y1="10" x2="75" y2="90" gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stop-color="#4fd1c5" />
+                  <stop offset="50%" stop-color="#e8533a" />
+                  <stop offset="100%" stop-color="#f6a650" />
+                </linearGradient>
+              </defs>
+            </svg>
+            <span class="header-logo-name" style="font-size:15px">Debts</span>
+          </div>
+        </div>
+        <div class="icon-btn" onclick="openAddDebt()">
+          <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" width="16" height="16">
+            <line x1="12" y1="5" x2="12" y2="19" />
+            <line x1="5" y1="12" x2="19" y2="12" />
+          </svg>
+        </div>
+      </div>
+    </div>
+    <div class="debt-summary">
+      <div class="debt-sum-card">
+        <div class="debt-sum-label">You Owe</div>
+        <div class="debt-sum-val" id="debt-total-owe" style="color:var(--red)">₹0</div>
+      </div>
+      <div class="debt-sum-card">
+        <div class="debt-sum-label">You're Owed</div>
+        <div class="debt-sum-val" id="debt-total-lent" style="color:var(--green)">₹0</div>
+      </div>
+    </div>
+    <div class="debt-list" id="debt-list">
+      <div class="empty-state">
+        <div class="empty-icon">🤝</div>
+        <div class="empty-title">No debts tracked</div>
+        <div class="empty-sub">Tap + to add who owes who</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ PROFILE ══════════ -->
+  <div class="screen" id="screen-profile">
+    <div class="profile-header">
+      <div class="avatar" id="profile-avatar" onclick="document.getElementById('avatar-file-input').click()">
+        <span id="profile-avatar-txt">💼</span>
+        <div class="avatar-edit-overlay">📸</div>
+      </div>
+      <input type="file" id="avatar-file-input" accept="image/*" style="display:none" onchange="uploadAvatar(event)">
+      <div class="profile-name" id="profile-display-name">My Account</div>
+      <div class="profile-email" id="profile-email"></div>
+      <div id="profile-username-badge"
+        style="font-size:11px;font-weight:600;color:var(--accent);background:var(--accent-dim);border-radius:20px;padding:3px 10px;margin-top:4px;display:none">
+        @username</div>
+      <div class="profile-sub" id="profile-sub">Budget resets on the 6th</div>
+    </div>
+    <!-- XP Rank Bar -->
+    <div id="xp-bar-container" style="padding:0 16px 14px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <div style="display:flex;align-items:center;gap:6px">
+          <span id="xp-rank-badge" style="font-size:17px">🌱</span>
+          <span id="xp-rank-label" style="font-size:12px;font-weight:600;color:var(--text)">Beginner</span>
+        </div>
+        <span id="xp-points-label" style="font-size:11px;font-family:var(--mono);color:var(--text3)">0 XP</span>
+      </div>
+      <div style="height:5px;background:var(--surface2);border-radius:100px;overflow:hidden">
+        <div id="xp-bar-fill"
+          style="height:100%;border-radius:100px;background:linear-gradient(90deg,#9f7aea,#667eea);transition:width .5s ease;width:0%">
+        </div>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:3px">
+        <span id="xp-next-label" style="font-size:10px;color:var(--text3)">Next: Bronze</span>
+        <span id="xp-needed-label" style="font-size:10px;color:var(--text3)">50 XP to go</span>
+      </div>
+    </div>
+    <div style="padding:0 16px;margin-bottom:14px">
+      <div
+        style="font-size:10px;font-weight:500;letter-spacing:.07em;text-transform:uppercase;color:var(--text3);margin-bottom:10px">
+        Profile</div>
+      <div class="edit-field">
+        <span class="edit-field-label">Name</span>
+        <input type="text" id="profile-name-input" placeholder="Your name" onblur="autoSaveProfile()"
+          onkeydown="if(event.key==='Enter'){autoSaveProfile();this.blur()}">
+      </div>
+      <div class="edit-field" style="flex-direction:column; align-items:stretch; gap:4px;">
+        <div style="display:flex; align-items:center; width:100%;">
+          <span class="edit-field-label" style="width:90px; flex-shrink:0;">@Username</span>
+          <div style="display:flex;align-items:center;gap:6px;flex:1">
+            <input type="text" id="profile-username-input" placeholder="your_handle (no spaces)" style="flex:1"
+              onblur="saveUsername()" onkeydown="if(event.key==='Enter'){saveUsername();this.blur()}"
+              oninput="this.value=this.value.toLowerCase().replace(/[^a-z0-9_]/g,'')">
+            <button id="username-copy-btn" onclick="copyUsername()" title="Copy your @username"
+              style="background:var(--accent-dim);color:var(--accent);border:none;border-radius:8px;padding:4px 8px;font-size:11px;font-weight:600;cursor:pointer;flex-shrink:0">Copy</button>
+          </div>
+        </div>
+        <span style="font-size:10px;color:var(--text3);margin-left:90px;margin-top:2px;">Username can only be changed
+          once.</span>
+      </div>
+      <div class="edit-field clickable-profile-field" onclick="openCurrencyPicker()"
+        style="cursor:pointer; transition: background-color 0.2s; min-height: 43px;">
+        <span class="edit-field-label">Currency</span>
+        <div style="display:flex;align-items:center;gap:8px;flex:1;justify-content:flex-end;padding: 12px 0;">
+          <span id="profile-currency-display"
+            style="font-size:13px;color:var(--text2);text-align:right;font-weight: 500;">&#x20B9; Indian Rupee</span>
+          <svg class="chevron" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"
+            viewBox="0 0 24 24">
+            <polyline points="9 18 15 12 9 6" />
+          </svg>
+        </div>
+      </div>
+    </div>
+    <div class="settings-list">
+      <div class="settings-item" onclick="navigate('debts')">
+        <div class="settings-left">
+          <div class="settings-icon">🤝</div>
+          <div>
+            <div class="settings-label">Debt Tracker</div>
+            <div class="settings-val" id="debt-tracker-val">Track who owes who</div>
+          </div>
+        </div>
+        <svg class="chevron" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"
+          viewBox="0 0 24 24">
+          <polyline points="9 18 15 12 9 6" />
+        </svg>
+      </div>
+      <div class="settings-item" onclick="navigateEvents()">
+        <div class="settings-left">
+          <div class="settings-icon">🎉</div>
+          <div>
+            <div class="settings-label">Event Planner</div>
+            <div class="settings-val" id="ev-profile-val">Plan &amp; track event costs</div>
+          </div>
+        </div>
+        <svg class="chevron" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"
+          viewBox="0 0 24 24">
+          <polyline points="9 18 15 12 9 6" />
+        </svg>
+      </div>
+      <div class="settings-item" onclick="navigate('bill-splitter')">
+        <div class="settings-left">
+          <div class="settings-icon">🧾</div>
+          <div>
+            <div class="settings-label">Bill Splitter</div>
+            <div class="settings-val">Scan receipts &amp; share cost</div>
+          </div>
+        </div>
+        <svg class="chevron" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"
+          viewBox="0 0 24 24">
+          <polyline points="9 18 15 12 9 6" />
+        </svg>
+      </div>
+      <div class="settings-item" onclick="navigate('invoices')">
+        <div class="settings-left">
+          <div class="settings-icon">📁</div>
+          <div>
+            <div class="settings-label">Invoices Vault</div>
+            <div class="settings-val" id="profile-invoices-val">Store &amp; view your bills</div>
+          </div>
+        </div>
+        <svg class="chevron" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"
+          viewBox="0 0 24 24">
+          <polyline points="9 18 15 12 9 6" />
+        </svg>
+      </div>
+      <div class="settings-item" onclick="openPinSetup()">
+        <div class="settings-left">
+          <div class="settings-icon">🔒</div>
+          <div>
+            <div class="settings-label">PIN Lock</div>
+            <div class="settings-val" id="pin-status-label">Disabled</div>
+          </div>
+        </div>
+        <div class="toggle" id="pin-toggle" onclick="event.stopPropagation();openPinSetup()">
+          <div class="toggle-knob"></div>
+        </div>
+      </div>
+      <div class="settings-item" onclick="openChangePassword()" id="settings-change-password-item">
+        <div class="settings-left">
+          <div class="settings-icon">🔐</div>
+          <div>
+            <div class="settings-label">Change Password</div>
+            <div class="settings-val">Update account password</div>
+          </div>
+        </div>
+        <svg class="chevron" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"
+          viewBox="0 0 24 24">
+          <polyline points="9 18 15 12 9 6" />
+        </svg>
+      </div>
+      <div class="settings-item" onclick="exportCSV()">
+        <div class="settings-left">
+          <div class="settings-icon">📊</div>
+          <div>
+            <div class="settings-label">Export CSV</div>
+            <div class="settings-val">Open in Excel / Sheets</div>
+          </div>
+        </div>
+        <svg class="chevron" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"
+          viewBox="0 0 24 24">
+          <polyline points="9 18 15 12 9 6" />
+        </svg>
+      </div>
+      <div class="settings-item" onclick="openModal('modal-import-confirm')">
+        <div class="settings-left">
+          <div class="settings-icon">📥</div>
+          <div>
+            <div class="settings-label">Import Backup</div>
+            <div class="settings-val">Restore from CSV export</div>
+          </div>
+        </div>
+        <svg class="chevron" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"
+          viewBox="0 0 24 24">
+          <polyline points="9 18 15 12 9 6" />
+        </svg>
+      </div>
+      <div class="settings-item" onclick="signOut()">
+        <div class="settings-left">
+          <div class="settings-icon">🚪</div>
+          <div>
+            <div class="settings-label" style="color:var(--red)">Sign Out</div>
+            <div class="settings-val" id="profile-email-small"></div>
+          </div>
+        </div>
+        <svg class="chevron" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"
+          viewBox="0 0 24 24">
+          <polyline points="9 18 15 12 9 6" />
+        </svg>
+      </div>
+    </div>
+    <input type="file" id="import-file" accept=".csv" style="display:none" onchange="importData(event)">
+    <div style="height:10px"></div>
+    <div style="padding:0 16px;font-size:11px;color:var(--text3);text-align:center;line-height:1.7">Spendly v4.0 ·
+      Synced via Supabase · Data encrypted</div>
+  </div>
+
+  <!-- ═══ SCREEN: SAVINGS ═══ -->
+  <div class="screen" id="screen-savings">
+    <div class="header">
+      <div class="header-row">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="icon-btn" onclick="navigate('profile')" style="flex-shrink:0">
+            <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" width="20" height="20">
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+          </div>
+          <span style="font-size:17px;font-weight:700">My Savings</span>
+        </div>
+        <div class="icon-btn" onclick="openAddSavingsAccountModal()" title="Add account">
+          <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" width="22" height="22">
+            <line x1="12" y1="5" x2="12" y2="19" />
+            <line x1="5" y1="12" x2="19" y2="12" />
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- Total savings hero -->
+    <div class="savings-hero-card">
+      <div class="savings-hero-glow"></div>
+      <div class="savings-hero-label" style="display:flex;align-items:center;justify-content:center;gap:6px">
+        <span>TOTAL SAVINGS</span>
+        <span onclick="toggleHideAmounts(event)" class="eye-toggle-icon"
+          style="cursor:pointer;font-size:12px;opacity:0.7;display:inline-flex;align-items:center;vertical-align:middle"
+          title="Hide/Show balance">
+          <svg fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" width="14" height="14">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+            <circle cx="12" cy="12" r="3" />
+          </svg>
+        </span>
+      </div>
+      <div class="savings-hero-amount">
+        <span class="savings-hero-currency" id="savings-hero-currency">₹</span>
+        <span class="savings-hero-num" id="savings-hero-total">0</span>
+      </div>
+      <div class="savings-hero-sub" id="savings-hero-sub">Add accounts to get started</div>
+      <div class="savings-hero-divider"></div>
+      <div class="savings-hero-row">
+        <div class="savings-hero-stat">
+          <div class="savings-hero-stat-label">🏦 ACCOUNTS</div>
+          <div class="savings-hero-stat-val" id="savings-count">0</div>
+        </div>
+        <div class="savings-hero-stat">
+          <div class="savings-hero-stat-label">💵 IN HAND CASH</div>
+          <div class="savings-hero-stat-val" id="savings-inhand-display">₹0</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- In-hand cash -->
+    <div class="savings-section-card">
+      <div class="savings-section-header">
+        <span class="savings-section-icon">💵</span>
+        <span class="savings-section-title">Cash in Hand</span>
+      </div>
+      <div class="edit-field" style="margin-bottom:0">
+        <span class="edit-field-label">Amount</span>
+        <input type="number" id="savings-inhand-input" placeholder="Enter cash amount..." step="any" inputmode="decimal"
+          style="flex:1;background:none;border:none;outline:none;padding:13px 0;font-size:15px;font-family:var(--mono);color:var(--text)"
+          onblur="saveInHandCash(this.value)" onkeydown="if(event.key==='Enter')this.blur()">
+      </div>
+    </div>
+
+    <!-- Accounts -->
+    <div class="savings-section-card">
+      <div class="savings-section-header">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="savings-section-icon">🏦</span>
+          <span class="savings-section-title">Bank &amp; Savings Accounts</span>
+        </div>
+        <button onclick="openAddSavingsAccountModal()" class="savings-section-action">+ Add</button>
+      </div>
+      <div id="savings-accounts-list"></div>
+      <div style="display:flex;gap:10px;margin-top:10px">
+        <button onclick="openAddSavingsAccountModal()" class="savings-add-btn" id="savings-add-btn-main" style="flex:1">
+          <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" width="14" height="14">
+            <line x1="12" y1="5" x2="12" y2="19" />
+            <line x1="5" y1="12" x2="19" y2="12" />
+          </svg>
+          Add Account
+        </button>
+        <button onclick="openAddSavingsFDModal()" class="savings-add-btn" id="savings-add-fd-btn"
+          style="flex:1;background:rgba(79,209,197,0.06);border-color:rgba(79,209,197,0.25);color:var(--accent)">
+          <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" width="14" height="14">
+            <line x1="12" y1="5" x2="12" y2="19" />
+            <line x1="5" y1="12" x2="19" y2="12" />
+          </svg>
+          Add FD
+        </button>
+      </div>
+    </div>
+
+    <!-- Savings Log -->
+    <div class="savings-section-card" style="margin-bottom:24px">
+      <div class="savings-section-header">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="savings-section-icon">📋</span>
+          <span class="savings-section-title">Savings Log</span>
+        </div>
+        <button onclick="openAddSavingsTransactionModal()" class="savings-section-action">+ Add Entry</button>
+      </div>
+      <div id="savings-transactions-list"></div>
+    </div>
+
+    <div style="height:20px"></div>
+  </div>
+
+  <!-- ══════════ INVOICES ══════════ -->
+  <div class="screen" id="screen-invoices">
+    <div class="header">
+      <div class="header-row">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="icon-btn" onclick="navigate('profile')" style="flex-shrink:0">
+            <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" width="20" height="20">
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+          </div>
+          <span style="font-size:17px;font-weight:700">Invoices Vault</span>
+        </div>
+        <div style="display:flex;gap:6px">
+          <div class="icon-btn" onclick="confirmDeleteAllInvoices()" title="Delete all invoices"
+            style="color:var(--red)">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="18" height="18">
+              <polyline points="3 6 5 6 21 6" />
+              <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+              <path d="M10 11v6" />
+              <path d="M14 11v6" />
+              <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+            </svg>
+          </div>
+          <div class="icon-btn" onclick="openAddInvoiceModal()" title="Add invoice">
+            <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" width="20" height="20">
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="search-bar" style="margin-bottom: 12px; margin-top: 8px;">
+      <div class="search-input-wrap">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <circle cx="11" cy="11" r="8" />
+          <line x1="21" y1="21" x2="16.65" y2="16.65" />
+        </svg>
+        <input class="search-input" type="text" id="invoice-search-input"
+          placeholder="Search invoices by name or details…" oninput="invoicesPage=1; renderInvoices()">
+      </div>
+    </div>
+
+    <div style="padding:0 16px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center">
+      <span style="font-size:11px;font-weight:500;text-transform:uppercase;color:var(--text3);letter-spacing:.05em"
+        id="invoice-count-label">0 Invoices</span>
+    </div>
+
+    <div id="invoice-list" style="padding:0 16px 20px"></div>
+  </div>
+
+  <!-- ═══ MODAL: ADD SAVINGS ACCOUNT ═══ -->
+  <div class="modal-overlay" id="modal-savings-account">
+    <div class="modal-sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title">Add Savings Account</div>
+      <div class="form-group">
+        <label class="form-label">Account Name</label>
+        <input class="form-input" type="text" id="savings-acc-name-input"
+          placeholder="e.g. HDFC Savings, Jio Payments Bank...">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Current Balance</label>
+        <div class="amount-wrap">
+          <span class="amount-prefix" id="savings-modal-currency">₹</span>
+          <input class="form-input with-prefix" type="number" id="savings-acc-balance-input" placeholder="0" step="any"
+            inputmode="decimal">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Account Type</label>
+        <select class="form-input" id="savings-acc-type-input" style="font-family:var(--font)">
+          <option value="bank">🏦 Bank Account</option>
+          <option value="savings">💰 Savings Account</option>
+          <option value="rd">🗓️ Recurring Deposit</option>
+          <option value="mutual_fund">📊 Mutual Fund</option>
+          <option value="ppf">🏛️ PPF / NPS</option>
+          <option value="crypto">🪙 Crypto</option>
+          <option value="gold">🥇 Gold / Jewellery</option>
+          <option value="other">📌 Other</option>
+        </select>
+      </div>
+      <button class="submit-btn" onclick="submitSavingsAccount()">Save Account</button>
+      <div style="height:6px"></div>
+      <button class="submit-btn secondary" onclick="closeModal('modal-savings-account')">Cancel</button>
+      <div style="height:12px"></div>
+    </div>
+  </div>
+
+  <!-- ═══ MODAL: ADD SAVINGS TRANSACTION ═══ -->
+  <div class="modal-overlay" id="modal-savings-tx">
+    <div class="modal-sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title">Add Savings Entry</div>
+      <div class="form-group">
+        <label class="form-label">Type</label>
+        <div style="display:flex;gap:8px;margin-top:4px">
+          <button id="savings-tx-type-deposit" onclick="setSavingsTxType('deposit')" class="submit-btn"
+            style="flex:1;padding:10px;font-size:13px">💰 Deposit</button>
+          <button id="savings-tx-type-withdraw" onclick="setSavingsTxType('withdraw')" class="submit-btn secondary"
+            style="flex:1;padding:10px;font-size:13px">💸 Withdraw</button>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Account</label>
+        <select class="form-input" id="savings-tx-account-select" style="font-family:var(--font)"></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Amount</label>
+        <div class="amount-wrap">
+          <span class="amount-prefix" id="savings-tx-currency">₹</span>
+          <input class="form-input with-prefix" type="number" id="savings-tx-amount" placeholder="0" step="any"
+            inputmode="decimal">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Note (optional)</label>
+        <input class="form-input" type="text" id="savings-tx-note" placeholder="e.g. Monthly savings, Bonus deposit...">
+      </div>
+      <button class="submit-btn" onclick="submitSavingsTransaction()">Add Entry</button>
+      <div style="height:6px"></div>
+      <button class="submit-btn secondary" onclick="closeModal('modal-savings-tx')">Cancel</button>
+      <div style="height:12px"></div>
+    </div>
+  </div>
+
+  <!-- ═══ MODAL: ADD FIXED DEPOSIT ═══ -->
+  <div class="modal-overlay" id="modal-savings-fd">
+    <div class="modal-sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title">Add Fixed Deposit</div>
+      <div class="form-group">
+        <label class="form-label">FD Name / Reference</label>
+        <input class="form-input" type="text" id="savings-fd-name-input" placeholder="e.g. FD 1, Tax Saver FD...">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Principal Amount</label>
+        <div class="amount-wrap">
+          <span class="amount-prefix" id="savings-fd-currency">₹</span>
+          <input class="form-input with-prefix" type="number" id="savings-fd-amount-input" placeholder="0" step="any"
+            inputmode="decimal">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Link to Bank / Savings Account</label>
+        <select class="form-input" id="savings-fd-parent-select" style="font-family:var(--font)"></select>
+      </div>
+      <button class="submit-btn" onclick="submitSavingsFD()">Add Fixed Deposit</button>
+      <div style="height:6px"></div>
+      <button class="submit-btn secondary" onclick="closeModal('modal-savings-fd')">Cancel</button>
+      <div style="height:12px"></div>
+    </div>
+  </div>
+
+  <!-- ═══ SCREEN: EVENTS ═══ -->
+  <div class="screen" id="screen-events">
+    <div class="header">
+      <div class="header-row">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="icon-btn" onclick="navigate('profile')" style="flex-shrink:0">
+            <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" width="20" height="20">
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+          </div>
+          <span style="font-size:17px;font-weight:700">Event Planner</span>
+        </div>
+        <div class="icon-btn" onclick="openAddEvent()">
+          <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" width="22" height="22">
+            <line x1="12" y1="5" x2="12" y2="19" />
+            <line x1="5" y1="12" x2="19" y2="12" />
+          </svg>
+        </div>
+      </div>
+    </div>
+    <div class="stats-tabs-wrap" style="margin-bottom: 12px; padding-top: 6px;">
+      <div class="stats-tabs">
+        <div class="stats-tab active" id="ev-tab-active" onclick="switchEventsTab('active')">Active</div>
+        <div class="stats-tab" id="ev-tab-history" onclick="switchEventsTab('history')">History</div>
+      </div>
+    </div>
+    <div id="events-list" style="padding:4px 16px 20px"></div>
+    <div id="events-history-list" style="padding:4px 16px 20px; display: none;"></div>
+  </div>
+
+  <!-- ═══ SCREEN: EVENT DETAIL ═══ -->
+  <div class="screen" id="screen-event-detail">
+    <div class="header">
+      <div class="header-row">
+        <div style="display:flex;align-items:center;gap:10px;min-width:0">
+          <div class="icon-btn" onclick="navigateEvents()" style="flex-shrink:0">
+            <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" width="20" height="20">
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+          </div>
+          <div style="min-width:0">
+            <div id="ev-detail-name"
+              style="font-size:16px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></div>
+            <div id="ev-detail-date" style="font-size:11px;color:var(--text3)"></div>
+          </div>
+        </div>
+        <div style="display:flex;gap:6px;flex-shrink:0">
+          <div class="icon-btn" id="ev-complete-btn" onclick="markEventComplete()" title="Mark as Complete"
+            style="background:rgba(104,211,145,.12);color:var(--green)">
+            <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" width="18" height="18">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+          </div>
+          <div class="icon-btn" onclick="openEditEvent()" title="Edit event">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="18" height="18">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div style="padding:0 16px">
+      <div id="ev-summary"></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div style="font-size:12px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--text3)">
+          Expenses</div>
+        <button onclick="openAddEventItem()" class="ev-add-item-btn">+ Add</button>
+      </div>
+      <div id="ev-items-list"></div>
+    </div>
+    <div style="height:20px"></div>
+  </div>
+
+  <!-- ═══ SCREEN: BILL SPLITTER (PAYER FLOW) ═══ -->
+  <div class="screen" id="screen-bill-splitter">
+    <div class="header">
+      <div class="header-row">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="icon-btn" onclick="navigate('profile')" style="flex-shrink:0">
+            <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" width="20" height="20">
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+          </div>
+          <span style="font-size:17px;font-weight:700">Bill Splitter</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="stats-tabs-wrap" style="margin-bottom: 12px; padding-top: 6px;">
+      <div class="stats-tabs">
+        <div class="stats-tab active" id="bs-tab-groups" onclick="switchBillSplitterTab('groups')">Group Trip Splitter
+        </div>
+        <div class="stats-tab" id="bs-tab-scan" onclick="switchBillSplitterTab('scan')">Quick Split &amp; Scan</div>
+      </div>
+    </div>
+
+    <div id="bs-panel-groups" style="padding:0 16px 30px">
+      <!-- List of active trips -->
+      <div id="trip-groups-list-container">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <span
+            style="font-size:11px;font-weight:500;text-transform:uppercase;color:var(--text3);letter-spacing:.05em">Active
+            Trips</span>
+          <button onclick="openCreateTripModal()"
+            style="background:var(--accent-dim);color:var(--accent);border:1px solid var(--accent);border-radius:20px;padding:5px 12px;font-size:11px;font-weight:600;cursor:pointer">+
+            New Trip</button>
+        </div>
+        <div id="trip-groups-list"></div>
+      </div>
+
+      <!-- Active trip details panel (shown when a trip is selected) -->
+      <div id="trip-details-panel" style="display:none">
+        <div
+          style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;border-bottom:1px solid var(--border);padding-bottom:10px">
+          <div>
+            <h3 id="selected-trip-name" style="margin:0;font-size:18px;color:var(--text)">Trip Name</h3>
+            <span style="font-size:11px;color:var(--text3)">Group split details</span>
+          </div>
+          <div style="display:flex;gap:6px">
+            <button onclick="closeTripDetails()"
+              style="background:var(--surface2);border:none;border-radius:8px;padding:6px 12px;font-size:12px;color:var(--text2);cursor:pointer">Back</button>
+            <button id="trip-delete-btn" onclick="deleteCurrentTrip()"
+              style="background:rgba(239, 68, 68, 0.12);border:none;border-radius:8px;padding:6px 10px;color:#ef4444;cursor:pointer"
+              title="Delete Trip">🗑️</button>
+          </div>
+        </div>
+
+        <!-- Add Expense Card Button -->
+        <div style="margin-bottom:16px">
+          <button class="submit-btn" onclick="openAddTripExpenseModal()"
+            style="background:linear-gradient(90deg, var(--accent), var(--blue));color:#0a0f1e;font-weight:700">+ Add
+            Trip Expense</button>
+        </div>
+
+        <!-- Settlements Breakdown -->
+        <div class="chart-card" style="margin:0 0 16px;padding:16px">
+          <div class="chart-title">Balances &amp; Settlements</div>
+          <div id="trip-settlements-list"></div>
+        </div>
+
+        <!-- Expenses List -->
+        <div class="chart-card" style="margin:0;padding:16px">
+          <div class="chart-title">Expenses log</div>
+          <div id="trip-expenses-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="bs-panel-scan" style="display:none; padding:0 16px 30px">
+      <!-- Scanner dropzone (Greyed out / Coming soon) -->
+      <div class="scanner-container" id="bs-upload-zone"
+        style="opacity: 0.5; filter: grayscale(1); cursor: not-allowed; position: relative;">
+        <div
+          style="position: absolute; top: 12px; right: 12px; background: var(--accent); color: #000; font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.05em; z-index: 10;">
+          Coming Soon</div>
+        <div class="scanner-beam" id="bs-scanner-beam" style="display:none"></div>
+        <div style="font-size:36px;margin-bottom:8px">📸</div>
+        <div style="font-size:14px;font-weight:600;color:var(--text)">Scan Receipt / Upload Bill</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:4px">Upload bill image to extract items automatically
+        </div>
+        <input type="file" id="bs-file-input" accept="image/*" style="display:none" disabled>
+        <button class="scanner-btn" disabled style="cursor: not-allowed; opacity: 0.7;">Choose Image</button>
+        <div style="margin-top:10px;font-size:11px;color:var(--text2)">or</div>
+        <button class="scanner-btn-secondary" disabled style="cursor: not-allowed; opacity: 0.7;">⚡ Simulate Demo
+          Scan</button>
+      </div>
+
+      <!-- Scanning status -->
+      <div id="bs-scan-status" style="display:none;text-align:center;margin:15px 0;font-size:13px;color:var(--accent)">
+        <span class="spinner" style="display:inline-block;margin-right:6px">⏳</span> <span id="bs-status-text">Uploading
+          and scanning...</span>
+      </div>
+
+      <!-- Bill info card -->
+      <div class="chart-card" style="margin:16px 0 0;padding:16px">
+        <div class="chart-title">Bill Details</div>
+
+        <div class="form-group">
+          <label class="form-label">Bill Name</label>
+          <input class="form-input" type="text" id="bs-bill-name" placeholder="e.g. Cafe Dinner, Goa Resort..."
+            value="Dinner Split">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Your Name (Payer)</label>
+          <input class="form-input" type="text" id="bs-payer-name" placeholder="Your Name">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Your UPI ID (to receive payments)</label>
+          <input class="form-input" type="text" id="bs-payer-upi" placeholder="e.g. name@upi">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Tax / Tip / Extra Charges (proportionate)</label>
+          <div class="amount-wrap">
+            <span class="amount-prefix">₹</span>
+            <input class="form-input with-prefix" type="number" id="bs-extra-charges" placeholder="0" step="any"
+              inputmode="decimal">
+          </div>
+        </div>
+      </div>
+
+      <!-- Items list -->
+      <div class="chart-card" style="margin:16px 0 0;padding:16px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <div class="chart-title" style="margin-bottom:0">Items List</div>
+          <button onclick="addBsItem()"
+            style="background:var(--accent-dim);color:var(--accent);border:1px solid var(--accent);border-radius:20px;padding:4px 12px;font-size:11px;font-weight:600;cursor:pointer">+
+            Add Item</button>
+        </div>
+        <div id="bs-items-list">
+          <div style="text-align:center;padding:20px 0;color:var(--text3);font-size:12px">No items yet. Upload a receipt
+            or add manually.</div>
+        </div>
+      </div>
+
+      <!-- Share block -->
+      <div style="margin-top:20px">
+        <button class="submit-btn" id="bs-share-btn" onclick="generateSplitLink()"
+          style="background:linear-gradient(90deg, var(--accent), var(--blue));color:#0a0f1e;font-weight:700">🔗
+          Generate &amp; Share Split Link</button>
+      </div>
+
+      <!-- Link modal/card -->
+      <div id="bs-link-box" class="chart-card"
+        style="display:none;margin-top:16px;padding:16px;border-color:var(--accent)">
+        <div style="font-size:13px;font-weight:600;color:var(--accent);margin-bottom:8px">Split Link Generated! 🎉</div>
+        <div style="font-size:11px;color:var(--text2);margin-bottom:10px">Send this link to your friends. They can open
+          it on mobile and select their items.</div>
+        <div
+          style="background:var(--surface2);padding:10px;border-radius:8px;font-family:var(--mono);font-size:10px;word-break:break-all;border:1px solid var(--border);color:var(--text2);user-select:all"
+          id="bs-generated-url"></div>
+        <div style="display:flex;gap:10px;margin-top:12px">
+          <button onclick="copyBsLink()" class="ev-add-item-btn" style="flex:1">📋 Copy Link</button>
+          <button onclick="shareBsLink()" class="submit-btn" style="flex:1;margin:0;font-size:11px;padding:8px">💬 Share
+            Now</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  </div>
+
+  <!-- ═══ SCREEN: GUEST SPLIT BILL (RECIPIENT FLOW) ═══ -->
+  <div class="screen" id="screen-guest-split">
+    <div class="header">
+      <div class="header-row" style="justify-content:center">
+        <div style="display:flex;align-items:center;gap:8px">
+          <div class="ev-icon-wrapper" style="width:30px;height:30px;font-size:14px">🧾</div>
+          <span style="font-size:17px;font-weight:700">Spendly Bill Splitter</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="padding:0 16px 40px">
+      <!-- Payer Banner -->
+      <div class="chart-card"
+        style="margin:10px 0;padding:16px;background:rgba(79, 209, 197, 0.05);border-color:rgba(79, 209, 197, 0.2)">
+        <div style="font-size:14px;font-weight:600;color:var(--text)" id="gs-payer-title">Payer Name shared a bill</div>
+        <div style="font-size:18px;font-weight:700;color:var(--accent);margin-top:4px" id="gs-bill-title">Dinner Bill
+        </div>
+        <div style="font-size:11px;color:var(--text3);margin-top:6px" id="gs-date-label"></div>
+      </div>
+
+      <!-- Instructions -->
+      <div style="font-size:12px;color:var(--text2);margin:16px 0 10px;text-align:center">👇 Select the items that you
+        ordered:</div>
+
+      <!-- Items Grid Selector -->
+      <div id="gs-items-container">
+        <!-- Renders list of items to select -->
+      </div>
+
+      <!-- Guest Details Form -->
+      <div class="chart-card" style="margin:16px 0;padding:16px">
+        <div class="form-group" style="margin-bottom:0">
+          <label class="form-label">Your Name</label>
+          <input class="form-input" type="text" id="gs-guest-name" placeholder="Enter your name"
+            oninput="updateGuestTotals()">
+        </div>
+      </div>
+
+      <!-- Live share card -->
+      <div class="chart-card"
+        style="margin:16px 0;padding:20px;background:rgba(26,37,64,0.65);border-color:var(--border2);position:relative;overflow:hidden">
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--text3)">Your Share</div>
+        <div style="display:flex;align-items:baseline;gap:4px;margin-top:4px">
+          <span style="font-size:26px;font-weight:700;color:var(--green)" id="gs-share-currency">₹</span>
+          <span style="font-size:36px;font-weight:700;color:var(--green);font-family:var(--mono)"
+            id="gs-share-total">0.00</span>
+        </div>
+
+        <!-- Breakdown -->
+        <div
+          style="border-top:1px solid var(--border);margin-top:12px;padding-top:10px;font-size:11px;color:var(--text2)">
+          <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+            <span>Items cost</span><span id="gs-items-cost" style="font-family:var(--mono)">₹0.00</span>
+          </div>
+          <div style="display:flex;justify-content:space-between">
+            <span>Proportionate tax/tip share</span><span id="gs-tax-share" style="font-family:var(--mono)">₹0.00</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- UPI QR and Deep-links -->
+      <div id="gs-pay-section" style="display:none;text-align:center;margin-top:20px">
+        <div class="chart-title">QR Code Payment</div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:12px">Scan QR code using GPay, PhonePe, Paytm, or
+          BHIM to pay instantly</div>
+
+        <div class="qr-box" style="margin: 0 auto 16px;">
+          <img id="gs-qr-img" style="width:180px;height:180px;display:block;margin:0 auto;border-radius:12px"
+            alt="UPI QR Code">
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:10px;margin-top:16px">
+          <a id="gs-upi-link" href="#" class="submit-btn"
+            style="background:var(--accent);color:#0a0f1e;font-weight:700;display:inline-flex;align-items:center;justify-content:center;text-decoration:none;gap:6px">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"
+              stroke-linecap="round" stroke-linejoin="round">
+              <rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
+              <line x1="12" y1="18" x2="12.01" y2="18" />
+            </svg>
+            Pay via UPI App
+          </a>
+          <button onclick="copyGsSummary()" class="ev-add-item-btn" style="padding:10px">📋 Copy Payment
+            Message</button>
+          <button onclick="confirmGsPayment()" class="submit-btn"
+            style="background:var(--green-dim);color:var(--green);border:1px solid var(--green);margin:0"
+            id="gs-pay-confirm-btn">✅ I Have Transferred the Money</button>
+        </div>
+      </div>
+
+      <!-- Unselected fallback -->
+      <div id="gs-unselected-fallback" style="text-align:center;color:var(--text3);font-size:12px;margin:20px 0">
+        Select at least one item to see payment options
+      </div>
+
+      <div style="height:30px"></div>
+      <div style="display:flex;justify-content:center;gap:12px">
+        <button onclick="window.location.hash=''; window.location.reload();" class="ev-add-item-btn"
+          style="font-size:11px;padding:6px 14px">Go to Spendly Homepage</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <nav class="bottom-nav">
+    <div class="nav-item active" id="nav-home" onclick="navigate('home')">
+      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+        <polyline points="9 22 9 12 15 12 15 22" />
+      </svg>
+      <span class="nav-label">Home</span>
+    </div>
+    <div class="nav-item" id="nav-transactions" onclick="navigate('transactions')">
+      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <line x1="8" y1="6" x2="21" y2="6" />
+        <line x1="8" y1="12" x2="21" y2="12" />
+        <line x1="8" y1="18" x2="21" y2="18" />
+        <line x1="3" y1="6" x2="3.01" y2="6" />
+        <line x1="3" y1="12" x2="3.01" y2="12" />
+        <line x1="3" y1="18" x2="3.01" y2="18" />
+      </svg>
+      <span class="nav-label">History</span>
+    </div>
+    <div class="nav-add" onclick="openAddExpense()">
+      <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+        <line x1="12" y1="5" x2="12" y2="19" />
+        <line x1="5" y1="12" x2="19" y2="12" />
+      </svg>
+    </div>
+    <div class="nav-item" id="nav-stats" onclick="navigate('stats')">
+      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <line x1="18" y1="20" x2="18" y2="10" />
+        <line x1="12" y1="20" x2="12" y2="4" />
+        <line x1="6" y1="20" x2="6" y2="14" />
+      </svg>
+      <span class="nav-label">Stats</span>
+    </div>
+    <div class="nav-item" id="nav-profile" onclick="navigate('profile')">
+      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+        <circle cx="12" cy="7" r="4" />
+      </svg>
+      <span class="nav-label">Profile</span>
+    </div>
+  </nav>
+
+  <!-- ═══ MODAL: ADD TRANSACTION ═══ -->
+  <div class="modal-overlay" id="modal-add">
+    <div class="modal-sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title">Add Transaction</div>
+      <div class="type-toggle">
+        <div class="type-btn active-expense" id="type-expense" onclick="setType('expense')">💸 Expense</div>
+        <div class="type-btn" id="type-income" onclick="setType('income')">💰 Savings</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Amount</label>
+        <div class="amount-wrap"><span class="amount-prefix">₹</span><input class="form-input with-prefix" type="number"
+            id="input-amount" placeholder="0" inputmode="decimal" min="0" step="any"
+            onkeydown="handleEnter(event,'input-desc')"></div>
+      </div>
+      <div class="quick-amounts">
+        <div class="quick-amt" onclick="setQuickAmt(100)">₹100</div>
+        <div class="quick-amt" onclick="setQuickAmt(200)">₹200</div>
+        <div class="quick-amt" onclick="setQuickAmt(500)">₹500</div>
+        <div class="quick-amt" onclick="setQuickAmt(1000)">₹1K</div>
+        <div class="quick-amt" onclick="setQuickAmt(2000)">₹2K</div>
+        <div class="quick-amt" onclick="setQuickAmt(5000)">₹5K</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Description <span
+            style="color:var(--text3);font-weight:400;text-transform:none;letter-spacing:0;font-size:10px">(optional)</span></label>
+        <input class="form-input" type="text" id="input-desc" placeholder="Who / what did you pay?"
+          onkeydown="handleEnter(event,'input-notes')">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Notes <span
+            style="color:var(--text3);font-weight:400;text-transform:none;letter-spacing:0;font-size:10px">(optional)</span></label>
+        <input class="form-input" type="text" id="input-notes" placeholder="Extra details, receipt #…"
+          onkeydown="handleEnter(event,'input-date')">
+      </div>
+      <div class="form-group" style="display:flex;gap:10px">
+        <div style="flex:2">
+          <label class="form-label">Date</label>
+          <input class="form-input" type="date" id="input-date" required onkeydown="handleEnter(event,'input-time')">
+        </div>
+        <div style="flex:1">
+          <label class="form-label">Time <span
+              style="color:var(--text3);font-weight:400;text-transform:none;letter-spacing:0;font-size:10px">(optional)</span></label>
+          <input class="form-input" type="time" id="input-time" onkeydown="handleEnter(event,null)">
+        </div>
+      </div>
+      <div class="form-group" id="cat-group">
+        <label class="form-label">Category</label>
+        <div class="cat-grid" id="cat-grid"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Recurring</label>
+        <select class="form-input" id="input-recur">
+          <option value="none">One-time (Non-recurring)</option>
+          <option value="weekly">Weekly (based on weekday of selected date)</option>
+          <option value="monthly">Monthly (Recurring every month)</option>
+        </select>
+      </div>
+      <button class="submit-btn" onclick="submitTransaction()">Add Transaction</button>
+      <div style="height:12px"></div>
+    </div>
+  </div>
+
+  <!-- ═══ MODAL: SET BUDGET ═══ -->
+  <div class="modal-overlay" id="modal-budget">
+    <div class="modal-sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title" id="budget-modal-title">Set Monthly Budget</div>
+
+      <!-- Tab Toggle -->
+      <div class="modal-toggle-tabs">
+        <div class="modal-toggle-tab active" id="btn-tab-budget" onclick="switchBudgetModalTab('budget')">
+          <span class="tab-icon">🎯</span> Budget
+        </div>
+        <div class="modal-toggle-tab" id="btn-tab-salary" onclick="switchBudgetModalTab('salary')">
+          <span class="tab-icon">💼</span> Salary
+        </div>
+      </div>
+
+      <!-- Tab Content: Budget -->
+      <div id="tab-content-budget">
+        <div class="form-group">
+          <label class="form-label">Total Budget</label>
+          <div class="amount-wrap"><span class="amount-prefix">₹</span><input class="form-input with-prefix"
+              type="number" id="input-budget" placeholder="0" inputmode="decimal" step="any"
+              onkeydown="if(event.key==='Enter')saveBudget()"></div>
+        </div>
+        <div style="font-size:12px;color:var(--text3);margin-bottom:14px;line-height:1.6">Resets on the <strong
+            style="color:var(--accent)" id="budget-day-label">1st</strong> of every month.</div>
+      </div>
+
+      <!-- Tab Content: Salary -->
+      <div id="tab-content-salary" style="display:none">
+        <div class="form-group">
+          <label class="form-label">Salary Amount</label>
+          <div class="amount-wrap"><span class="amount-prefix">₹</span><input class="form-input with-prefix"
+              type="number" id="input-salary" placeholder="0" inputmode="decimal" step="any"
+              onkeydown="if(event.key==='Enter')saveBudget()"></div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Frequency</label>
+          <select class="form-input" id="select-salary-freq" onchange="toggleSalaryFreq()">
+            <option value="monthly">Monthly</option>
+            <option value="weekly">Weekly</option>
+          </select>
+        </div>
+
+        <div class="form-group" id="group-salary-payday" style="display:none">
+          <label class="form-label">Salary Pay Day</label>
+          <select class="form-input" id="select-salary-payday">
+            <option value="5">Friday</option>
+            <option value="1">Monday</option>
+            <option value="2">Tuesday</option>
+            <option value="3">Wednesday</option>
+            <option value="4">Thursday</option>
+            <option value="6">Saturday</option>
+            <option value="0">Sunday</option>
+          </select>
+        </div>
+      </div>
+
+      <button class="submit-btn" onclick="saveBudget()">Save Budget</button>
+      <div style="height:6px"></div>
+      <button class="submit-btn secondary" onclick="closeModal('modal-budget')">Cancel</button>
+      <div style="height:12px"></div>
+    </div>
+  </div>
+
+  <!-- ═══ MODAL: CATEGORY BUDGETS ═══ -->
+  <div class="modal-overlay" id="modal-cat-budget">
+    <div class="modal-sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title">Category Budgets</div>
+      <div style="font-size:12px;color:var(--text3);margin-bottom:16px;text-align:center">Set monthly spending limits
+        per category</div>
+      <div id="cat-budget-settings"></div>
+      <div style="height:12px"></div>
+    </div>
+  </div>
+
+  <!-- ═══ MODAL: MONTH ═══ -->
+  <div class="modal-overlay" id="modal-month">
+    <div class="modal-sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title">Select Month</div>
+      <div class="month-list" id="month-list"></div>
+      <div style="height:12px"></div>
+    </div>
+  </div>
+
+  <!-- ═══ MODAL: TX DETAIL ═══ -->
+  <div class="modal-overlay" id="modal-detail">
+    <div class="modal-sheet">
+      <div class="sheet-handle"></div>
+      <div id="detail-content"></div>
+      <div style="height:12px"></div>
+    </div>
+  </div>
+
+  <!-- ═══ MODAL: ADD DEBT ═══ -->
+  <div class="modal-overlay" id="modal-debt">
+    <div class="modal-sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title">Track Debt</div>
+      <div class="type-toggle">
+        <div class="type-btn active-expense" id="debt-type-owe" onclick="setDebtType('owe')">😬 I Owe</div>
+        <div class="type-btn" id="debt-type-lent" onclick="setDebtType('lent')">💪 I Lent</div>
+      </div>
+      <div class="form-group"><label class="form-label">Person</label><input class="form-input" type="text"
+          id="debt-person" placeholder="Name" onkeydown="handleEnter(event,'debt-amount')"></div>
+      <div class="form-group"><label class="form-label">Amount</label>
+        <div class="amount-wrap"><span class="amount-prefix">₹</span><input class="form-input with-prefix" type="number"
+            id="debt-amount" placeholder="0" inputmode="decimal" step="any" onkeydown="handleEnter(event,'debt-note')">
+        </div>
+      </div>
+      <div class="form-group"><label class="form-label">Note</label><input class="form-input" type="text" id="debt-note"
+          placeholder="What for?" onkeydown="if(event.key==='Enter')submitDebt()"></div>
+      <button class="submit-btn" onclick="submitDebt()">Save</button>
+      <div style="height:12px"></div>
+    </div>
+  </div>
+
+  <!-- ═══ MODAL: DEBT DETAIL ═══ -->
+  <div class="modal-overlay" id="modal-debt-detail">
+    <div class="modal-sheet">
+      <div class="sheet-handle"></div>
+      <div id="debt-detail-content"></div>
+      <div style="height:12px"></div>
+    </div>
+  </div>
+
+  <!-- ═══ MODAL: PIN SETUP ═══ -->
+  <div class="modal-overlay" id="modal-pin">
+    <div class="modal-sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title" id="pin-modal-title">Set PIN Lock</div>
+      <div style="text-align:center;padding-bottom:8px">
+        <div style="font-size:13px;color:var(--text2);margin-bottom:20px" id="pin-modal-sub">Choose a 4-digit PIN</div>
+        <div class="pin-dots" style="justify-content:center">
+          <div class="pin-dot" id="spd0"></div>
+          <div class="pin-dot" id="spd1"></div>
+          <div class="pin-dot" id="spd2"></div>
+          <div class="pin-dot" id="spd3"></div>
+        </div>
+        <div class="pin-pad" style="margin:20px auto">
+          <div class="pin-key" onclick="setupPinPress('1')">1</div>
+          <div class="pin-key" onclick="setupPinPress('2')">2</div>
+          <div class="pin-key" onclick="setupPinPress('3')">3</div>
+          <div class="pin-key" onclick="setupPinPress('4')">4</div>
+          <div class="pin-key" onclick="setupPinPress('5')">5</div>
+          <div class="pin-key" onclick="setupPinPress('6')">6</div>
+          <div class="pin-key" onclick="setupPinPress('7')">7</div>
+          <div class="pin-key" onclick="setupPinPress('8')">8</div>
+          <div class="pin-key" onclick="setupPinPress('9')">9</div>
+          <div class="pin-key empty"></div>
+          <div class="pin-key" onclick="setupPinPress('0')">0</div>
+          <div class="pin-key del" onclick="setupPinDel()"><svg fill="none" stroke="currentColor" stroke-width="2"
+              viewBox="0 0 24 24" width="18" height="18">
+              <path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z" />
+              <line x1="18" y1="9" x2="12" y2="15" />
+              <line x1="12" y1="9" x2="18" y2="15" />
+            </svg></div>
+        </div>
+        <div class="pin-error-msg" id="pin-setup-error"></div>
+      </div>
+      <button class="submit-btn danger" id="disable-pin-btn" onclick="disablePin()" style="display:none">Disable PIN
+        Lock</button>
+      <div style="height:6px"></div>
+      <button class="submit-btn secondary" onclick="closeModal('modal-pin');resetSetupPin()">Cancel</button>
+      <div style="height:12px"></div>
+    </div>
+  </div>
+
+  <!-- ═══ MODAL: IMPORT CONFIRM ═══ -->
+  <div class="modal-overlay" id="modal-import-confirm">
+    <div class="modal-sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title">📥 Import Backup</div>
+      <div style="font-size:13px;color:var(--text2);line-height:1.65;margin-bottom:20px">
+        This will import transactions from a <strong style="color:var(--text)">Spendly CSV export</strong> file and add
+        them to your existing data.
+        <br><br>
+        ℹ️ Your current data will <strong style="color:var(--text)">not</strong> be deleted — imported entries are added
+        on top.
+      </div>
+      <button class="submit-btn"
+        onclick="closeModal('modal-import-confirm');document.getElementById('import-file').click()">
+        📂 Choose CSV File
+      </button>
+      <div style="height:8px"></div>
+      <button class="submit-btn" style="background:var(--surface2);color:var(--text2)"
+        onclick="closeModal('modal-import-confirm')">
+        Cancel
+      </button>
+      <div style="height:12px"></div>
+    </div>
+  </div>
+
+  <!-- ═══ MODAL: ADD EVENT ═══ -->
+  <div class="modal-overlay" id="modal-add-event">
+    <div class="modal-sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title">New Event</div>
+      <div class="form-group">
+        <label class="form-label">Event Name</label>
+        <input class="form-input" type="text" id="input-event-name"
+          placeholder="e.g. Wedding, Goa Trip, Birthday Party…">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Currency</label>
+        <div class="edit-field" onclick="openEventCurrencyPicker()"
+          style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:var(--surface);border:1px solid var(--border);border-radius:12px">
+          <span id="event-currency-display" style="font-size:13px;color:var(--text)">₹ Indian Rupee (₹)</span>
+          <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Estimated Total Budget <span
+            style="color:var(--text3);font-weight:400;font-size:10px">(optional)</span></label>
+        <div class="amount-wrap"><span class="amount-prefix" id="event-budget-prefix">₹</span><input
+            class="form-input with-prefix" type="number" id="input-event-budget" placeholder="Leave blank if unsure"
+            step="any" inputmode="decimal"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Target Date <span
+            style="color:var(--text3);font-weight:400;font-size:10px">(optional)</span></label>
+        <input class="form-input" type="date" id="input-event-date">
+      </div>
+      <button class="submit-btn" id="ev-submit-btn" onclick="submitEvent()">Create Event</button>
+      <div style="height:6px"></div>
+      <button class="submit-btn" id="ev-delete-btn" onclick="deleteEvent()"
+        style="display:none;background:var(--red-dim);color:var(--red);border:1px solid var(--red)">Delete
+        Event</button>
+      <div style="height:6px"></div>
+      <button class="submit-btn" style="background:var(--surface2);color:var(--text2)"
+        onclick="closeModal('modal-add-event')">Cancel</button>
+      <div style="height:12px"></div>
+    </div>
+  </div>
+
+  <!-- ═══ MODAL: ADD EVENT ITEM ═══ -->
+  <div class="modal-overlay" id="modal-add-event-item">
+    <div class="modal-sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title">Add Expense</div>
+      <div class="form-group">
+        <label class="form-label">Vendor / Item</label>
+        <input class="form-input" type="text" id="input-ei-name" placeholder="e.g. Hall, MC, Catering, Band…">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Amount Paid So Far</label>
+        <div class="amount-wrap"><span class="amount-prefix">₹</span><input class="form-input with-prefix" type="number"
+            id="input-ei-paid" placeholder="0" step="any" inputmode="decimal"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Total Cost <span style="color:var(--text3);font-weight:400;font-size:10px">(optional —
+            if full amount is known)</span></label>
+        <div class="amount-wrap"><span class="amount-prefix">₹</span><input class="form-input with-prefix" type="number"
+            id="input-ei-total" placeholder="e.g. 1,00,000 if total is 1 lakh" step="any" inputmode="decimal"></div>
+        <div style="font-size:11px;color:var(--text3);margin-top:5px">Remaining balance = Total Cost − Amount Paid</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Notes <span
+            style="color:var(--text3);font-weight:400;font-size:10px">(optional)</span></label>
+        <input class="form-input" type="text" id="input-ei-notes"
+          placeholder="e.g. Balance due by Dec 10, call to confirm…">
+      </div>
+      <button class="submit-btn" id="ei-submit-btn" onclick="submitEventItem()">Add</button>
+      <div style="height:6px"></div>
+      <button class="submit-btn" id="ei-delete-btn" onclick="deleteEventItem()"
+        style="display:none;background:var(--red-dim);color:var(--red);border:1px solid var(--red)">Remove</button>
+      <div style="height:6px"></div>
+      <button class="submit-btn" style="background:var(--surface2);color:var(--text2)"
+        onclick="closeModal('modal-add-event-item')">Cancel</button>
+      <div style="height:12px"></div>
+    </div>
+  </div>
+
+  <!-- ═══ MODAL: CURRENCY PICKER ═══ -->
+  <div class="modal-overlay" id="modal-currency">
+    <div class="modal-sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title">Select Currency</div>
+      <div class="search-bar" style="margin-bottom:6px;padding:0">
+        <div class="search-input-wrap">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <circle cx="11" cy="11" r="8" />
+            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
+          <input class="search-input" type="text" id="currency-search" placeholder="Search by name or code…"
+            oninput="renderCurrencyList()">
+        </div>
+      </div>
+      <div id="currency-list" style="max-height:55vh;overflow-y:auto;padding:0 2px"></div>
+      <div style="height:12px"></div>
+    </div>
+  </div>
+
+  <!-- ═══ MODAL: EXPORT CSV ═══ -->
+  <div class="modal-overlay" id="modal-export-csv">
+    <div class="modal-sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title">📊 Export CSV Report</div>
+      <div style="font-size:13px;color:var(--text2);line-height:1.65;margin-bottom:20px;text-align:center">
+        Select which transactions you want to include in the CSV file.
+      </div>
+      <button class="submit-btn" onclick="triggerExportCSV(false)">
+        📋 Export This Month Only
+      </button>
+      <div style="height:8px"></div>
+      <button class="submit-btn" style="background:var(--accent-dim);color:var(--accent);border:1px solid var(--accent)"
+        onclick="triggerExportCSV(true)">
+        📅 Export All Time
+      </button>
+      <div style="height:8px"></div>
+      <button class="submit-btn secondary" onclick="closeModal('modal-export-csv')">
+        Cancel
+      </button>
+      <div style="height:12px"></div>
+    </div>
+  </div>
+
+  <!-- ═══ MODAL: EXPORT ACTION ═══ -->
+  <div class="modal-overlay" id="modal-export-action">
+    <div class="modal-sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title">📤 Share or Download Report</div>
+      <div style="font-size:13px;color:var(--text2);line-height:1.65;margin-bottom:20px;text-align:center">
+        Choose how you'd like to export your report.
+      </div>
+      <button class="submit-btn" id="export-email-btn" onclick="executeExportAction('email')"
+        style="background:linear-gradient(135deg,var(--accent),#7c3aed);color:#fff;border:none">
+        📧 Send to My Email
+      </button>
+      <div style="height:8px"></div>
+      <button class="submit-btn" id="export-share-btn" onclick="executeExportAction('share')">
+        ✉️ Email &amp; Share Report
+      </button>
+      <div style="height:8px"></div>
+      <button class="submit-btn" style="background:var(--accent-dim);color:var(--accent);border:1px solid var(--accent)"
+        onclick="executeExportAction('download')">
+        💾 Download Directly
+      </button>
+      <div style="height:8px"></div>
+      <button class="submit-btn secondary" onclick="closeModal('modal-export-action')">
+        Cancel
+      </button>
+      <div style="height:12px"></div>
+    </div>
+  </div>
+
+  <!-- ═══ MODAL: EMAIL SENT ═══ -->
+  <div class="modal-overlay" id="modal-email-sent">
+    <div class="modal-sheet">
+      <div class="sheet-handle"></div>
+      <div style="text-align:center;padding:12px 0 4px">
+        <div style="font-size:52px;margin-bottom:8px">📬</div>
+        <div class="sheet-title" style="margin-bottom:8px">Email Ready!</div>
+        <div style="font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:6px">
+          Your CSV has been <strong>downloaded</strong> and your email client has opened.<br>
+          Just <strong>attach the file</strong> and hit send!
+        </div>
+        <div id="email-sent-address"
+          style="font-size:12px;color:var(--accent);background:var(--accent-dim);padding:6px 14px;border-radius:20px;display:inline-block;margin-bottom:18px">
+        </div>
+      </div>
+      <button class="submit-btn" onclick="closeModal('modal-email-sent')"
+        style="background:linear-gradient(135deg,var(--accent),#7c3aed);color:#fff;border:none">
+        ✅ Got It
+      </button>
+      <div style="height:12px"></div>
+    </div>
+  </div>
+
+  <!-- ═══ MODAL: CHANGE PASSWORD ═══ -->
+  <div class="modal-overlay" id="modal-change-password">
+    <div class="modal-sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title">🔐 Change Password</div>
+      <div style="font-size:12px;color:var(--text3);margin-bottom:14px;text-align:center;line-height:1.6">Enter a new
+        secure password for your account.</div>
+      <div class="form-group">
+        <label class="form-label">New Password</label>
+        <div style="position: relative; width: 100%">
+          <input class="form-input" type="password" id="input-new-password" placeholder="At least 6 characters"
+            style="padding-right: 44px" onkeydown="if(event.key==='Enter')submitChangePassword()">
+          <span id="new-password-toggle" onclick="toggleNewPasswordVisibility()"
+            style="position: absolute; right: 14px; top: 12px; cursor: pointer; color: var(--text3); display: flex; align-items: center; justify-content: center; height: 20px; transition: color .15s">
+            <svg fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" width="18" height="18">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+              <circle cx="12" cy="12" r="3" />
+            </svg>
+          </span>
+        </div>
+      </div>
+      <button class="submit-btn" onclick="submitChangePassword()">Update Password</button>
+      <div style="height:6px"></div>
+      <button class="submit-btn secondary" onclick="closeModal('modal-change-password')">Cancel</button>
+      <div style="height:12px"></div>
+    </div>
+  </div>
+
+  <!-- ═══ MODAL: ADD INVOICE ═══ -->
+  <div class="modal-overlay" id="modal-add-invoice">
+    <div class="modal-sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title">Upload Invoice / Bill</div>
+
+      <div class="form-group">
+        <label class="form-label">Invoice Name / Vendor</label>
+        <input class="form-input" type="text" id="invoice-name-input"
+          placeholder="e.g. Amazon, Electric Bill, Office Supplies">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Date</label>
+        <input class="form-input" type="date" id="invoice-date-input">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Additional Details / Notes</label>
+        <textarea class="form-input" id="invoice-details-input" placeholder="e.g. Total amount ₹2,499, Work expense..."
+          style="height:60px;resize:none;padding:10px;font-family:var(--font)"></textarea>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Document File</label>
+        <div class="file-upload-zone" onclick="document.getElementById('invoice-file-input').click()">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="24" height="24"
+            style="color:var(--accent);margin-bottom:6px">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="17 8 12 3 7 8" />
+            <line x1="12" y1="3" x2="12" y2="15" />
+          </svg>
+          <span id="invoice-file-label" style="font-size:12px;font-weight:500;color:var(--text2)">Tap to choose
+            file</span>
+          <span style="font-size:10px;color:var(--text3);margin-top:2px">Supports Images, HEIC, PDF, Excel, Word</span>
+        </div>
+        <input type="file" id="invoice-file-input" style="display:none" onchange="handleInvoiceFileSelected(event)"
+          accept="image/*,.heic,.pdf,.xls,.xlsx,.doc,.docx">
+      </div>
+
+      <button class="submit-btn" id="invoice-submit-btn" onclick="submitInvoice()">
+        <span id="invoice-submit-text">Upload &amp; Save</span>
+      </button>
+      <div style="height:6px"></div>
+      <button class="submit-btn secondary" onclick="closeModal('modal-add-invoice')">Cancel</button>
+      <div style="height:12px"></div>
+    </div>
+  </div>
+
+  <!-- ═══ MODAL: CREATE TRIP GROUP ═══ -->
+  <div class="modal-overlay" id="modal-create-trip">
+    <div class="modal-sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title">✈️ Create Trip Group</div>
+      <div style="font-size:12px;color:var(--text3);margin-bottom:14px;text-align:center;line-height:1.6">Share expenses
+        with friends during trips. Anyone added who has the app can view and edit this group!</div>
+
+      <div class="form-group">
+        <label class="form-label">Trip Name / Destination</label>
+        <input class="form-input" type="text" id="trip-name-input" placeholder="e.g. Goa Trip 2026, Ladakh Bike Tour">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Add Members by @Username</label>
+        <!-- Search box -->
+        <div style="display:flex;gap:8px;margin-bottom:8px">
+          <input class="form-input" type="text" id="trip-username-search" placeholder="Search @username..."
+            style="flex:1" oninput="searchTripUser()">
+          <button onclick="addSearchedUser()"
+            style="background:var(--accent-dim);color:var(--accent);border:1px solid var(--accent);border-radius:12px;padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer;flex-shrink:0">Add</button>
+        </div>
+        <!-- Search result hint -->
+        <div id="trip-user-search-result" style="font-size:11px;min-height:18px;margin-bottom:6px"></div>
+        <!-- Added members list -->
+        <div id="trip-added-members" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+        <span style="font-size:10px;color:var(--text3);margin-top:6px;display:block">You are added automatically.
+          Friends must have a Spendly account with an @username set.</span>
+      </div>
+
+      <button class="submit-btn" onclick="submitCreateTrip()">Create Group</button>
+      <div style="height:6px"></div>
+      <button class="submit-btn secondary" onclick="closeModal('modal-create-trip')">Cancel</button>
+      <div style="height:12px"></div>
+    </div>
+  </div>
+
+  <!-- ═══ MODAL: ADD TRIP EXPENSE ═══ -->
+  <div class="modal-overlay" id="modal-add-trip-expense">
+    <div class="modal-sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title">💸 Add Trip Expense</div>
+
+      <div class="form-group">
+        <label class="form-label">Description</label>
+        <input class="form-input" type="text" id="trip-exp-desc" placeholder="e.g. Hotel Booking, Dinner, Fuel">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Amount</label>
+        <div class="amount-wrap">
+          <span class="amount-prefix">₹</span>
+          <input class="form-input with-prefix" type="number" id="trip-exp-amount" placeholder="0" step="any"
+            inputmode="decimal">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Paid By</label>
+        <select class="form-input" id="trip-exp-payer" style="font-family:var(--font)"></select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Date</label>
+        <input class="form-input" type="date" id="trip-exp-date">
+      </div>
+
+      <button class="submit-btn" onclick="submitTripExpense()">Add Expense</button>
+      <div style="height:6px"></div>
+      <button class="submit-btn secondary" onclick="closeModal('modal-add-trip-expense')">Cancel</button>
+      <div style="height:12px"></div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <!-- App JS — loaded last so DOM is ready -->
+  <script src="app.js"></script>
+
+  <script>
+    // Category budget modal opener (needs DOM + app.js both loaded)
+    function openCatBudgetModal() {
+      renderCatBudgetSettings();
+      openModal('modal-cat-budget');
+    }
+
+    // Inline Service Worker registration for robust updates and automatic recovery
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js')
+        .then(reg => {
+          reg.onupdatefound = () => {
+            const installingWorker = reg.installing;
+            if (installingWorker) {
+              installingWorker.onstatechange = () => {
+                if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  // Automatically reload to apply the update immediately
+                  window.location.reload();
+                }
+              };
             }
           };
-        }
-      };
-    })
-    .catch(err => console.warn('SW registration failed:', err));
-}
-</script>
+        })
+        .catch(err => console.warn('SW registration failed:', err));
+    }
+  </script>
 
-<!-- ═══ NOTIFICATION PANEL ═══ -->
-<div class="modal-overlay" id="modal-notifications" onclick="if(event.target===this)closeModal('modal-notifications')">
-  <div class="modal-sheet">
-    <div class="sheet-handle"></div>
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-      <div class="sheet-title" style="margin:0">🔔 Notifications</div>
-      <button onclick="markAllNotifsRead()" style="background:none;border:none;font-size:11px;color:var(--accent);font-weight:600;cursor:pointer">Mark all read</button>
+  <!-- ═══ NOTIFICATION PANEL ═══ -->
+  <div class="modal-overlay" id="modal-notifications"
+    onclick="if(event.target===this)closeModal('modal-notifications')">
+    <div class="modal-sheet">
+      <div class="sheet-handle"></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <div class="sheet-title" style="margin:0">🔔 Notifications</div>
+        <button onclick="markAllNotifsRead()"
+          style="background:none;border:none;font-size:11px;color:var(--accent);font-weight:600;cursor:pointer">Mark all
+          read</button>
+      </div>
+      <div id="notifications-list" style="max-height:380px;overflow-y:auto;display:flex;flex-direction:column;gap:8px">
+        <div style="text-align:center;color:var(--text3);font-size:13px;padding:24px 0">No notifications yet</div>
+      </div>
+      <div style="height:12px"></div>
+      <button class="submit-btn secondary" onclick="closeModal('modal-notifications')">Close</button>
+      <div style="height:12px"></div>
     </div>
-    <div id="notifications-list" style="max-height:380px;overflow-y:auto;display:flex;flex-direction:column;gap:8px">
-      <div style="text-align:center;color:var(--text3);font-size:13px;padding:24px 0">No notifications yet</div>
-    </div>
-    <div style="height:12px"></div>
-    <button class="submit-btn secondary" onclick="closeModal('modal-notifications')">Close</button>
-    <div style="height:12px"></div>
   </div>
-</div>
 
 </body>
+
 </html>
