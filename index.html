@@ -1512,7 +1512,7 @@
           <label class="form-label">Salary Amount</label>
           <div class="amount-wrap"><span class="amount-prefix">₹</span><input class="form-input with-prefix"
               type="number" id="input-salary" placeholder="0" inputmode="decimal" step="any"
-              onkeydown="if(event.key==='Enter')saveSalary()"></div>
+              onkeydown="if(event.key==='Enter')saveBudget()"></div>
         </div>
 
         <div class="form-group">
@@ -1537,8 +1537,7 @@
         </div>
       </div>
 
-      <button class="submit-btn" onclick="saveBudget()">Save Budget</button>
-      <button class="submit-btn" onclick="saveSalary()">Save Salary</button>
+      <button class="submit-btn" id="save-btn" onclick="saveBudget()">Save Budget</button>
       <div style="height:6px"></div>
       <button class="submit-btn secondary" onclick="closeModal('modal-budget')">Cancel</button>
       <div style="height:12px"></div>
