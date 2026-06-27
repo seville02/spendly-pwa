@@ -246,7 +246,7 @@ const EYE_CLOSED_SVG = `<svg fill="none" stroke="currentColor" stroke-width="2.2
 function toggleHideAmounts(e) {
   if (e) e.stopPropagation();
   isAmountsHidden = !isAmountsHidden;
-  try { localStorage.setItem(HIDE_KEY, isAmountsHidden); } catch (err) {}
+  try { localStorage.setItem(HIDE_KEY, isAmountsHidden); } catch (err) { }
   applyHideAmountsUI();
 }
 
@@ -259,24 +259,37 @@ function applyHideAmountsUI() {
   const heroAmt = document.getElementById('remaining-amt');
   const heroCur = document.getElementById('hero-currency');
   if (heroAmt) {
-    if (!isAmountsHidden) {
-      heroAmt.setAttribute('data-real', heroAmt.textContent);
+
+    // Save the real value only once
+    if (!heroAmt.dataset.real || heroAmt.dataset.real === MASK) {
+      heroAmt.dataset.real = heroAmt.textContent;
     }
-    const realVal = heroAmt.getAttribute('data-real') || heroAmt.textContent;
-    if (heroCur) heroCur.style.visibility = isAmountsHidden ? 'hidden' : 'visible';
-    heroAmt.textContent = isAmountsHidden ? MASK : realVal;
+
+    if (heroCur) {
+      heroCur.style.visibility = isAmountsHidden ? "hidden" : "visible";
+    }
+
+    heroAmt.textContent = isAmountsHidden
+      ? MASK
+      : heroAmt.dataset.real;
   }
 
   // Savings hero
   const savAmt = document.getElementById('savings-hero-total');
   const savCur = document.getElementById('savings-hero-currency');
   if (savAmt) {
-    if (!isAmountsHidden) {
-      savAmt.setAttribute('data-real', savAmt.textContent);
+
+    if (!savAmt.dataset.real || savAmt.dataset.real === MASK) {
+      savAmt.dataset.real = savAmt.textContent;
     }
-    const realVal = savAmt.getAttribute('data-real') || savAmt.textContent;
-    if (savCur) savCur.style.visibility = isAmountsHidden ? 'hidden' : 'visible';
-    savAmt.textContent = isAmountsHidden ? MASK : realVal;
+
+    if (savCur) {
+      savCur.style.visibility = isAmountsHidden ? "hidden" : "visible";
+    }
+
+    savAmt.textContent = isAmountsHidden
+      ? MASK
+      : savAmt.dataset.real;
   }
 }
 
@@ -730,7 +743,7 @@ async function loadAllData(userId) {
     setSyncing('ok');
     setTimeout(() => setSyncing('ok'), 2000);
     setTimeout(() => { renderXPBar(); checkMonthEndXPBonus(); }, 500);
-    
+
     updateNotifBellCount();
     syncPendingTransactions();
   } catch (e) {
@@ -2323,7 +2336,7 @@ async function submitTransaction() {
       let pending = [];
       try {
         pending = JSON.parse(localStorage.getItem(pendingKey) || '[]');
-      } catch (err) {}
+      } catch (err) { }
       if (!pending.some(p => p.id === tx.id)) {
         pending.push(tx);
         localStorage.setItem(pendingKey, JSON.stringify(pending));
@@ -4565,7 +4578,7 @@ function loadAppDataLocally() {
       try {
         appData = JSON.parse(raw);
         return true;
-      } catch (e) {}
+      } catch (e) { }
     }
   }
   return false;
@@ -4586,7 +4599,7 @@ async function syncPendingTransactions() {
 
   isSyncingPending = true;
   setSyncing('syncing');
-  
+
   let successCount = 0;
   let failed = [];
 
