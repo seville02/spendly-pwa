@@ -1916,6 +1916,11 @@
             file</span>
           <span style="font-size:10px;color:var(--text3);margin-top:2px">Supports Images, HEIC, PDF, Excel, Word</span>
         </div>
+        <!-- PREVIEW CONTAINER -->
+        <div id="invoice-preview-container" style="display:none; margin-top: 10px; text-align: center; border: 1px dashed var(--border2); padding: 10px; border-radius: 12px; background: var(--surface2)">
+          <img id="invoice-preview-img" style="max-width: 100%; max-height: 150px; border-radius: 8px; display: none;" />
+          <div id="invoice-preview-fileinfo" style="font-size: 12px; color: var(--text2); display: flex; align-items: center; justify-content: center; gap: 6px;"></div>
+        </div>
         <input type="file" id="invoice-file-input" style="display:none" onchange="handleInvoiceFileSelected(event)"
           accept="image/*,.heic,.pdf,.xls,.xlsx,.doc,.docx">
       </div>

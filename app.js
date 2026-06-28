@@ -588,10 +588,23 @@ async function handleAuth() {
   try {
     if (authMode === 'signup') {
       await dbSignUp(email, password, name);
-      // Auto sign in after signup
-      await dbSignIn(email, password);
+      btn.disabled = false;
+      btn.textContent = 'Create Account';
+      showToast('Account successfully created! Please sign in. 🎉');
+      setAuthTab('signin');
+      // Clear password field for safety
+      document.getElementById('auth-password').value = '';
+      return;
     } else {
-      await dbSignIn(email, password);
+      let loginEmail = email;
+      if (!email.includes('@')) {
+        const fetchedEmail = await dbGetEmailByUsername(email);
+        if (!fetchedEmail) {
+          throw new Error('Username not found. Please sign in with your email address.');
+        }
+        loginEmail = fetchedEmail;
+      }
+      await dbSignIn(loginEmail, password);
     }
     // Re-enable and reset button text in case they log out later
     btn.disabled = false;
@@ -735,6 +748,10 @@ async function loadAllData(userId) {
       settled: d.settled, date: d.date,
     }));
     appData.profile = profile || {};
+    if (currentUser?.email && appData.profile.email !== currentUser.email) {
+      appData.profile.email = currentUser.email;
+      dbSaveProfile(userId, appData.profile).catch(console.error);
+    }
     checkAndGenerateUsername();
     dbUpdateLastActive(userId);
 
@@ -1993,30 +2010,37 @@ function deleteSavingsAccount(index) { deleteSavingsAccountById(index); }
 async function saveSavingsAccounts() { /* no-op, replaced */ }
 
 
-function uploadAvatar(event) {
+async function uploadAvatar(event) {
   const file = event.target.files[0];
   if (!file) return;
-  if (file.size > 500 * 1024) {
-    showToast('Image must be under 500KB 📸');
+  
+  // 10MB limit
+  if (file.size > 10 * 1024 * 1024) {
+    showToast('Image must be under 10MB 📸');
     return;
   }
-  const reader = new FileReader();
-  reader.onload = async function (e) {
-    const base64 = e.target.result;
+
+  // Support jpg, jpeg, heic, png
+  const ext = file.name.split('.').pop().toLowerCase();
+  if (!['jpg', 'jpeg', 'heic', 'png'].includes(ext)) {
+    showToast('Only JPG, JPEG, HEIC, and PNG images are supported 📸');
+    return;
+  }
+
+  setSyncing('syncing');
+  try {
+    const publicUrl = await dbUploadAvatarFile(currentUser.id, file);
     appData.profile = appData.profile || {};
-    appData.profile.avatar = base64;
-    setSyncing('syncing');
-    try {
-      await dbSaveProfile(currentUser.id, appData.profile);
-      setSyncing('ok');
-      renderProfile();
-      showToast('Profile picture updated! 📸');
-    } catch (err) {
-      setSyncing('error');
-      showToast('Failed to save profile picture: ' + err.message);
-    }
-  };
-  reader.readAsDataURL(file);
+    appData.profile.avatar = publicUrl;
+    
+    await dbSaveProfile(currentUser.id, appData.profile);
+    setSyncing('ok');
+    renderProfile();
+    showToast('Profile picture updated! 📸');
+  } catch (err) {
+    setSyncing('error');
+    showToast('Failed to save profile picture: ' + err.message);
+  }
 }
 
 function openChangePassword() {
@@ -2079,8 +2103,6 @@ async function autoSaveProfile() {
 async function saveUsername() {
   if (!currentUser) return;
   if (appData.profile?.username_locked) {
-    showToast('Username is locked and cannot be changed.');
-    renderProfile();
     return;
   }
   const input = document.getElementById('profile-username-input');
@@ -3598,7 +3620,9 @@ function generateSplitLink() {
   if (!upi) { showToast('Please enter your UPI ID'); return; }
   if (!upi.includes('@')) { showToast('Invalid UPI ID address format'); return; }
 
-  const validItems = bsItems.filter(item => item.name.trim() !== '' && parseFloat(item.price) > 0);
+  const validItems = bsItems
+    .filter(item => item.name.trim() !== '' && parseFloat(item.price) > 0)
+    .map(item => ({ n: item.name.trim(), p: parseFloat(item.price) }));
   if (validItems.length === 0) { showToast('Please add at least one item'); return; }
 
   // Save UPI to Supabase profile
@@ -3891,21 +3915,18 @@ function renderInvoices() {
     }) : 'No Date';
 
     return `
-      <div class="invoice-card">
+      <div class="invoice-card" onclick="if(!event.target.closest('.delete')) window.open('${inv.file_url}', '_blank');" style="cursor: pointer;">
         <div class="invoice-icon-wrap ${colorClass}">
           <span style="font-size: 20px;">${icon}</span>
           <span class="invoice-ext-badge">${ext.toUpperCase()}</span>
         </div>
-        <div class="invoice-info">
+        <div class="invoice-info" style="flex: 1;">
           <div class="invoice-name">${escapeHtml(inv.name)}</div>
           <div class="invoice-date">${dateStr}</div>
           ${inv.details ? `<div class="invoice-details">${escapeHtml(inv.details)}</div>` : ''}
         </div>
-        <div class="invoice-actions">
-          <a href="${inv.file_url}" target="_blank" class="invoice-action-btn view" title="View Document">
-            <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" width="16" height="16"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-          </a>
-          <button class="invoice-action-btn delete" onclick="deleteInvoiceById('${inv.id}', '${inv.file_name}')" title="Delete">
+        <div class="invoice-actions" style="margin-left: auto;">
+          <button class="invoice-action-btn delete" onclick="event.stopPropagation(); deleteInvoiceById('${inv.id}', '${inv.file_name}')" title="Delete">
             <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" width="16" height="16"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
           </button>
         </div>
@@ -3933,6 +3954,15 @@ function openAddInvoiceModal() {
   document.getElementById('invoice-details-input').value = '';
   document.getElementById('invoice-file-input').value = '';
   document.getElementById('invoice-file-label').textContent = 'Tap to choose file';
+  
+  // Reset preview
+  const previewContainer = document.getElementById('invoice-preview-container');
+  if (previewContainer) previewContainer.style.display = 'none';
+  const previewImg = document.getElementById('invoice-preview-img');
+  if (previewImg) { previewImg.src = ''; previewImg.style.display = 'none'; }
+  const previewInfo = document.getElementById('invoice-preview-fileinfo');
+  if (previewInfo) previewInfo.textContent = '';
+  
   selectedInvoiceFile = null;
   openModal('modal-add-invoice');
 }
@@ -3942,6 +3972,40 @@ function handleInvoiceFileSelected(e) {
   if (!file) return;
   selectedInvoiceFile = file;
   document.getElementById('invoice-file-label').textContent = file.name;
+
+  // Show preview
+  const previewContainer = document.getElementById('invoice-preview-container');
+  const previewImg = document.getElementById('invoice-preview-img');
+  const previewInfo = document.getElementById('invoice-preview-fileinfo');
+
+  if (previewContainer) {
+    previewContainer.style.display = 'block';
+    
+    // Check if it's an image
+    if (file.type.startsWith('image/')) {
+      const url = URL.createObjectURL(file);
+      if (previewImg) {
+        previewImg.src = url;
+        previewImg.style.display = 'inline-block';
+      }
+      if (previewInfo) {
+        previewInfo.innerHTML = `🖼️ <strong>Image selected</strong> (${(file.size / 1024).toFixed(1)} KB)`;
+      }
+    } else {
+      if (previewImg) {
+        previewImg.src = '';
+        previewImg.style.display = 'none';
+      }
+      let icon = '📄';
+      if (file.name.endsWith('.pdf')) icon = '📕';
+      else if (file.name.endsWith('.xls') || file.name.endsWith('.xlsx')) icon = '📗';
+      else if (file.name.endsWith('.doc') || file.name.endsWith('.docx')) icon = '📘';
+      
+      if (previewInfo) {
+        previewInfo.innerHTML = `${icon} <strong>${file.name}</strong> (${(file.size / 1024).toFixed(1)} KB)`;
+      }
+    }
+  }
 }
 
 async function submitInvoice() {

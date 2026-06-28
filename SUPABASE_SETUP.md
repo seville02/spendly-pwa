@@ -173,10 +173,11 @@ USING (bucket_id = 'invoices');
 Run this SQL in your **Supabase SQL Editor** to enable `@username` search and fix the trip members table:
 
 ```sql
--- ── 1. Add username column to profiles (unique) ──
+-- ── 1. Add username and email columns to profiles ──
 ALTER TABLE public.profiles
   ADD COLUMN IF NOT EXISTS username TEXT,
-  ADD COLUMN IF NOT EXISTS username_locked BOOLEAN DEFAULT FALSE;
+  ADD COLUMN IF NOT EXISTS username_locked BOOLEAN DEFAULT FALSE,
+  ADD COLUMN IF NOT EXISTS email TEXT;
 
 CREATE UNIQUE INDEX IF NOT EXISTS profiles_username_unique
   ON public.profiles (username)

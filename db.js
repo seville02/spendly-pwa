@@ -487,6 +487,23 @@ async function dbUploadInvoiceFile(userId, file) {
   };
 }
 
+async function dbUploadAvatarFile(userId, file) {
+  const fileExt = file.name.split('.').pop() || 'png';
+  const fileName = `${userId}/avatar_${Date.now()}.${fileExt}`;
+  
+  const { data, error } = await _sb.storage
+    .from('invoices')
+    .upload(fileName, file, { cacheControl: '3600', upsert: true });
+
+  if (error) throw error;
+
+  const { data: urlData } = _sb.storage
+    .from('invoices')
+    .getPublicUrl(fileName);
+
+  return urlData.publicUrl;
+}
+
 async function dbSaveInvoice(userId, invoice) {
   const { data, error } = await _sb
     .from('invoices')
@@ -679,7 +696,7 @@ async function dbLookupByUsername(username) {
   const { data, error } = await _sb
     .from('profiles')
     .select('id, username, name')
-    .eq('username', handle)
+    .ilike('username', handle)
     .maybeSingle();
   if (error) throw error;
   return data || null;
@@ -689,9 +706,21 @@ async function dbLookupByUsername(username) {
 async function dbUpdateUsername(userId, username) {
   const { error } = await _sb
     .from('profiles')
-    .update({ username: username })
-    .eq('id', userId);
+    .upsert({ id: userId, username: username }, { onConflict: 'id' });
   if (error) throw error;
+}
+
+/** Retrieve the email associated with a username. */
+async function dbGetEmailByUsername(username) {
+  const handle = username.replace(/^@/, '').trim().toLowerCase();
+  if (!handle) return null;
+  const { data, error } = await _sb
+    .from('profiles')
+    .select('*')
+    .ilike('username', handle)
+    .maybeSingle();
+  if (error) throw error;
+  return data?.email || null;
 }
 
 
