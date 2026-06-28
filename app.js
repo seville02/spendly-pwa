@@ -596,9 +596,10 @@ async function handleAuth() {
       document.getElementById('auth-password').value = '';
       return;
     } else {
-      let loginEmail = email;
-      if (!email.includes('@')) {
-        const fetchedEmail = await dbGetEmailByUsername(email);
+      let loginEmail = email.trim();
+      const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(loginEmail);
+      if (!isEmail) {
+        const fetchedEmail = await dbGetEmailByUsername(loginEmail);
         if (!fetchedEmail) {
           throw new Error('Username not found. Please sign in with your email address.');
         }
@@ -1723,37 +1724,62 @@ function renderSavingsScreen() {
       accList.innerHTML = `<div style="text-align:center;padding:16px;color:var(--text3);font-size:12px;border:1px dashed var(--border2);border-radius:14px">No accounts yet. Tap + Add Account.</div>`;
     } else {
       accList.innerHTML = accounts.map((acc, i) => {
-        // If this is an FD itself (legacy/imported), render normally, but we won't allow creating them standalone.
-        // FDs that are linked to this account:
         const fds = (acc.fds || []);
+        const isExpanded = expandedSavingsAccounts.has(i);
+        const hasFds = fds.length > 0;
+        
         const fdsHtml = fds.map((fd, fdIdx) => `
-          <div class="savings-account-row fd-sub-row" style="margin-left: 20px; margin-top: 4px; background: rgba(79,209,197,0.03); border-color: rgba(79,209,197,0.15); padding: 10px 14px;">
-            <div class="savings-account-icon" style="width:32px; height:32px; font-size:14px;">📈</div>
-            <div class="savings-account-info">
-              <div class="savings-account-name" style="font-size:13px;">${fd.name || 'Fixed Deposit'}</div>
-              <div class="savings-account-type" style="font-size:10px;">Fixed Deposit</div>
+          <div class="savings-account-row fd-sub-row" style="margin-left: 20px; margin-top: 4px; background: rgba(79,209,197,0.03); border-color: rgba(79,209,197,0.15); padding: 10px 14px; display: flex; align-items: center; justify-content: space-between;">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <div class="savings-account-icon" style="width:32px; height:32px; font-size:14px; display:flex; align-items:center; justify-content:center; background:var(--accent-dim); border-radius:8px;">📈</div>
+              <div class="savings-account-info">
+                <div class="savings-account-name" style="font-size:13px; font-weight:600;">${fd.name || 'Fixed Deposit'}</div>
+                <div class="savings-account-type" style="font-size:10px;">Fixed Deposit</div>
+              </div>
             </div>
-            <div class="savings-account-balance" style="font-size:14px; color: var(--accent);">${curSym}${(parseFloat(fd.balance) || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</div>
-            <button class="savings-account-delete" onclick="deleteSavingsFD(${i}, ${fdIdx})" title="Delete FD" style="padding:4px;">
-              <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
-            </button>
+            <div style="display:flex; align-items:center; gap:10px;">
+              <div class="savings-account-balance" style="font-size:14px; font-weight:600; color: var(--accent);">${curSym}${(parseFloat(fd.balance) || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</div>
+              <div class="savings-account-actions" style="display: flex; gap: 4px;" onclick="event.stopPropagation();">
+                <button class="savings-account-edit" onclick="openEditSavingsFDModal(${i}, ${fdIdx})" title="Edit FD" style="background:none; border:none; color:var(--text2); cursor:pointer; padding: 4px;">
+                  <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" width="14" height="14"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                </button>
+                <button class="savings-account-delete" onclick="deleteSavingsFD(${i}, ${fdIdx})" title="Delete FD" style="background:none; border:none; color:var(--text2); cursor:pointer; padding: 4px;">
+                  <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+                </button>
+              </div>
+            </div>
           </div>
         `).join('');
 
+        const toggleHtml = hasFds ? `
+          <span class="expand-icon" style="margin-left: 6px; font-size: 10px; color: var(--text3); transition: transform 0.2s; display: inline-block; transform: ${isExpanded ? 'rotate(180deg)' : 'rotate(0deg)'}">
+            ▼
+          </span>
+        ` : '';
+
         return `
           <div style="margin-bottom: 12px;">
-            <div class="savings-account-row" style="margin-bottom: 0;">
-              <div class="savings-account-icon">${SAVINGS_ACCOUNT_ICONS[acc.type] || '📌'}</div>
-              <div class="savings-account-info">
-                <div class="savings-account-name">${acc.name || 'Unnamed Account'}</div>
-                <div class="savings-account-type">${SAVINGS_ACCOUNT_LABELS[acc.type] || 'Account'}</div>
+            <div class="savings-account-row" style="margin-bottom: 0; cursor: ${hasFds ? 'pointer' : 'default'};" onclick="${hasFds ? `toggleAccountExpanded(${i})` : ''}">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <div class="savings-account-icon">${SAVINGS_ACCOUNT_ICONS[acc.type] || '📌'}</div>
+                <div class="savings-account-info">
+                  <div class="savings-account-name" style="font-weight:600; display:flex; align-items:center;">${acc.name || 'Unnamed Account'}${toggleHtml}</div>
+                  <div class="savings-account-type">${SAVINGS_ACCOUNT_LABELS[acc.type] || 'Account'}</div>
+                </div>
               </div>
-              <div class="savings-account-balance">${curSym}${(parseFloat(acc.balance) || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</div>
-              <button class="savings-account-delete" onclick="deleteSavingsAccountById(${i})" title="Delete">
-                <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" width="16" height="16"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
-              </button>
+              <div style="display:flex; align-items:center; gap:10px;">
+                <div class="savings-account-balance" style="font-weight:600;">${curSym}${(parseFloat(acc.balance) || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</div>
+                <div class="savings-account-actions" style="display: flex; gap: 4px;" onclick="event.stopPropagation();">
+                  <button class="savings-account-edit" onclick="openEditSavingsAccountModal(${i})" title="Edit" style="background:none; border:none; color:var(--text2); cursor:pointer; padding: 4px;">
+                    <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" width="16" height="16"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                  </button>
+                  <button class="savings-account-delete" onclick="deleteSavingsAccountById(${i})" title="Delete" style="background:none; border:none; color:var(--text2); cursor:pointer; padding: 4px;">
+                    <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" width="16" height="16"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+                  </button>
+                </div>
+              </div>
             </div>
-            ${fdsHtml}
+            ${isExpanded ? fdsHtml : ''}
           </div>
         `;
       }).join('');
@@ -1795,13 +1821,46 @@ function renderSavingsScreen() {
   }
 }
 
+let expandedSavingsAccounts = new Set();
+let editingSavingsAccountIdx = null;
+let editingFD = null; // { parentIdx, fdIdx }
+
+function toggleAccountExpanded(idx) {
+  if (expandedSavingsAccounts.has(idx)) {
+    expandedSavingsAccounts.delete(idx);
+  } else {
+    expandedSavingsAccounts.add(idx);
+  }
+  renderSavingsScreen();
+}
+
 function openAddSavingsAccountModal() {
+  editingSavingsAccountIdx = null;
+  const titleEl = document.getElementById('savings-modal-title');
+  if (titleEl) titleEl.textContent = 'Add Savings Account';
+  
   document.getElementById('savings-acc-name-input').value = '';
   document.getElementById('savings-acc-balance-input').value = '';
   document.getElementById('savings-acc-type-input').value = 'bank';
   document.getElementById('savings-modal-currency').textContent = getCurrencySymbol();
   openModal('modal-savings-account');
   setTimeout(() => document.getElementById('savings-acc-name-input').focus(), 350);
+}
+
+function openEditSavingsAccountModal(idx) {
+  const data = getSavingsData();
+  const acc = data.savingsAccounts[idx];
+  if (!acc) return;
+
+  editingSavingsAccountIdx = idx;
+  const titleEl = document.getElementById('savings-modal-title');
+  if (titleEl) titleEl.textContent = 'Edit Savings Account';
+
+  document.getElementById('savings-acc-name-input').value = acc.name || '';
+  document.getElementById('savings-acc-balance-input').value = acc.balance || '';
+  document.getElementById('savings-acc-type-input').value = acc.type || 'bank';
+  document.getElementById('savings-modal-currency').textContent = getCurrencySymbol();
+  openModal('modal-savings-account');
 }
 
 async function submitSavingsAccount() {
@@ -1812,7 +1871,17 @@ async function submitSavingsAccount() {
   if (!name) { showToast('Please enter an account name'); return; }
 
   const data = getSavingsData();
-  data.savingsAccounts.push({ name, balance, type });
+  if (editingSavingsAccountIdx !== null) {
+    const oldAcc = data.savingsAccounts[editingSavingsAccountIdx];
+    data.savingsAccounts[editingSavingsAccountIdx] = {
+      ...oldAcc,
+      name,
+      balance,
+      type
+    };
+  } else {
+    data.savingsAccounts.push({ name, balance, type, fds: [] });
+  }
 
   setSyncing('syncing');
   try {
@@ -1820,7 +1889,7 @@ async function submitSavingsAccount() {
     setSyncing('ok');
     closeModal('modal-savings-account');
     renderSavingsScreen();
-    showToast(`✓ ${name} added`);
+    showToast(editingSavingsAccountIdx !== null ? `✓ Account "${name}" updated` : `✓ ${name} added`);
   } catch (e) {
     setSyncing('error');
     showToast('Failed to save: ' + e.message);
@@ -1846,6 +1915,10 @@ async function deleteSavingsAccountById(index) {
 }
 
 function openAddSavingsFDModal() {
+  editingFD = null;
+  const titleEl = document.getElementById('savings-fd-modal-title');
+  if (titleEl) titleEl.textContent = 'Add Fixed Deposit';
+
   const data = getSavingsData();
   const accounts = data.savingsAccounts || [];
   const parentSelect = document.getElementById('savings-fd-parent-select');
@@ -1869,6 +1942,33 @@ function openAddSavingsFDModal() {
   setTimeout(() => document.getElementById('savings-fd-name-input').focus(), 350);
 }
 
+function openEditSavingsFDModal(parentIdx, fdIdx) {
+  const data = getSavingsData();
+  const parentAcc = data.savingsAccounts[parentIdx];
+  if (!parentAcc || !parentAcc.fds || !parentAcc.fds[fdIdx]) return;
+  const fd = parentAcc.fds[fdIdx];
+
+  editingFD = { parentIdx, fdIdx };
+
+  const titleEl = document.getElementById('savings-fd-modal-title');
+  if (titleEl) titleEl.textContent = 'Edit Fixed Deposit';
+
+  const parentSelect = document.getElementById('savings-fd-parent-select');
+  const accounts = data.savingsAccounts || [];
+  const parentAccounts = accounts.map((acc, idx) => ({ acc, idx })).filter(item => item.acc.type === 'bank' || item.acc.type === 'savings');
+
+  parentSelect.innerHTML = parentAccounts.map(item => `
+    <option value="${item.idx}">${SAVINGS_ACCOUNT_ICONS[item.acc.type] || '🏦'} ${item.acc.name}</option>
+  `).join('');
+  parentSelect.value = parentIdx;
+
+  document.getElementById('savings-fd-name-input').value = fd.name || '';
+  document.getElementById('savings-fd-amount-input').value = fd.balance || '';
+  document.getElementById('savings-fd-currency').textContent = getCurrencySymbol();
+  openModal('modal-savings-fd');
+  setTimeout(() => document.getElementById('savings-fd-name-input').focus(), 350);
+}
+
 async function submitSavingsFD() {
   const name = document.getElementById('savings-fd-name-input').value.trim();
   const balance = parseFloat(document.getElementById('savings-fd-amount-input').value) || 0;
@@ -1881,8 +1981,24 @@ async function submitSavingsFD() {
   const parentAcc = data.savingsAccounts[parentIdx];
   if (!parentAcc) { showToast('Parent account not found'); return; }
 
-  if (!parentAcc.fds) parentAcc.fds = [];
-  parentAcc.fds.push({ name, balance });
+  if (editingFD !== null) {
+    const oldParentAcc = data.savingsAccounts[editingFD.parentIdx];
+    if (editingFD.parentIdx === parentIdx) {
+      oldParentAcc.fds[editingFD.fdIdx] = { name, balance };
+    } else {
+      // Moved to different parent bank account
+      oldParentAcc.fds.splice(editingFD.fdIdx, 1);
+      if (!parentAcc.fds) parentAcc.fds = [];
+      parentAcc.fds.push({ name, balance });
+      // Keep it expanded
+      expandedSavingsAccounts.add(parentIdx);
+    }
+  } else {
+    if (!parentAcc.fds) parentAcc.fds = [];
+    parentAcc.fds.push({ name, balance });
+    // Expand to show the newly added FD
+    expandedSavingsAccounts.add(parentIdx);
+  }
 
   setSyncing('syncing');
   try {
@@ -1890,7 +2006,7 @@ async function submitSavingsFD() {
     setSyncing('ok');
     closeModal('modal-savings-fd');
     renderSavingsScreen();
-    showToast(`✓ FD "${name}" added`);
+    showToast(editingFD !== null ? `✓ FD "${name}" updated` : `✓ FD "${name}" added`);
   } catch (e) {
     setSyncing('error');
     showToast('Failed to save FD: ' + e.message);
@@ -2153,6 +2269,21 @@ async function saveUsername() {
     showToast('Failed to save username: ' + e.message);
     if (input) input.value = current;
   }
+}
+
+function copyUsername() {
+  const input = document.getElementById('profile-username-input');
+  const username = (input?.value || '').trim();
+  if (!username) {
+    showToast('No username to copy!');
+    return;
+  }
+  const clean = username.replace(/^@/, '');
+  navigator.clipboard.writeText(clean).then(() => {
+    showToast('Username copied! ✓');
+  }).catch(err => {
+    showToast('Failed to copy username');
+  });
 }
 
 

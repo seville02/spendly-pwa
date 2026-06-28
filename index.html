@@ -845,7 +845,7 @@
           Add Account
         </button>
         <button onclick="openAddSavingsFDModal()" class="savings-add-btn" id="savings-add-fd-btn"
-          style="flex:1;background:rgba(79,209,197,0.06);border-color:rgba(79,209,197,0.25);color:var(--accent)">
+          style="flex:1">
           <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" width="14" height="14">
             <line x1="12" y1="5" x2="12" y2="19" />
             <line x1="5" y1="12" x2="19" y2="12" />
@@ -926,7 +926,7 @@
   <div class="modal-overlay" id="modal-savings-account">
     <div class="modal-sheet">
       <div class="sheet-handle"></div>
-      <div class="sheet-title">Add Savings Account</div>
+      <div class="sheet-title" id="savings-modal-title">Add Savings Account</div>
       <div class="form-group">
         <label class="form-label">Account Name</label>
         <input class="form-input" type="text" id="savings-acc-name-input"
@@ -1001,7 +1001,7 @@
   <div class="modal-overlay" id="modal-savings-fd">
     <div class="modal-sheet">
       <div class="sheet-handle"></div>
-      <div class="sheet-title">Add Fixed Deposit</div>
+      <div class="sheet-title" id="savings-fd-modal-title">Add Fixed Deposit</div>
       <div class="form-group">
         <label class="form-label">FD Name / Reference</label>
         <input class="form-input" type="text" id="savings-fd-name-input" placeholder="e.g. FD 1, Tax Saver FD...">
@@ -1072,12 +1072,6 @@
           </div>
         </div>
         <div style="display:flex;gap:6px;flex-shrink:0">
-          <div class="icon-btn" id="ev-complete-btn" onclick="markEventComplete()" title="Mark as Complete"
-            style="background:rgba(104,211,145,.12);color:var(--green)">
-            <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" width="18" height="18">
-              <polyline points="20 6 9 17 4 12" />
-            </svg>
-          </div>
           <div class="icon-btn" onclick="openEditEvent()" title="Edit event">
             <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="18" height="18">
               <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />

@@ -2904,6 +2904,7 @@ body {
 }
 
 .savings-hero-divider {
+  width: 100%;
   height: 1px;
   background: linear-gradient(90deg, transparent, rgba(104, 211, 145, .3) 30%, rgba(104, 211, 145, .3) 70%, transparent);
   margin-bottom: 16px;
@@ -2919,6 +2920,7 @@ body {
   gap: 10px;
   position: relative;
   z-index: 1;
+  width: 100%;
 }
 
 .savings-hero-stat {
@@ -4188,25 +4190,27 @@ body {
 ═══════════════════════════════════════════════════════════════════════ */
 @media (max-width: 430px) {
   .header-logo-name {
-    display: none;
+    display: flex;
+    font-size: 14px;
+    margin-left: 4px;
   }
   .header {
-    padding: calc(var(--safe-top) + 12px) 12px 14px;
+    padding: calc(var(--safe-top) + 12px) 8px 14px;
   }
   .header-row {
-    gap: 6px;
-  }
-  .header-right {
-    gap: 6px;
-  }
-  .month-pill {
-    padding: 6px 10px;
-    font-size: 11px;
     gap: 4px;
   }
+  .header-right {
+    gap: 4px;
+  }
+  .month-pill {
+    padding: 6px 8px;
+    font-size: 11px;
+    gap: 3px;
+  }
   .icon-btn {
-    width: 32px;
-    height: 32px;
+    width: 30px;
+    height: 30px;
   }
 }
 
