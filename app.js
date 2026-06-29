@@ -1057,6 +1057,13 @@ function renderStreak() {
   } else { card.style.display = 'none'; }
 }
 
+function closeAISummary() {
+  document.getElementById('ai-summary-section').style.display = 'none';
+
+  const card = document.querySelector('.ai-summary-card');
+  if (card) card.classList.remove('has-summary');
+}
+
 function renderCatBudgetHome(txs) {
   const cb = (appData.catBudgets || {})[currentKey()] || {};
   const has = Object.keys(cb).length > 0;

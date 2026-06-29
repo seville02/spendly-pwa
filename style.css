@@ -733,14 +733,13 @@ body {
 }
 
 .ai-summary-close {
+  display: none;
   position: absolute;
   top: 10px;
   right: 10px;
 
   width: 24px;
   height: 24px;
-
-  display: flex;
   align-items: center;
   justify-content: center;
 
