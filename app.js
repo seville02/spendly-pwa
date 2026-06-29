@@ -1097,33 +1097,71 @@ function renderCatBudgetHome(txs) {
 // ─────────────────────────────────────────────────────
 // AI SUMMARY
 // ─────────────────────────────────────────────────────
+
+let aiSummaryOpen = false;
+
 function renderAISummarySection() {
-  const now = new Date(), daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
-  const today = now.getDate(), isCurrentMonth = (viewYear === now.getFullYear() && viewMonth === now.getMonth());
+  const now = new Date(),
+    daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+
+  const today = now.getDate(),
+    isCurrentMonth =
+      viewYear === now.getFullYear() && viewMonth === now.getMonth();
+
   const txs = getMonthTx();
-  const hasData = txs.filter(t => t.type === 'expense').length > 0;
+  const hasData = txs.filter((t) => t.type === "expense").length > 0;
+
   const show = hasData && (!isCurrentMonth || today >= daysInMonth - 1);
-  document.getElementById('ai-summary-section').style.display = show ? 'block' : 'none';
+
+  const section = document.getElementById("ai-summary-section");
+
+  // ONLY auto-hide if user hasn't opened it manually
+  if (section && !aiSummaryOpen) {
+    section.style.display = show ? "block" : "none";
+  }
 
   // Reset expanded state when switching months
   aiSummaryExpanded = false;
-  const summaryBody = document.getElementById('ai-summary-body');
+
+  const summaryBody = document.getElementById("ai-summary-body");
   if (summaryBody) {
-    summaryBody.style.display = 'block';
+    summaryBody.style.display = "block";
   }
+}
+
+function closeAISummary() {
+  aiSummaryOpen = false;
+
+  const section = document.getElementById("ai-summary-section");
+  if (section) section.style.display = "none";
+
+  const card = document.querySelector(".ai-summary-card");
+  if (card) card.classList.remove("has-summary");
+
+  const btn = document.getElementById("ai-generate-btn");
+  if (btn) btn.style.display = "flex";
 }
 
 function generateLocalSummary(txs, totalSpent, budget) {
   const catTotals = {};
-  txs.forEach(t => { catTotals[t.category] = (catTotals[t.category] || 0) + t.amount; });
+  txs.forEach((t) => {
+    catTotals[t.category] = (catTotals[t.category] || 0) + t.amount;
+  });
+
   const sorted = Object.entries(catTotals).sort((a, b) => b[1] - a[1]);
 
-  let summary = `For this month, you have spent a total of ${fmtFull(totalSpent)}. `;
+  let summary = `For this month, you have spent a total of ${fmtFull(
+    totalSpent
+  )}. `;
+
   if (budget > 0) {
     const diff = budget - totalSpent;
-    summary += diff >= 0
-      ? `You are currently under your budget by ${fmtFull(diff)}.`
-      : `You have exceeded your monthly budget by ${fmtFull(Math.abs(diff))}! Try to scale back.`;
+    summary +=
+      diff >= 0
+        ? `You are currently under your budget by ${fmtFull(diff)}.`
+        : `You have exceeded your monthly budget by ${fmtFull(
+          Math.abs(diff)
+        )}! Try to scale back.`;
   } else {
     summary += `Consider setting a monthly budget to track your spending limits.`;
   }
@@ -1131,52 +1169,89 @@ function generateLocalSummary(txs, totalSpent, budget) {
   if (sorted.length > 0) {
     const [topCat, topAmt] = sorted[0];
     const pct = Math.round((topAmt / totalSpent) * 100);
-    summary += ` Your top spending category is <strong>${topCat}</strong>, accounting for ${fmtFull(topAmt)} (${pct}% of your total spending).`;
+    summary += ` Your top spending category is <strong>${topCat}</strong>, accounting for ${fmtFull(
+      topAmt
+    )} (${pct}% of your total spending).`;
   }
 
   summary += ` Tip: Review your transactions regularly to identify areas where you can save.`;
+
   return summary;
 }
 
 async function generateAISummary() {
-  const txs = getMonthTx().filter(t => t.type === 'expense');
-  if (!txs.length) { showToast('No expenses to summarise'); return; }
+  const txs = getMonthTx().filter((t) => t.type === "expense");
 
-  const btn = document.getElementById('ai-generate-btn');
-  const body = document.getElementById('ai-summary-body');
-  btn.style.display = 'none';
-  const card = document.querySelector('.ai-summary-card');
-  if (card) {
-    card.classList.add('has-summary');
+  if (!txs.length) {
+    showToast("No expenses to summarise");
+    return;
   }
-  body.innerHTML = '<div class="ai-loading"><div class="ai-dot"></div><div class="ai-dot"></div><div class="ai-dot"></div><span>Analysing your spending…</span></div>';
+
+  aiSummaryOpen = true;
+
+  const btn = document.getElementById("ai-generate-btn");
+  const body = document.getElementById("ai-summary-body");
+
+  btn.style.display = "none";
+
+  const section = document.getElementById("ai-summary-section");
+  if (section) section.style.display = "block";
+
+  const card = document.querySelector(".ai-summary-card");
+  if (card) card.classList.add("has-summary");
+
+  body.innerHTML =
+    '<div class="ai-loading"><div class="ai-dot"></div><div class="ai-dot"></div><div class="ai-dot"></div><span>Analysing your spending…</span></div>';
 
   const totalSpent = txs.reduce((s, t) => s + t.amount, 0);
   const budget = appData.budgets[currentKey()] || 0;
 
   // Local fallback if no Gemini key is provided
-  if (!GEMINI_KEY || GEMINI_KEY.trim() === '') {
+  if (!GEMINI_KEY || GEMINI_KEY.trim() === "") {
     const text = generateLocalSummary(txs, totalSpent, budget);
+
     const s = getLocalSettings();
-    s['aiSummary_' + currentKey()] = text;
+    s["aiSummary_" + currentKey()] = text;
     saveLocalSettings(s);
+
     body.innerHTML = text;
-    btn.style.display = 'none';
+    btn.style.display = "none";
+
     return;
   }
 
   const catTotals = {};
-  txs.forEach(t => { catTotals[t.category] = (catTotals[t.category] || 0) + t.amount; });
-  const catSummary = Object.entries(catTotals).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k}: ${fmtFull(v)}`).join(', ');
+  txs.forEach((t) => {
+    catTotals[t.category] = (catTotals[t.category] || 0) + t.amount;
+  });
+
+  const catSummary = Object.entries(catTotals)
+    .sort((a, b) => b[1] - a[1])
+    .map(([k, v]) => `${k}: ${fmtFull(v)}`)
+    .join(", ");
+
   const merchantTotals = {};
-  txs.forEach(t => { const m = t.description || t.category; merchantTotals[m] = (merchantTotals[m] || 0) + t.amount; });
-  const topMerchants = Object.entries(merchantTotals).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([k, v]) => `${k} (${fmtFull(v)})`).join(', ');
+  txs.forEach((t) => {
+    const m = t.description || t.category;
+    merchantTotals[m] = (merchantTotals[m] || 0) + t.amount;
+  });
+
+  const topMerchants = Object.entries(merchantTotals)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([k, v]) => `${k} (${fmtFull(v)})`)
+    .join(", ");
 
   const prompt = `You are a friendly personal finance advisor. Analyse this spending data for ${MONTHS_FULL[viewMonth]} ${viewYear} and give a warm, concise summary (3-4 sentences max). Be specific, use the actual numbers, and give one actionable tip.
 
 Total spent: ${fmtFull(totalSpent)}
-Monthly budget: ${budget > 0 ? fmtFull(budget) : 'not set'}
-Budget status: ${budget > 0 ? (totalSpent <= budget ? 'under budget by ' + fmtFull(budget - totalSpent) : 'over budget by ' + fmtFull(totalSpent - budget)) : 'no budget set'}
+Monthly budget: ${budget > 0 ? fmtFull(budget) : "not set"}
+Budget status: ${budget > 0
+      ? totalSpent <= budget
+        ? "under budget by " + fmtFull(budget - totalSpent)
+        : "over budget by " + fmtFull(totalSpent - budget)
+      : "no budget set"
+    }
 Spending by category: ${catSummary}
 Top merchants/payees: ${topMerchants}
 Total transactions: ${txs.length}
@@ -1187,68 +1262,65 @@ Write in plain conversational text, no markdown, no bullet points.`;
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`,
       {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { maxOutputTokens: 300, temperature: 0.7 }
-        })
+          generationConfig: {
+            maxOutputTokens: 300,
+            temperature: 0.7,
+          },
+        }),
       }
     );
+
     const data = await response.json();
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || 'Could not generate summary.';
-    // Cache so it doesn't re-generate on every render
-    const s = getLocalSettings(); s['aiSummary_' + currentKey()] = text; saveLocalSettings(s);
-    body.innerHTML = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-    btn.style.display = 'none';
-    if (closeBtn) closeBtn.style.display = 'block';
-    aiSummaryExpanded = true;
+    const text =
+      data.candidates?.[0]?.content?.parts?.[0]?.text ||
+      "Could not generate summary.";
+
+    const s = getLocalSettings();
+    s["aiSummary_" + currentKey()] = text;
+    saveLocalSettings(s);
+
+    body.innerHTML = text.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
+
+    btn.style.display = "none";
+    aiSummaryOpen = true;
   } catch (e) {
-    console.warn('Gemini API call failed, generating local summary fallback', e);
+    console.warn(
+      "Gemini API call failed, generating local summary fallback",
+      e
+    );
+
     const text = generateLocalSummary(txs, totalSpent, budget);
-    body.innerHTML = text + `<br><small style="color:var(--text3);margin-top:6px;display:block">⚠️ Offline local summary (Gemini unavailable)</small>`;
-    btn.style.display = 'none';
-    if (closeBtn) closeBtn.style.display = 'block';
-    aiSummaryExpanded = true;
+
+    body.innerHTML =
+      text +
+      `<br><small style="color:var(--text3);margin-top:6px;display:block">⚠️ Offline local summary (Gemini unavailable)</small>`;
+
+    btn.style.display = "none";
+    aiSummaryOpen = true;
   }
-}
-
-function openAISummary() {
-  const section = document.getElementById('ai-summary-section');
-  const card = document.querySelector('.ai-summary-card');
-
-  if (section) section.style.display = 'block';
-  if (card) card.style.display = 'block';
-
-  const btn = document.getElementById('ai-generate-btn');
-  if (btn) btn.style.display = 'none';
-}
-function closeAISummary() {
-  const card = document.querySelector('.ai-summary-card');
-  if (card) card.style.display = 'none';
-
-  const btn = document.getElementById('ai-generate-btn');
-  if (btn) btn.style.display = 'flex'; // or 'inline-flex'
 }
 
 function loadCachedAISummary() {
   const s = getLocalSettings();
-  const cached = s['aiSummary_' + currentKey()];
-  const body = document.getElementById('ai-summary-body');
-  const btn = document.getElementById('ai-generate-btn');
-  const closeBtn = document.getElementById('ai-summary-close-btn');
+  const cached = s["aiSummary_" + currentKey()];
+
+  const body = document.getElementById("ai-summary-body");
+  const btn = document.getElementById("ai-generate-btn");
 
   if (cached) {
-    // Show cached summary with close button
-    body.innerHTML = cached.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-    btn.style.display = 'none';
-    if (closeBtn) closeBtn.style.display = 'block';
-    aiSummaryExpanded = true;
+    body.innerHTML = cached.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
+
+    btn.style.display = "none";
+    aiSummaryOpen = true;
   } else {
-    body.innerHTML = '';
-    btn.style.display = 'flex';
-    if (closeBtn) closeBtn.style.display = 'none';
-    aiSummaryExpanded = false;
+    body.innerHTML = "";
+
+    btn.style.display = "flex";
+    aiSummaryOpen = false;
   }
 }
 
