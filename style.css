@@ -4194,20 +4194,25 @@ body {
     font-size: 14px;
     margin-left: 4px;
   }
+
   .header {
     padding: calc(var(--safe-top) + 12px) 8px 14px;
   }
+
   .header-row {
     gap: 4px;
   }
+
   .header-right {
     gap: 4px;
   }
+
   .month-pill {
     padding: 6px 8px;
     font-size: 11px;
     gap: 3px;
   }
+
   .icon-btn {
     width: 30px;
     height: 30px;
@@ -4221,9 +4226,11 @@ body {
   body {
     max-width: 680px;
   }
+
   .bottom-nav {
     max-width: 680px;
   }
+
   .modal-sheet {
     max-width: 680px;
   }
@@ -4233,9 +4240,11 @@ body {
   body {
     max-width: 768px;
   }
+
   .bottom-nav {
     max-width: 768px;
   }
+
   .modal-sheet {
     max-width: 768px;
   }
@@ -4262,5 +4271,13 @@ body {
   .screen {
     padding-bottom: 0;
     height: auto;
+  }
+}
+
+@media (max-width: 480px) {
+  .savings-hero-num {
+    font-size: clamp(14px, 5.5vw, 24px) !important;
+    white-space: normal;
+    word-break: break-word;
   }
 }

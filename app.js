@@ -1727,7 +1727,7 @@ function renderSavingsScreen() {
         const fds = (acc.fds || []);
         const isExpanded = expandedSavingsAccounts.has(i);
         const hasFds = fds.length > 0;
-        
+
         const fdsHtml = fds.map((fd, fdIdx) => `
           <div class="savings-account-row fd-sub-row" style="margin-left: 20px; margin-top: 4px; background: rgba(79,209,197,0.03); border-color: rgba(79,209,197,0.15); padding: 10px 14px; display: flex; align-items: center; justify-content: space-between;">
             <div style="display:flex; align-items:center; gap:8px;">
@@ -1838,7 +1838,7 @@ function openAddSavingsAccountModal() {
   editingSavingsAccountIdx = null;
   const titleEl = document.getElementById('savings-modal-title');
   if (titleEl) titleEl.textContent = 'Add Savings Account';
-  
+
   document.getElementById('savings-acc-name-input').value = '';
   document.getElementById('savings-acc-balance-input').value = '';
   document.getElementById('savings-acc-type-input').value = 'bank';
@@ -2129,7 +2129,7 @@ async function saveSavingsAccounts() { /* no-op, replaced */ }
 async function uploadAvatar(event) {
   const file = event.target.files[0];
   if (!file) return;
-  
+
   // 10MB limit
   if (file.size > 10 * 1024 * 1024) {
     showToast('Image must be under 10MB 📸');
@@ -2148,7 +2148,7 @@ async function uploadAvatar(event) {
     const publicUrl = await dbUploadAvatarFile(currentUser.id, file);
     appData.profile = appData.profile || {};
     appData.profile.avatar = publicUrl;
-    
+
     await dbSaveProfile(currentUser.id, appData.profile);
     setSyncing('ok');
     renderProfile();
@@ -4085,7 +4085,7 @@ function openAddInvoiceModal() {
   document.getElementById('invoice-details-input').value = '';
   document.getElementById('invoice-file-input').value = '';
   document.getElementById('invoice-file-label').textContent = 'Tap to choose file';
-  
+
   // Reset preview
   const previewContainer = document.getElementById('invoice-preview-container');
   if (previewContainer) previewContainer.style.display = 'none';
@@ -4093,7 +4093,7 @@ function openAddInvoiceModal() {
   if (previewImg) { previewImg.src = ''; previewImg.style.display = 'none'; }
   const previewInfo = document.getElementById('invoice-preview-fileinfo');
   if (previewInfo) previewInfo.textContent = '';
-  
+
   selectedInvoiceFile = null;
   openModal('modal-add-invoice');
 }
@@ -4111,7 +4111,7 @@ function handleInvoiceFileSelected(e) {
 
   if (previewContainer) {
     previewContainer.style.display = 'block';
-    
+
     // Check if it's an image
     if (file.type.startsWith('image/')) {
       const url = URL.createObjectURL(file);
@@ -4131,7 +4131,7 @@ function handleInvoiceFileSelected(e) {
       if (file.name.endsWith('.pdf')) icon = '📕';
       else if (file.name.endsWith('.xls') || file.name.endsWith('.xlsx')) icon = '📗';
       else if (file.name.endsWith('.doc') || file.name.endsWith('.docx')) icon = '📘';
-      
+
       if (previewInfo) {
         previewInfo.innerHTML = `${icon} <strong>${file.name}</strong> (${(file.size / 1024).toFixed(1)} KB)`;
       }
@@ -4869,3 +4869,8 @@ window.addEventListener('offline', () => {
   showToast('You are offline. Transactions will be saved locally.');
 });
 
+// Add to bottom of app.js
+document.addEventListener('DOMContentLoaded', function () {
+  const savedTheme = localStorage.getItem('spendly_theme') || 'dark';
+  applyTheme(savedTheme);
+});
