@@ -24,11 +24,11 @@ try {
 // AUTH
 // ─────────────────────────────────────────────────────
 
-async function dbSignUp(email, password, name) {
+async function dbSignUp(email, password, name, currency) {
   const { data, error } = await _sb.auth.signUp({
     email,
     password,
-    options: { data: { name } }
+    options: { data: { name, currency } }
   });
   if (error) throw error;
   return data;
@@ -790,4 +790,11 @@ async function dbCountUnreadNotifs(userId) {
     .eq('is_read', false);
   if (error) return 0;
   return count || 0;
+}
+// EXPORT STORAGE
+async function dbUploadExport(fileName, file) {
+  const { data, error } = await _sb.storage.from('exports').upload(fileName, file, { cacheControl: '3600', upsert: true });
+  if (error) throw error;
+  const { data: urlData } = _sb.storage.from('exports').getPublicUrl(fileName);
+  return urlData.publicUrl;
 }

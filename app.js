@@ -358,7 +358,12 @@ function getCurrencyCode(locale) {
   };
   return map[locale] || map[locale.split('-')[0]] || 'INR';
 }
-function getCurrencySymbol() { return localSettings.currency || detectCurrency(); }
+function getCurrencySymbol() { 
+  if (appData && appData.profile && appData.profile.currency) {
+    return appData.profile.currency;
+  }
+  return localSettings.currency || detectCurrency(); 
+}
 
 // ─────────────────────────────────────────────────────
 // FORMATTERS
@@ -585,6 +590,12 @@ function resetSetupPin() { setupBuffer = ''; setupStep = 0; setupFirst = ''; upd
 // AUTH SCREEN
 // ─────────────────────────────────────────────────────
 let authMode = 'signin'; // 'signin' | 'signup'
+let authSelectedCurrency = null;
+
+function openAuthCurrencyPicker() {
+  window._authCurrencyPickerMode = true;
+  openCurrencyPicker();
+}
 
 function showAuthScreen() {
   document.getElementById('auth-screen').classList.add('show');
@@ -651,6 +662,7 @@ async function handleAuth() {
 
   if (!email || !password) { errEl.textContent = 'Enter email and password'; return; }
   if (authMode === 'signup' && password.length < 6) { errEl.textContent = 'Password must be at least 6 characters'; return; }
+  if (authMode === 'signup' && !authSelectedCurrency) { errEl.textContent = 'Please select a currency'; return; }
 
   btn.disabled = true;
   btn.textContent = authMode === 'signup' ? 'Creating...' : 'Signing in...';
@@ -658,13 +670,21 @@ async function handleAuth() {
 
   try {
     if (authMode === 'signup') {
-      await dbSignUp(email, password, name);
+      await dbSignUp(email, password, name, authSelectedCurrency);
       btn.disabled = false;
       btn.textContent = 'Create Account';
       showToast('Account successfully created! Please sign in. 🎉');
       setAuthTab('signin');
       // Clear password field for safety
       document.getElementById('auth-password').value = '';
+      
+      // Save currency choice so it applies upon login
+      const s = getLocalSettings();
+      s.currency = authSelectedCurrency;
+      saveLocalSettings(s);
+      localSettings = s;
+      updateCurrencyUI();
+      
       return;
     } else {
       let loginEmail = email.trim();
@@ -1071,32 +1091,43 @@ function closeAISummary() {
 
 function renderCatBudgetHome(txs) {
   const cb = (appData.catBudgets || {})[currentKey()] || {};
-  const has = Object.keys(cb).length > 0;
+  const entries = Object.entries(cb);
+  const has = entries.length > 0;
   document.getElementById('cat-budget-home').style.display = has ? 'block' : 'none';
   if (!has) return;
   const spent = {};
   txs.filter(t => t.type === 'expense').forEach(t => { spent[t.category] = (spent[t.category] || 0) + t.amount; });
-  document.getElementById('cat-budget-home-list').innerHTML =
-    Object.entries(cb).slice(0, 4).map(([cat, limit]) => {
-      const s = spent[cat] || 0, pct = Math.min((s / limit) * 100, 100);
-      const c = CATEGORIES.find(x => x.id === cat) || { icon: '📌', color: '#8896b3' };
-      const rawPct = (s / limit) * 100;
-      const isOver = rawPct >= 100;
-      const isWarn = !isOver && rawPct >= 80;
-      const barColor = isOver ? 'var(--red)' : isWarn ? '#ed8936' : c.color;
-      const amtColor = isOver ? 'var(--red)' : isWarn ? 'var(--amber)' : 'var(--text)';
-      return `<div class="cat-budget-row">
-        <div class="cat-budget-icon">${c.icon}</div>
-        <div class="cat-budget-info">
-          <div class="cat-budget-name">${cat}</div>
-          <div class="cat-budget-progress"><div class="cat-budget-bar" style="width:${pct}%;background:${barColor}"></div></div>
-        </div>
-        <div class="cat-budget-right">
-          <div class="cat-budget-amt" style="color:${amtColor}">${fmt(s)}</div>
-          <div class="cat-budget-limit">of ${fmt(limit)}</div>
-        </div>
-      </div>`;
-    }).join('');
+  
+  const displayLimit = entries.length <= 4 ? entries.length : 3;
+  let html = entries.slice(0, displayLimit).map(([cat, limit]) => {
+    const s = spent[cat] || 0, pct = Math.min((s / limit) * 100, 100);
+    const c = CATEGORIES.find(x => x.id === cat) || { icon: '📌', color: '#8896b3' };
+    const rawPct = (s / limit) * 100;
+    const isOver = rawPct >= 100;
+    const isWarn = !isOver && rawPct >= 80;
+    const barColor = isOver ? 'var(--red)' : isWarn ? '#ed8936' : c.color;
+    const amtColor = isOver ? 'var(--red)' : isWarn ? 'var(--amber)' : 'var(--text)';
+    return `<div class="cat-budget-row">
+      <div class="cat-budget-icon">${c.icon}</div>
+      <div class="cat-budget-info">
+        <div class="cat-budget-name">${cat}</div>
+        <div class="cat-budget-progress"><div class="cat-budget-bar" style="width:${pct}%;background:${barColor}"></div></div>
+      </div>
+      <div class="cat-budget-right">
+        <div class="cat-budget-amt" style="color:${amtColor}">${fmt(s)}</div>
+        <div class="cat-budget-limit">of ${fmt(limit)}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  if (entries.length > displayLimit) {
+    const moreCount = entries.length - displayLimit;
+    html += `<div class="cat-budget-row" onclick="openCatBudgetModal()" style="cursor:pointer; justify-content:center; padding: 12px; background: var(--surface2); border-radius: 12px; margin-top: 4px; color: var(--accent); font-weight: 600; text-align: center; border: 1px dashed var(--border);">
+      See ${moreCount} more...
+    </div>`;
+  }
+  
+  document.getElementById('cat-budget-home-list').innerHTML = html;
 }
 
 // ─────────────────────────────────────────────────────
@@ -2503,10 +2534,37 @@ function renderCurrencyList() {
 }
 
 function selectCurrency(symbol, name) {
+  if (window._eventCurrencyPickerMode) {
+    _setEventCurrencyDisplay(symbol);
+    window._eventCurrencyPickerMode = false;
+    closeModal('modal-currency');
+    return;
+  }
+  
+  if (window._authCurrencyPickerMode) {
+    authSelectedCurrency = symbol;
+    document.getElementById('auth-currency-display').innerHTML = `${symbol.trim()} ${name.trim()}`;
+    window._authCurrencyPickerMode = false;
+    closeModal('modal-currency');
+    return;
+  }
+
   const s = getLocalSettings();
   s.currency = symbol;
   saveLocalSettings(s);
   localSettings = s;
+  
+  // also save to profile
+  if (appData && appData.profile && currentUser) {
+    const oldProfile = { ...appData.profile };
+    appData.profile.currency = symbol;
+    setSyncing('syncing');
+    dbSaveProfile(currentUser.id, appData.profile).then(() => setSyncing('ok')).catch(e => {
+      setSyncing('error');
+      appData.profile = oldProfile;
+    });
+  }
+
   closeModal('modal-currency');
   renderProfile();
   renderHome();
@@ -3041,21 +3099,40 @@ async function executeExportAction(action) {
   closeModal('modal-export-action');
 
   if (action === 'email') {
-    // 1. Download the file so the user can attach it
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = filename; a.click();
-    URL.revokeObjectURL(url);
+    let fileUrl = '';
+    try {
+      showToast('Uploading file securely...');
+      setSyncing('syncing');
+      const uniqueName = `${currentUser?.id || 'guest'}_${Date.now()}_${filename}`;
+      fileUrl = await dbUploadExport(uniqueName, file);
+      setSyncing('ok');
+    } catch (e) {
+      console.error('Export upload failed', e);
+      setSyncing('error');
+      // fallback to just downloading it
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = filename; a.click();
+      URL.revokeObjectURL(url);
+    }
 
     // 2. Open mailto: pre-filled with the user's registered email
     const toEmail = currentUser?.email || '';
     const subject = encodeURIComponent('Spendly Expense Report');
-    const body = encodeURIComponent(
-      `Hi,\n\nPlease find attached my Spendly expense report (${filename}).\n\nGenerated on ${new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}.\n\n— Sent via Spendly`
-    );
+    
+    let bodyText = `Hi,\n\nPlease find my Spendly expense report attached (${filename}).\n\n`;
+    if (fileUrl) {
+      bodyText += `Download your secure file here: ${fileUrl}\n\n`;
+    } else {
+      bodyText += `Note: Due to browser limitations, the file was downloaded to your device. Please attach it manually to this email.\n\n`;
+    }
+    bodyText += `Generated on ${new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}.\n\n— Sent via Spendly`;
+    
+    const body = encodeURIComponent(bodyText);
+
     setTimeout(() => {
       window.location.href = `mailto:${toEmail}?subject=${subject}&body=${body}`;
-    }, 400); // slight delay so download triggers first
+    }, 400); // slight delay so toast/download triggers first
 
     // 3. Show confirmation modal
     const addrEl = document.getElementById('email-sent-address');

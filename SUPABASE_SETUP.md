@@ -198,3 +198,12 @@ ALTER TABLE public.trip_members
 
 > [!NOTE]
 > After running this migration, users can set their `@username` from **Profile → Username** (which will lock once reset) and be found by friends when creating a Group Trip.
+
+---
+
+## 7. Storage Buckets (Invoices & Exports)
+If you want to use invoice uploads or export features:
+1. Go to **Storage** in the Supabase Dashboard.
+2. Click **New Bucket**.
+3. Name it \invoices\ and make it **Public**.
+4. Repeat to create another **Public** bucket named \exports\.
