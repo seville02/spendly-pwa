@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════
-// SPENDLY CONFIG
+// Centy CONFIG
 // Update these values if you change your Supabase project
 // ═══════════════════════════════════════════════════════
 

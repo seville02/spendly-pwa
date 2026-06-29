@@ -1,6 +1,6 @@
 {
-  "name": "Spendly — Smart Expense Tracker",
-  "short_name": "Spendly",
+  "name": "Centy — Smart Expense Tracker",
+  "short_name": "Centy",
   "description": "Track expenses, budgets and debts intelligently",
   "start_url": "./index.html",
   "display": "standalone",

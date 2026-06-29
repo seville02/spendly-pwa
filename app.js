@@ -1,12 +1,12 @@
 // ═══════════════════════════════════════════════════════
-// app.js — Spendly v4.56.0
+// app.js — Centy v4.56.0
 // ═══════════════════════════════════════════════════════
 
 
 // ── Clean up legacy local storage to fulfill request to "erase local data" ──
 try {
   Object.keys(localStorage).forEach(key => {
-    if (key.startsWith('spendly_') && !key.startsWith('spendly_trash_') && key !== 'spendly_theme') {
+    if (key.startsWith('Centy_') && !key.startsWith('Centy_trash_') && key !== 'Centy_theme') {
       localStorage.removeItem(key);
     }
   });
@@ -113,8 +113,8 @@ const XP_RANKS = [
   { label: 'Mythic', badge: '🌟', min: 3200, max: 7000 },
   { label: 'Legend', badge: '👑', min: 7000, max: 10000 },
 ];
-const XP_KEY = () => `spendly_xp_${currentUser?.id || 'local'}`;
-const XP_LASTMONTH_KEY = () => `spendly_xp_lastmonth_${currentUser?.id || 'local'}`;
+const XP_KEY = () => `Centy_xp_${currentUser?.id || 'local'}`;
+const XP_LASTMONTH_KEY = () => `Centy_xp_lastmonth_${currentUser?.id || 'local'}`;
 
 function getXP() { return parseInt(localStorage.getItem(XP_KEY()) || '0'); }
 function setXP(v) { localStorage.setItem(XP_KEY(), Math.max(0, v)); }
@@ -222,20 +222,20 @@ const MONTHS_FULL = ['January', 'February', 'March', 'April', 'May', 'June', 'Ju
 // Settings (UI preferences only — theme is stored locally, data is in Supabase)
 function getLocalSettings() {
   try {
-    const theme = localStorage.getItem('spendly_theme') || 'dark';
+    const theme = localStorage.getItem('Centy_theme') || 'dark';
     return { ...localSettings, theme };
   } catch (e) { return localSettings; }
 }
 function saveLocalSettings(s) {
   try {
-    if (s.theme) localStorage.setItem('spendly_theme', s.theme);
+    if (s.theme) localStorage.setItem('Centy_theme', s.theme);
   } catch (e) { /* ignore */ }
 }
 
 // ─────────────────────────────────────────────────────
 // HIDE AMOUNTS TOGGLE
 // ─────────────────────────────────────────────────────
-const HIDE_KEY = 'spendly_hide_amounts';
+const HIDE_KEY = 'Centy_hide_amounts';
 let isAmountsHidden = (() => {
   try { return localStorage.getItem(HIDE_KEY) === 'true'; } catch (e) { return false; }
 })();
@@ -482,7 +482,7 @@ function applyTheme(t) {
 
   // Store in localStorage to persist
   try {
-    localStorage.setItem('spendly_theme', t);
+    localStorage.setItem('Centy_theme', t);
   } catch (e) { }
 
   // Trigger any theme-dependent elements to re-render
@@ -491,7 +491,7 @@ function applyTheme(t) {
   }, 0);
 }
 function toggleTheme() {
-  const currentTheme = document.documentElement.getAttribute('data-theme') || localStorage.getItem('spendly_theme') || 'dark';
+  const currentTheme = document.documentElement.getAttribute('data-theme') || localStorage.getItem('Centy_theme') || 'dark';
   const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
 
   applyTheme(newTheme);
@@ -627,7 +627,7 @@ function setAuthTab(mode) {
     btn.textContent = isForgot ? 'Send Reset Link' : mode === 'signup' ? 'Create Account' : 'Sign In';
   }
   document.getElementById('auth-title').textContent = isForgot ? 'Reset Password' : mode === 'signup' ? 'Create account' : 'Welcome back';
-  document.getElementById('auth-sub').textContent = isForgot ? 'Enter your email to receive a reset link' : mode === 'signup' ? 'Start tracking your money' : 'Sign in to your Spendly account';
+  document.getElementById('auth-sub').textContent = isForgot ? 'Enter your email to receive a reset link' : mode === 'signup' ? 'Start tracking your money' : 'Sign in to your Centy account';
   document.getElementById('auth-error').textContent = '';
 }
 
@@ -717,7 +717,7 @@ function friendlyAuthError(msg) {
 }
 
 async function signOut() {
-  if (!confirm('Sign out of Spendly?')) return;
+  if (!confirm('Sign out of Centy?')) return;
   await dbSignOut();
   currentUser = null;
   appData = { transactions: [], budgets: {}, catBudgets: {}, debts: [], profile: {} };
@@ -733,7 +733,7 @@ async function clearAllTransactions() {
   // ── Snapshot for 30-day recovery ──
   try {
     const snap = { ts: Date.now(), transactions: JSON.parse(JSON.stringify(appData.transactions)) };
-    localStorage.setItem(`spendly_trash_${currentUser.id}`, JSON.stringify(snap));
+    localStorage.setItem(`Centy_trash_${currentUser.id}`, JSON.stringify(snap));
   } catch (e) { console.warn('Could not save recovery snapshot', e); }
 
   setSyncing('syncing');
@@ -754,12 +754,12 @@ async function clearAllTransactions() {
 
 async function recoverTransactions() {
   try {
-    const raw = localStorage.getItem(`spendly_trash_${currentUser.id}`);
+    const raw = localStorage.getItem(`Centy_trash_${currentUser.id}`);
     if (!raw) { showToast('No recovery snapshot found'); return; }
     const snap = JSON.parse(raw);
     const ageMs = Date.now() - snap.ts;
     if (ageMs > 30 * 24 * 60 * 60 * 1000) {
-      localStorage.removeItem(`spendly_trash_${currentUser.id}`);
+      localStorage.removeItem(`Centy_trash_${currentUser.id}`);
       showToast('Recovery window expired (30 days)');
       return;
     }
@@ -777,7 +777,7 @@ async function recoverTransactions() {
       snap.transactions.forEach(t => { if (!existingIds.has(t.id)) appData.transactions.push(t); });
 
       // Clear the snapshot so it can't be restored twice
-      localStorage.removeItem(`spendly_trash_${currentUser.id}`);
+      localStorage.removeItem(`Centy_trash_${currentUser.id}`);
 
       renderHome();
       renderTransactions();
@@ -1479,7 +1479,7 @@ function renderTransactions() {
     // Check for a recoverable snapshot within 30 days
     let recoverBanner = '';
     try {
-      const raw = localStorage.getItem(`spendly_trash_${currentUser.id}`);
+      const raw = localStorage.getItem(`Centy_trash_${currentUser.id}`);
       if (raw) {
         const snap = JSON.parse(raw);
         const ageMs = Date.now() - snap.ts;
@@ -2748,7 +2748,7 @@ async function submitTransaction() {
   } catch (e) {
     const isOffline = e.message === 'offline' || e.message?.includes('fetch') || e.status === 0 || !navigator.onLine;
     if (isOffline) {
-      const pendingKey = `spendly_pending_tx_${currentUser.id}`;
+      const pendingKey = `Centy_pending_tx_${currentUser.id}`;
       let pending = [];
       try {
         pending = JSON.parse(localStorage.getItem(pendingKey) || '[]');
@@ -3118,15 +3118,15 @@ async function executeExportAction(action) {
 
     // 2. Open mailto: pre-filled with the user's registered email
     const toEmail = currentUser?.email || '';
-    const subject = encodeURIComponent('Spendly Expense Report');
+    const subject = encodeURIComponent('Centy Expense Report');
     
-    let bodyText = `Hi,\n\nPlease find my Spendly expense report attached (${filename}).\n\n`;
+    let bodyText = `Hi,\n\nPlease find my Centy expense report attached (${filename}).\n\n`;
     if (fileUrl) {
       bodyText += `Download your secure file here: ${fileUrl}\n\n`;
     } else {
       bodyText += `Note: Due to browser limitations, the file was downloaded to your device. Please attach it manually to this email.\n\n`;
     }
-    bodyText += `Generated on ${new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}.\n\n— Sent via Spendly`;
+    bodyText += `Generated on ${new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}.\n\n— Sent via Centy`;
     
     const body = encodeURIComponent(bodyText);
 
@@ -3175,11 +3175,11 @@ function triggerExportCSV(exportAll) {
   closeModal('modal-export-csv');
   const curMonthLabel = getMonthLabel();
   let txs = appData.transactions;
-  let filename = `spendly-all-${new Date().toISOString().slice(0, 10)}.csv`;
+  let filename = `Centy-all-${new Date().toISOString().slice(0, 10)}.csv`;
 
   if (!exportAll) {
     txs = txs.filter(t => t.monthKey === currentKey());
-    filename = `spendly-${currentKey()}-${new Date().toISOString().slice(0, 10)}.csv`;
+    filename = `Centy-${currentKey()}-${new Date().toISOString().slice(0, 10)}.csv`;
   }
 
   const rows = [['Date', 'Time', 'Type', 'Amount', 'Category', 'Description', 'Notes', 'Recurring', 'Month']];
@@ -3192,7 +3192,7 @@ function triggerExportCSV(exportAll) {
   const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
   const blob = new Blob([csv], { type: 'text/csv' });
   const successMsg = exportAll ? 'All-time CSV downloaded' : `${curMonthLabel} CSV downloaded`;
-  handleFileExport(blob, filename, 'Spendly Expense Report CSV', 'Here is my Spendly expense report.', successMsg);
+  handleFileExport(blob, filename, 'Centy Expense Report CSV', 'Here is my Centy expense report.', successMsg);
 }
 async function importData(e) {
   const file = e.target.files[0]; if (!file) return;
@@ -4204,7 +4204,7 @@ function copyGsSummary() {
   const total = document.getElementById('gs-share-total').textContent;
   const selectedNames = Array.from(selectedItemIndices).map(idx => guestBillData.i[idx].n).join(', ');
 
-  const msg = `Hi ${guestBillData.p}, I've split the bill "${guestBillData.n}" on Spendly. My share for: [${selectedNames}] is ₹${total}. Paid you via UPI! (From: ${guestName})`;
+  const msg = `Hi ${guestBillData.p}, I've split the bill "${guestBillData.n}" on Centy. My share for: [${selectedNames}] is ₹${total}. Paid you via UPI! (From: ${guestName})`;
 
   navigator.clipboard.writeText(msg).then(() => {
     showToast('Payment confirmation text copied! 📋');
@@ -5197,13 +5197,13 @@ async function updateNotifBellCount() {
 
 function saveAppDataLocally() {
   if (currentUser) {
-    localStorage.setItem(`spendly_appdata_${currentUser.id}`, JSON.stringify(appData));
+    localStorage.setItem(`Centy_appdata_${currentUser.id}`, JSON.stringify(appData));
   }
 }
 
 function loadAppDataLocally() {
   if (currentUser) {
-    const raw = localStorage.getItem(`spendly_appdata_${currentUser.id}`);
+    const raw = localStorage.getItem(`Centy_appdata_${currentUser.id}`);
     if (raw) {
       try {
         appData = JSON.parse(raw);
@@ -5217,7 +5217,7 @@ function loadAppDataLocally() {
 async function syncPendingTransactions() {
   if (isSyncingPending) return;
   if (!navigator.onLine || !currentUser) return;
-  const pendingKey = `spendly_pending_tx_${currentUser.id}`;
+  const pendingKey = `Centy_pending_tx_${currentUser.id}`;
   let pending = [];
   try {
     const raw = localStorage.getItem(pendingKey);

@@ -65,18 +65,18 @@ serve(async (req) => {
           'Authorization': `Bearer ${RESEND_API_KEY}`
         },
         body: JSON.stringify({
-          from: 'Spendly <noreply@spendly.in>', // Update with your verified domain
+          from: 'Centy <noreply@Centy.in>', // Update with your verified domain
           to: [email],
-          subject: 'We miss you on Spendly! 👋',
+          subject: 'We miss you on Centy! 👋',
           html: `
             <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
               <h2 style="color: #4fd1c5;">Hey ${name},</h2>
-              <p>We noticed you haven't logged in to <strong>Spendly</strong> in the last 7 days.</p>
+              <p>We noticed you haven't logged in to <strong>Centy</strong> in the last 7 days.</p>
               <p>Tracking your daily expenses and savings is key to maintaining healthy financial habits. Don't let your streaks drop!</p>
               <div style="margin: 30px 0; text-align: center;">
-                <a href="https://seville02.github.io/spendly-pwa/" style="background-color: #4fd1c5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">Launch Spendly</a>
+                <a href="https://seville02.github.io/Centy-pwa/" style="background-color: #4fd1c5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">Launch Centy</a>
               </div>
-              <p>See you soon,<br>The Spendly Team</p>
+              <p>See you soon,<br>The Centy Team</p>
             </div>
           `
         })

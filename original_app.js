@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════
-// app.js — Spendly v4
+// app.js — Centy v4
 // ═══════════════════════════════════════════════════════
 
 const CATEGORIES = [
@@ -38,9 +38,9 @@ const MONTHS_FULL = ['January','February','March','April','May','June','July','A
 
 // Settings live in localStorage (device-specific, not synced)
 function getLocalSettings() {
-  try { return JSON.parse(localStorage.getItem('spendly_settings')||'{}'); } catch(e) { return {}; }
+  try { return JSON.parse(localStorage.getItem('Centy_settings')||'{}'); } catch(e) { return {}; }
 }
-function saveLocalSettings(s) { localStorage.setItem('spendly_settings', JSON.stringify(s)); }
+function saveLocalSettings(s) { localStorage.setItem('Centy_settings', JSON.stringify(s)); }
 
 // ─────────────────────────────────────────────────────
 // CURRENCY — dynamic detection
@@ -219,7 +219,7 @@ function setAuthTab(mode) {
   document.getElementById('auth-name-wrap').style.display = mode==='signup' ? 'block' : 'none';
   document.getElementById('auth-btn').textContent = mode==='signup' ? 'Create Account' : 'Sign In';
   document.getElementById('auth-title').textContent = mode==='signup' ? 'Create account' : 'Welcome back';
-  document.getElementById('auth-sub').textContent = mode==='signup' ? 'Start tracking your money' : 'Sign in to your Spendly account';
+  document.getElementById('auth-sub').textContent = mode==='signup' ? 'Start tracking your money' : 'Sign in to your Centy account';
   document.getElementById('auth-error').textContent = '';
 }
 
@@ -262,7 +262,7 @@ function friendlyAuthError(msg) {
 }
 
 async function signOut() {
-  if (!confirm('Sign out of Spendly?')) return;
+  if (!confirm('Sign out of Centy?')) return;
   await dbSignOut();
   currentUser = null;
   appData = { transactions:[], budgets:{}, catBudgets:{}, debts:[], profile:{} };
@@ -1020,7 +1020,7 @@ async function processRecurring(){
 function exportJSON(){
   const blob=new Blob([JSON.stringify(appData,null,2)],{type:'application/json'});
   const url=URL.createObjectURL(blob), a=document.createElement('a');
-  a.href=url; a.download=`spendly-backup-${new Date().toISOString().slice(0,10)}.json`; a.click();
+  a.href=url; a.download=`Centy-backup-${new Date().toISOString().slice(0,10)}.json`; a.click();
   URL.revokeObjectURL(url); showToast('JSON backup downloaded');
 }
 function exportCSV(){
@@ -1032,7 +1032,7 @@ function exportCSV(){
   const csv=rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
   const blob=new Blob([csv],{type:'text/csv'});
   const url=URL.createObjectURL(blob), a=document.createElement('a');
-  a.href=url; a.download=`spendly-${new Date().toISOString().slice(0,10)}.csv`; a.click();
+  a.href=url; a.download=`Centy-${new Date().toISOString().slice(0,10)}.csv`; a.click();
   URL.revokeObjectURL(url); showToast('CSV downloaded');
 }
 async function importData(e){

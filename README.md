@@ -1,4 +1,4 @@
-# Spendly PWA
+# Centy PWA
 
 A mobile-first Progressive Web App for tracking budget spending and managing personal finances.
 
@@ -36,7 +36,7 @@ Leave `SUPABASE_URL` and `SUPABASE_ANON` blank in `config.js` — the app automa
 
 ## 🎯 Overview
 
-Spendly is a lightweight, installable PWA for tracking spending in real-time. Built with vanilla JS and no frameworks — just open `index.html` and go.
+Centy is a lightweight, installable PWA for tracking spending in real-time. Built with vanilla JS and no frameworks — just open `index.html` and go.
 
 ## ✨ Features
 
@@ -58,8 +58,8 @@ Spendly is a lightweight, installable PWA for tracking spending in real-time. Bu
 ### Option A — Local Only (zero config)
 
 ```bash
-git clone https://github.com/seville02/spendly-pwa.git
-cd spendly-pwa
+git clone https://github.com/seville02/Centy-pwa.git
+cd Centy-pwa
 # Open index.html in your browser — that's it
 ```
 
@@ -105,7 +105,7 @@ const GEMINI_KEY = 'your-gemini-api-key';
 ## 📁 Project Structure
 
 ```
-spendly-pwa/
+Centy-pwa/
 ├── index.html       # App shell — all screens and modals
 ├── app.js           # All UI logic, rendering, routing
 ├── db.js            # Supabase database layer + local fallback
@@ -141,7 +141,7 @@ npx http-server --cors
 
 ## 🤝 Contributing
 
-Issues and PRs are welcome via [GitHub](https://github.com/seville02/spendly-pwa).
+Issues and PRs are welcome via [GitHub](https://github.com/seville02/Centy-pwa).
 
 ## 📄 License
 
