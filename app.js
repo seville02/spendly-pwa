@@ -2001,10 +2001,7 @@ function renderSavingsScreen() {
     const totalFmt = fmt(total);
     profileVal.textContent = accounts.length > 0 ? `${totalFmt} across ${accounts.length} account${accounts.length > 1 ? 's' : ''}` : 'Manage your accounts & cash';
   }
-  const homeSavingsVal = document.getElementById('home-savings-val');
-  if (homeSavingsVal) {
-    homeSavingsVal.textContent = fmt(total);
-  }
+
 }
 
 let expandedSavingsAccounts = new Set();
@@ -2599,12 +2596,26 @@ function setType(type) {
   } else {
     if (!CATEGORIES.find(c => c.id === selectedCat)) selectedCat = 'Food';
   }
+  showAllCats = false;
   renderCatGrid();
 }
+let showAllCats = false;
 function renderCatGrid() {
   const cats = selectedType === 'income' ? INCOME_CATEGORIES : CATEGORIES;
-  document.getElementById('cat-grid').innerHTML = cats.map(c =>
+  const displayCats = showAllCats ? cats : cats.slice(0, 5);
+  let html = displayCats.map(c =>
     `<div class="cat-option ${c.id === selectedCat ? 'selected' : ''}" onclick="selectCat('${c.id}')"><div class="cat-option-icon">${c.icon}</div><div class="cat-option-label">${c.id}</div></div>`).join('');
+  
+  if (!showAllCats && cats.length > 5) {
+    html += `<div class="cat-option" onclick="toggleShowAllCats()"><div class="cat-option-icon">➕</div><div class="cat-option-label">More</div></div>`;
+  } else if (showAllCats && cats.length > 5) {
+    html += `<div class="cat-option" onclick="toggleShowAllCats()"><div class="cat-option-icon">➖</div><div class="cat-option-label">Less</div></div>`;
+  }
+  document.getElementById('cat-grid').innerHTML = html;
+}
+function toggleShowAllCats() {
+  showAllCats = !showAllCats;
+  renderCatGrid();
 }
 function selectCat(id) { selectedCat = id; renderCatGrid(); }
 function setQuickAmt(n) { document.getElementById('input-amount').value = n; document.getElementById('input-desc').focus(); }
@@ -3715,7 +3726,7 @@ function renderBillSplitter() {
   document.getElementById('bs-payer-name').value = defaultName;
   document.getElementById('bs-payer-upi').value = appData.profile?.upi || '';
   document.getElementById('bs-extra-charges').value = '';
-  document.getElementById('bs-bill-name').value = 'Dinner Split';
+  document.getElementById('bs-bill-name').value = '';
 
   bsItems = [];
   renderBsItems();
@@ -3920,7 +3931,7 @@ function parseReceiptText(text) {
 
   return {
     items,
-    companyName: companyName || 'Dinner Split',
+    companyName: companyName || '',
     extraCharges: extraCharges > 0 ? parseFloat(extraCharges.toFixed(2)) : 0,
     total: detectedTotal
   };
@@ -3934,8 +3945,8 @@ function generateSplitLink() {
 
   if (!billName) { showToast('Please enter a bill name'); return; }
   if (!payerName) { showToast('Please enter your name'); return; }
-  if (!upi) { showToast('Please enter your UPI ID'); return; }
-  if (!upi.includes('@')) { showToast('Invalid UPI ID address format'); return; }
+  if (!upi) { showToast('Please enter your Payment Handle'); return; }
+  // Removed strict @ validation to allow paypal.me etc.
 
   const validItems = bsItems
     .filter(item => item.name.trim() !== '' && parseFloat(item.price) > 0)
@@ -3961,7 +3972,7 @@ function generateSplitLink() {
   try {
     const jsonStr = JSON.stringify(billData);
     const b64 = btoa(unescape(encodeURIComponent(jsonStr)));
-    const shareUrl = window.location.origin + window.location.pathname + '#split-bill?b=' + b64;
+    const shareUrl = window.location.origin + window.location.pathname + '#split-bill?b=' + encodeURIComponent(b64);
 
     document.getElementById('bs-generated-url').textContent = shareUrl;
     document.getElementById('bs-link-box').style.display = 'block';
@@ -4801,18 +4812,33 @@ function calculateTripBalances() {
     balances[memberKey(m)] = 0;
   });
 
-  const totalSpent = expenses.reduce((sum, exp) => sum + parseFloat(exp.amount), 0);
+  let totalSpent = 0;
+  expenses.forEach(exp => {
+    if (!exp.description.startsWith('Settlement:')) {
+      totalSpent += parseFloat(exp.amount);
+    }
+  });
+
   const sharePerPerson = totalSpent / members.length;
 
   expenses.forEach(exp => {
-    // paid_by is now user_id; support legacy email fallback
     const key = exp.paid_by;
-    if (balances[key] !== undefined) {
-      balances[key] += parseFloat(exp.amount);
-    } else {
-      // Legacy: paid_by was email — find matching member
+    let paidByKey = key;
+    if (balances[key] === undefined) {
       const legacyMember = members.find(m => m.email === exp.paid_by);
-      if (legacyMember) balances[memberKey(legacyMember)] += parseFloat(exp.amount);
+      if (legacyMember) paidByKey = memberKey(legacyMember);
+    }
+    
+    if (balances[paidByKey] !== undefined) {
+      if (exp.description.startsWith('Settlement:')) {
+        const creditorId = exp.description.replace('Settlement:', '').trim();
+        balances[paidByKey] += parseFloat(exp.amount);
+        if (balances[creditorId] !== undefined) {
+          balances[creditorId] -= parseFloat(exp.amount);
+        }
+      } else {
+        balances[paidByKey] += parseFloat(exp.amount);
+      }
     }
   });
 
@@ -4893,7 +4919,10 @@ function calculateTripBalances() {
           <div>
             <strong>${escapeHtml(fromName)}</strong> owes <strong>${escapeHtml(toName)}</strong>
           </div>
-          <span style="font-family:var(--mono);font-weight:700;color:var(--accent)">₹${Math.round(tx.amount).toLocaleString('en-IN')}</span>
+          <div style="display:flex;align-items:center;gap:12px">
+            <span style="font-family:var(--mono);font-weight:700;color:var(--accent)">₹${Math.round(tx.amount).toLocaleString('en-IN')}</span>
+            ${tx.key === currentUser.id ? `<button onclick="settleTripDebt('${tx.key}', '${tx.toKey}', ${tx.amount})" style="background:var(--green-dim);color:var(--green);border:1px solid var(--green);border-radius:6px;padding:4px 8px;font-size:10px;font-weight:700;cursor:pointer">Settle</button>` : ''}
+          </div>
         </div>
       `;
     }).join('');
@@ -4902,6 +4931,24 @@ function calculateTripBalances() {
   }
 
   settlementsContainer.innerHTML = html;
+}
+
+async function settleTripDebt(debtorId, creditorId, amount) {
+  if (!currentTripData) return;
+  setSyncing('syncing');
+  try {
+    const dStr = new Date().toISOString().slice(0, 10);
+    await dbAddTripExpense(currentTripData.group.id, `Settlement: ${creditorId}`, amount, debtorId, dStr);
+    currentTripData = await dbGetTripDetails(currentTripData.group.id);
+    calculateTripBalances();
+    renderTripExpenses();
+    setSyncing('ok');
+    showToast('Debt settled! ✅');
+  } catch (e) {
+    console.error(e);
+    setSyncing('error');
+    showToast('Failed to settle debt');
+  }
 }
 
 // ─────────────────────────────────────────────────────
@@ -4946,8 +4993,9 @@ function renderNotifications() {
     const dateStr = new Date(notif.created_at).toLocaleDateString('en-IN', {
       day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
     });
+    const onClickStr = notif.metadata?.group_id ? `onclick="handleNotificationClick('${notif.metadata.group_id}')" style="cursor:pointer;` : `style="`;
     return `
-      <div style="background:${isUnread ? 'rgba(79,209,197,0.06)' : 'var(--surface2)'};border:1px solid ${isUnread ? 'rgba(79,209,197,0.2)' : 'var(--border)'};border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:4px;position:relative">
+      <div ${onClickStr}background:${isUnread ? 'rgba(79,209,197,0.06)' : 'var(--surface2)'};border:1px solid ${isUnread ? 'rgba(79,209,197,0.2)' : 'var(--border)'};border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:4px;position:relative">
         ${isUnread ? `<div style="position:absolute;top:12px;right:12px;width:6px;height:6px;background:var(--accent);border-radius:50%"></div>` : ''}
         <div style="font-size:13px;color:var(--text);padding-right:12px">${escapeHtml(notif.message)}</div>
         <div style="font-size:10px;color:var(--text3)">${dateStr}</div>
@@ -4981,6 +5029,13 @@ async function markAllNotifsRead() {
   } catch (e) {
     console.error('Failed to mark all read', e);
   }
+}
+
+function handleNotificationClick(groupId) {
+  closeModal('modal-notifications');
+  navigate('bill-splitter');
+  switchBillSplitterTab('groups');
+  selectTrip(groupId);
 }
 
 async function updateNotifBellCount() {
