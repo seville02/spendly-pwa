@@ -1117,7 +1117,9 @@ function renderAISummarySection() {
 
   // ONLY auto-hide if user hasn't opened it manually
   if (section && !aiSummaryOpen) {
-    section.style.display = show ? "block" : "none";
+    if (!aiSummaryOpen) {
+      section.style.display = show ? 'block' : 'none';
+    }
   }
 
   // Reset expanded state when switching months
@@ -1192,7 +1194,9 @@ async function generateAISummary() {
   const btn = document.getElementById("ai-generate-btn");
   const body = document.getElementById("ai-summary-body");
 
-  btn.style.display = "none";
+  if (btn) {
+    btn.style.display = aiSummaryOpen ? 'none' : 'flex';
+  }
 
   const section = document.getElementById("ai-summary-section");
   if (section) section.style.display = "block";
