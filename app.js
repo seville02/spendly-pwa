@@ -1057,10 +1057,16 @@ function renderStreak() {
 }
 
 function closeAISummary() {
-  document.getElementById('ai-summary-section').style.display = 'none';
+  aiSummaryOpen = false;
 
-  const card = document.querySelector('.ai-summary-card');
-  if (card) card.classList.remove('has-summary');
+  const card = document.querySelector(".ai-summary-card");
+  if (card) card.classList.remove("has-summary");
+
+  const body = document.getElementById("ai-summary-body");
+  if (body) body.innerHTML = "";
+
+  const btn = document.getElementById("ai-generate-btn");
+  if (btn) btn.style.display = "flex";
 }
 
 function renderCatBudgetHome(txs) {
