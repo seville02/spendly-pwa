@@ -719,37 +719,8 @@ async function dbLookupByUsername(username) {
 }
 /** Lookup user by partial username match (for search suggestions). */
 async function dbLookupByUsernamePartial(username) {
-  const handle = username.replace(/^@/, '').trim().toLowerCase();
-  if (!handle || handle.length < 2) return null;
-  try {
-    const { data, error } = await _sb
-      .from('profiles')
-      .select('id, username, name')
-      .ilike('username', handle + '%')  // Prefix match
-      .limit(5);
-    if (error) throw error;
-    // Return first match with non-null username
-    const valid = (data || []).filter(d => d.username);
-    return valid[0] || null;
-  } catch (e) {
-    console.error('Partial username lookup failed:', e);
-    // Fallback: try contains match
-    try {
-      const { data, error } = await _sb
-        .from('profiles')
-        .select('id, username, name')
-        .ilike('username', '%' + handle + '%')
-        .limit(5);
-      if (error) throw error;
-      const valid = (data || []).filter(d => d.username);
-      return valid[0] || null;
-    } catch (e2) {
-      console.error('Contains lookup failed:', e2);
-      return null;
-    }
-  }
+  return null;
 }
-
 
 
 /** Update the username for a user profile. */
