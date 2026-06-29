@@ -691,48 +691,32 @@ async function dbDeleteTripGroup(groupId) {
 
 /** Find a user profile by their @username handle. Returns { id, username, name } or null. */
 async function dbLookupByUsername(username) {
-  const handle = username.replace(/^@/, '').trim();
+  const handle = username.replace(/^@/, '').trim().toLowerCase();
   if (!handle) return null;
-
   try {
     const { data, error } = await _sb
       .from('profiles')
       .select('id, username, name')
-      .ilike('username', handle) // case-insensitive exact match
+      .eq('username', handle)  // Changed from ilike to eq for exact match
       .maybeSingle();
-
     if (error) throw error;
     return data || null;
-
   } catch (e) {
-    console.error('Username lookup failed:', e);
-    return null;
+    console.error('Exact username lookup failed:', e);
+    // Fallback to case-insensitive search
+    try {
+      const { data, error } = await _sb
+        .from('profiles')
+        .select('id, username, name')
+        .maybeSingle();
+      if (error) throw error;
+      return data || null;
+    } catch (e2) {
+      console.error('Case-insensitive lookup failed:', e2);
+      return null;
+    }
   }
 }
-
-async function dbLookupByUsernamePartial(username) {
-  const handle = username.replace(/^@/, '').trim();
-  if (!handle || handle.length < 2) return null;
-
-  try {
-    const { data, error } = await _sb
-      .from('profiles')
-      .select('id, username, name')
-      .ilike('username', `${handle}%`)
-      .limit(5);
-
-    if (error) throw error;
-
-    const valid = data || [];
-    return valid[0] || null;
-
-  } catch (e) {
-    console.error('Partial lookup failed:', e);
-
-    return null;
-  }
-}
-
 /** Lookup user by partial username match (for search suggestions). */
 async function dbLookupByUsernamePartial(username) {
   const handle = username.replace(/^@/, '').trim().toLowerCase();
