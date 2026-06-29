@@ -1122,28 +1122,20 @@ function renderAISummarySection() {
 
   const section = document.getElementById("ai-summary-section");
 
-  // ✅ IMPORTANT FIX:
-  // only auto-control visibility if user hasn't opened it manually
+  // ONLY auto-hide if user hasn't opened it manually
   if (section && !aiSummaryOpen) {
-    section.style.display = show ? "block" : "none";
+    if (!aiSummaryOpen) {
+      section.style.display = show ? 'block' : 'none';
+    }
   }
 
+  // Reset expanded state when switching months
   aiSummaryExpanded = false;
 
   const summaryBody = document.getElementById("ai-summary-body");
   if (summaryBody) {
     summaryBody.style.display = "block";
   }
-}
-
-function openAISummary() {
-  aiSummaryOpen = true;
-
-  const section = document.getElementById("ai-summary-section");
-  if (section) section.style.display = "block";
-
-  const btn = document.getElementById("ai-generate-btn");
-  if (btn) btn.style.display = "none";
 }
 
 function closeAISummary() {
@@ -1161,21 +1153,24 @@ function closeAISummary() {
 
 function generateLocalSummary(txs, totalSpent, budget) {
   const catTotals = {};
-
   txs.forEach((t) => {
     catTotals[t.category] = (catTotals[t.category] || 0) + t.amount;
   });
 
   const sorted = Object.entries(catTotals).sort((a, b) => b[1] - a[1]);
 
-  let summary = `For this month, you have spent a total of ${fmtFull(totalSpent)}. `;
+  let summary = `For this month, you have spent a total of ${fmtFull(
+    totalSpent
+  )}. `;
 
   if (budget > 0) {
     const diff = budget - totalSpent;
     summary +=
       diff >= 0
         ? `You are currently under your budget by ${fmtFull(diff)}.`
-        : `You have exceeded your monthly budget by ${fmtFull(Math.abs(diff))}! Try to scale back.`;
+        : `You have exceeded your monthly budget by ${fmtFull(
+          Math.abs(diff)
+        )}! Try to scale back.`;
   } else {
     summary += `Consider setting a monthly budget to track your spending limits.`;
   }
@@ -1183,8 +1178,9 @@ function generateLocalSummary(txs, totalSpent, budget) {
   if (sorted.length > 0) {
     const [topCat, topAmt] = sorted[0];
     const pct = Math.round((topAmt / totalSpent) * 100);
-
-    summary += ` Your top spending category is <strong>${topCat}</strong>, accounting for ${fmtFull(topAmt)} (${pct}% of your total spending).`;
+    summary += ` Your top spending category is <strong>${topCat}</strong>, accounting for ${fmtFull(
+      topAmt
+    )} (${pct}% of your total spending).`;
   }
 
   summary += ` Tip: Review your transactions regularly to identify areas where you can save.`;
@@ -1205,7 +1201,9 @@ async function generateAISummary() {
   const btn = document.getElementById("ai-generate-btn");
   const body = document.getElementById("ai-summary-body");
 
-  if (btn) btn.style.display = "none";
+  if (btn) {
+    btn.style.display = aiSummaryOpen ? 'none' : 'flex';
+  }
 
   const section = document.getElementById("ai-summary-section");
   if (section) section.style.display = "block";
@@ -1219,6 +1217,7 @@ async function generateAISummary() {
   const totalSpent = txs.reduce((s, t) => s + t.amount, 0);
   const budget = appData.budgets[currentKey()] || 0;
 
+  // Local fallback if no Gemini key is provided
   if (!GEMINI_KEY || GEMINI_KEY.trim() === "") {
     const text = generateLocalSummary(txs, totalSpent, budget);
 
@@ -1227,6 +1226,8 @@ async function generateAISummary() {
     saveLocalSettings(s);
 
     body.innerHTML = text;
+    btn.style.display = "none";
+
     return;
   }
 
@@ -1252,7 +1253,7 @@ async function generateAISummary() {
     .map(([k, v]) => `${k} (${fmtFull(v)})`)
     .join(", ");
 
-  const prompt = `You are a friendly personal finance advisor. Analyse this spending data for ${MONTHS_FULL[viewMonth]} ${viewYear} and give a warm, concise summary (3-4 sentences max).
+  const prompt = `You are a friendly personal finance advisor. Analyse this spending data for ${MONTHS_FULL[viewMonth]} ${viewYear} and give a warm, concise summary (3-4 sentences max). Be specific, use the actual numbers, and give one actionable tip.
 
 Total spent: ${fmtFull(totalSpent)}
 Monthly budget: ${budget > 0 ? fmtFull(budget) : "not set"}
@@ -1266,7 +1267,7 @@ Spending by category: ${catSummary}
 Top merchants/payees: ${topMerchants}
 Total transactions: ${txs.length}
 
-No markdown.`;
+Write in plain conversational text, no markdown, no bullet points.`;
 
   try {
     const response = await fetch(
@@ -1285,7 +1286,6 @@ No markdown.`;
     );
 
     const data = await response.json();
-
     const text =
       data.candidates?.[0]?.content?.parts?.[0]?.text ||
       "Could not generate summary.";
@@ -1295,128 +1295,25 @@ No markdown.`;
     saveLocalSettings(s);
 
     body.innerHTML = text.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
+
+    btn.style.display = "none";
+    aiSummaryOpen = true;
   } catch (e) {
-    console.warn("AI error fallback", e);
+    console.warn(
+      "Gemini API call failed, generating local summary fallback",
+      e
+    );
 
     const text = generateLocalSummary(txs, totalSpent, budget);
 
     body.innerHTML =
       text +
-      `<br><small style="color:var(--text3)">Offline summary</small>`;
-  }
-}
+      `<br><small style="color:var(--text3);margin-top:6px;display:block">⚠️ Offline local summary (Gemini unavailable)</small>`;
 
-function loadCachedAISummary() {
-  const s = getLocalSettings();
-  const cached = s["aiSummary_" + currentKey()];
-
-  const body = document.getElementById("ai-summary-body");
-
-  if (cached) {
-    body.innerHTML = cached.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
+    btn.style.display = "none";
     aiSummaryOpen = true;
-  } else {
-    body.innerHTML = "";
-    aiSummaryOpen = false;
   }
 }
-// Local fallback if no Gemini key is provided
-if (!GEMINI_KEY || GEMINI_KEY.trim() === "") {
-  const text = generateLocalSummary(txs, totalSpent, budget);
-
-  const s = getLocalSettings();
-  s["aiSummary_" + currentKey()] = text;
-  saveLocalSettings(s);
-
-  body.innerHTML = text;
-  btn.style.display = "none";
-
-  return;
-}
-
-const catTotals = {};
-txs.forEach((t) => {
-  catTotals[t.category] = (catTotals[t.category] || 0) + t.amount;
-});
-
-const catSummary = Object.entries(catTotals)
-  .sort((a, b) => b[1] - a[1])
-  .map(([k, v]) => `${k}: ${fmtFull(v)}`)
-  .join(", ");
-
-const merchantTotals = {};
-txs.forEach((t) => {
-  const m = t.description || t.category;
-  merchantTotals[m] = (merchantTotals[m] || 0) + t.amount;
-});
-
-const topMerchants = Object.entries(merchantTotals)
-  .sort((a, b) => b[1] - a[1])
-  .slice(0, 5)
-  .map(([k, v]) => `${k} (${fmtFull(v)})`)
-  .join(", ");
-
-const prompt = `You are a friendly personal finance advisor. Analyse this spending data for ${MONTHS_FULL[viewMonth]} ${viewYear} and give a warm, concise summary (3-4 sentences max). Be specific, use the actual numbers, and give one actionable tip.
-
-Total spent: ${fmtFull(totalSpent)}
-Monthly budget: ${budget > 0 ? fmtFull(budget) : "not set"}
-Budget status: ${budget > 0
-    ? totalSpent <= budget
-      ? "under budget by " + fmtFull(budget - totalSpent)
-      : "over budget by " + fmtFull(totalSpent - budget)
-    : "no budget set"
-  }
-Spending by category: ${catSummary}
-Top merchants/payees: ${topMerchants}
-Total transactions: ${txs.length}
-
-Write in plain conversational text, no markdown, no bullet points.`;
-
-try {
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: {
-          maxOutputTokens: 300,
-          temperature: 0.7,
-        },
-      }),
-    }
-  );
-
-  const data = await response.json();
-  const text =
-    data.candidates?.[0]?.content?.parts?.[0]?.text ||
-    "Could not generate summary.";
-
-  const s = getLocalSettings();
-  s["aiSummary_" + currentKey()] = text;
-  saveLocalSettings(s);
-
-  body.innerHTML = text.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
-
-  btn.style.display = "none";
-  aiSummaryOpen = true;
-} catch (e) {
-  console.warn(
-    "Gemini API call failed, generating local summary fallback",
-    e
-  );
-
-  const text = generateLocalSummary(txs, totalSpent, budget);
-
-  body.innerHTML =
-    text +
-    `<br><small style="color:var(--text3);margin-top:6px;display:block">⚠️ Offline local summary (Gemini unavailable)</small>`;
-
-  btn.style.display = "none";
-  aiSummaryOpen = true;
-}
-
 
 function loadCachedAISummary() {
   const s = getLocalSettings();
