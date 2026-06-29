@@ -274,8 +274,13 @@
     <!-- AI Summary -->
     <div id="ai-summary-section" style="display:none">
       <div class="ai-summary-card">
+        <button class="ai-summary-close" onclick="closeAISummary()" aria-label="Close AI Summary">
+          ✕
+        </button>
+
         <div class="ai-summary-header">
           <div class="ai-summary-title">✨ AI Summary</div>
+
           <div class="ai-generate-btn" id="ai-generate-btn" onclick="generateAISummary()">
             <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
               <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
@@ -283,6 +288,7 @@
             Generate
           </div>
         </div>
+
         <div class="ai-summary-body" id="ai-summary-body"></div>
       </div>
     </div>
@@ -295,6 +301,7 @@
           <div class="quick-btn-sub">Deduct from budget</div>
         </div>
       </div>
+
       <div class="quick-btn" onclick="openSetBudget()">
         <div class="quick-icon" style="background:var(--green-dim);color:var(--green)">🎯</div>
         <div>
@@ -302,6 +309,7 @@
           <div class="quick-btn-sub">Monthly limit</div>
         </div>
       </div>
+
       <div class="quick-btn" onclick="openCatBudgetModal()">
         <div class="quick-icon" style="background:var(--accent-dim);color:var(--accent)">📊</div>
         <div>
@@ -309,8 +317,9 @@
           <div class="quick-btn-sub">Limits per category</div>
         </div>
       </div>
+
       <div class="quick-btn" onclick="navigate('savings')">
-        <div class="quick-icon" style="background:rgba(104,211,145,.12);color:var(--green)">💰</div>
+        <div class="quick-icon" style="background:var(--green-dim);color:var(--green)">💰</div>
         <div>
           <div class="quick-btn-label">Total Savings</div>
           <div class="quick-btn-sub" id="home-savings-val">₹0</div>

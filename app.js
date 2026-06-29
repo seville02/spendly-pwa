@@ -214,6 +214,7 @@ let debtType = 'owe';
 let charts = { donut: null, bar: null, line: null, compare: null };
 let currentEventId = null;
 let editingEventId = null;
+let aiSummaryExpanded = false;
 let editingEventItemId = null;
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -250,6 +251,46 @@ function toggleHideAmounts(e) {
   applyHideAmountsUI();
 }
 
+
+// ─────────────────────────────────────────────────────
+// BUG 3 FIX: IMPROVED SAVINGS DISPLAY FOR MOBILE
+// ─────────────────────────────────────────────────────
+function initSavingsResponsiveFix() {
+  const style = document.createElement('style');
+  style.textContent = `
+    @media (max-width: 768px) {
+      .savings-hero-num {
+        font-size: clamp(18px, 6vw, 32px) !important;
+        letter-spacing: 0px;
+        word-break: break-word;
+        overflow: visible !important;
+        text-overflow: unset !important;
+        white-space: normal !important;
+      }
+      
+      .savings-hero-amount {
+        flex-wrap: wrap;
+        gap: 2px;
+      }
+      
+      .savings-hero-currency {
+        font-size: 16px !important;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      .savings-hero-num {
+        font-size: clamp(16px, 5vw, 24px) !important;
+      }
+      
+      .savings-hero-currency {
+        font-size: 14px !important;
+      }
+    }
+  `;
+  document.head.appendChild(style);
+}
+
 function applyHideAmountsUI() {
   const MASK = '••••••';
   const eyeIcons = document.querySelectorAll('.eye-toggle-icon');
@@ -274,22 +315,24 @@ function applyHideAmountsUI() {
       : heroAmt.dataset.real;
   }
 
-  // Savings hero
+  // Savings hero - IMPROVED FOR MOBILE
   const savAmt = document.getElementById('savings-hero-total');
   const savCur = document.getElementById('savings-hero-currency');
   if (savAmt) {
-
     if (!savAmt.dataset.real || savAmt.dataset.real === MASK) {
       savAmt.dataset.real = savAmt.textContent;
     }
-
     if (savCur) {
       savCur.style.visibility = isAmountsHidden ? "hidden" : "visible";
     }
 
-    savAmt.textContent = isAmountsHidden
-      ? MASK
-      : savAmt.dataset.real;
+    const displayValue = isAmountsHidden ? MASK : savAmt.dataset.real;
+    savAmt.textContent = displayValue;
+
+    // Ensure text doesn't overflow on mobile
+    if (displayValue !== MASK && displayValue.length > 10) {
+      savAmt.style.fontSize = 'clamp(16px, 5vw, 32px)';
+    }
   }
 }
 
@@ -419,14 +462,43 @@ function setSyncing(state) { // 'syncing' | 'error' | 'ok'
 // THEME
 // ─────────────────────────────────────────────────────
 function applyTheme(t) {
+  // Set both data-theme attribute AND html element class
   document.documentElement.setAttribute('data-theme', t);
-  document.getElementById('theme-meta').setAttribute('content', t === 'light' ? '#f0f4f8' : '#0a0f1e');
+  document.documentElement.classList.toggle('dark-mode', t === 'dark');
+  document.documentElement.classList.toggle('light-mode', t === 'light');
+
+  // Force CSS variable update
+  document.documentElement.style.colorScheme = t;
+
+  // Update meta theme color
+  const metaTheme = document.getElementById('theme-meta');
+  if (metaTheme) {
+    metaTheme.setAttribute('content', t === 'light' ? '#f0f4f8' : '#0a0f1e');
+  }
+
+  // Store in localStorage to persist
+  try {
+    localStorage.setItem('spendly_theme', t);
+  } catch (e) { }
+
+  // Trigger any theme-dependent elements to re-render
+  setTimeout(() => {
+    document.dispatchEvent(new CustomEvent('themeChanged', { detail: { theme: t } }));
+  }, 0);
 }
 function toggleTheme() {
+  const currentTheme = document.documentElement.getAttribute('data-theme') || localStorage.getItem('spendly_theme') || 'dark';
+  const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+
+  applyTheme(newTheme);
+
+  // Update localSettings object
   const s = getLocalSettings();
-  const t = s.theme === 'dark' ? 'light' : 'dark';
-  s.theme = t; saveLocalSettings(s); localSettings = s; applyTheme(t);
-  showToast(t === 'light' ? 'Light mode ☀️' : 'Dark mode 🌙');
+  s.theme = newTheme;
+  saveLocalSettings(s);
+  localSettings = s;
+
+  showToast(newTheme === 'light' ? 'Light mode ☀️' : 'Dark mode 🌙');
 }
 
 // ─────────────────────────────────────────────────────
@@ -1021,11 +1093,17 @@ function renderCatBudgetHome(txs) {
 function renderAISummarySection() {
   const now = new Date(), daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
   const today = now.getDate(), isCurrentMonth = (viewYear === now.getFullYear() && viewMonth === now.getMonth());
-  // Show on last 2 days of current month OR any past month with data
   const txs = getMonthTx();
   const hasData = txs.filter(t => t.type === 'expense').length > 0;
   const show = hasData && (!isCurrentMonth || today >= daysInMonth - 1);
   document.getElementById('ai-summary-section').style.display = show ? 'block' : 'none';
+
+  // Reset expanded state when switching months
+  aiSummaryExpanded = false;
+  const summaryBody = document.getElementById('ai-summary-body');
+  if (summaryBody) {
+    summaryBody.style.display = 'block';
+  }
 }
 
 function generateLocalSummary(txs, totalSpent, budget) {
@@ -1060,6 +1138,9 @@ async function generateAISummary() {
   const btn = document.getElementById('ai-generate-btn');
   const body = document.getElementById('ai-summary-body');
   btn.style.display = 'none';
+  const closeBtn = document.getElementById('ai-summary-close-btn');
+  if (closeBtn) closeBtn.style.display = 'block';
+
   body.innerHTML = '<div class="ai-loading"><div class="ai-dot"></div><div class="ai-dot"></div><div class="ai-dot"></div><span>Analysing your spending…</span></div>';
 
   const totalSpent = txs.reduce((s, t) => s + t.amount, 0);
@@ -1112,12 +1193,34 @@ Write in plain conversational text, no markdown, no bullet points.`;
     const s = getLocalSettings(); s['aiSummary_' + currentKey()] = text; saveLocalSettings(s);
     body.innerHTML = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
     btn.style.display = 'none';
+    if (closeBtn) closeBtn.style.display = 'block';
+    aiSummaryExpanded = true;
   } catch (e) {
     console.warn('Gemini API call failed, generating local summary fallback', e);
     const text = generateLocalSummary(txs, totalSpent, budget);
     body.innerHTML = text + `<br><small style="color:var(--text3);margin-top:6px;display:block">⚠️ Offline local summary (Gemini unavailable)</small>`;
     btn.style.display = 'none';
+    if (closeBtn) closeBtn.style.display = 'block';
+    aiSummaryExpanded = true;
   }
+}
+
+function closeAISummary() {
+  const body = document.getElementById('ai-summary-body');
+  const btn = document.getElementById('ai-generate-btn');
+  const closeBtn = document.getElementById('ai-summary-close-btn');
+
+  body.innerHTML = '';
+  btn.style.display = 'flex';
+  if (closeBtn) closeBtn.style.display = 'none';
+
+  // Clear cache for this month
+  const s = getLocalSettings();
+  delete s['aiSummary_' + currentKey()];
+  saveLocalSettings(s);
+
+  aiSummaryExpanded = false;
+  showToast('Summary closed');
 }
 
 function loadCachedAISummary() {
@@ -1125,12 +1228,19 @@ function loadCachedAISummary() {
   const cached = s['aiSummary_' + currentKey()];
   const body = document.getElementById('ai-summary-body');
   const btn = document.getElementById('ai-generate-btn');
+  const closeBtn = document.getElementById('ai-summary-close-btn');
+
   if (cached) {
+    // Show cached summary with close button
     body.innerHTML = cached.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
     btn.style.display = 'none';
+    if (closeBtn) closeBtn.style.display = 'block';
+    aiSummaryExpanded = true;
   } else {
     body.innerHTML = '';
     btn.style.display = 'flex';
+    if (closeBtn) closeBtn.style.display = 'none';
+    aiSummaryExpanded = false;
   }
 }
 
@@ -4317,41 +4427,58 @@ function openCreateTripModal() {
 }
 
 let _tripSearchDebounce = null;
+
+// ─────────────────────────────────────────────────────
+// BUG 4 FIX: IMPROVED USERNAME SEARCH
+// Note: dbLookupByUsernamePartial() function is defined in db.js
+// ─────────────────────────────────────────────────────
+
 async function searchTripUser() {
   clearTimeout(_tripSearchDebounce);
   const raw = document.getElementById('trip-username-search').value.trim();
   const resultEl = document.getElementById('trip-user-search-result');
   tripSearchResult = null;
 
-  if (!raw || raw.replace(/^@/, '').length < 2) {
+  if (!raw || raw.replace(/^@/, '').length < 1) {
     resultEl.innerHTML = '';
     return;
   }
 
   _tripSearchDebounce = setTimeout(async () => {
     try {
-      const found = await dbLookupByUsername(raw);
+      // Try exact username first
+      let found = await dbLookupByUsername(raw);
+
+      // If not found and input is short, try partial match
+      if (!found && raw.replace(/^@/, '').length >= 2) {
+        found = await dbLookupByUsernamePartial(raw);
+      }
+
       if (!found) {
         resultEl.innerHTML = `<span style="color:var(--red)">❌ No user found for @${raw.replace(/^@/, '')}</span>`;
         tripSearchResult = null;
         return;
       }
+
       // Don't allow adding yourself
       if (found.id === currentUser.id) {
         resultEl.innerHTML = `<span style="color:var(--text3)">That's you — you're added automatically ✓</span>`;
         tripSearchResult = null;
         return;
       }
+
       // Don't allow duplicates
       if (tripPendingMembers.some(m => m.user_id === found.id)) {
         resultEl.innerHTML = `<span style="color:var(--text3)">@${found.username} is already added</span>`;
         tripSearchResult = null;
         return;
       }
+
       tripSearchResult = found;
       resultEl.innerHTML = `<span style="color:var(--green)">✓ Found: <strong>${escapeHtml(found.name || found.username)}</strong> (@${escapeHtml(found.username)}) — tap Add</span>`;
     } catch (e) {
-      resultEl.innerHTML = `<span style="color:var(--red)">Error looking up user</span>`;
+      console.error('User search error:', e);
+      resultEl.innerHTML = `<span style="color:var(--red)">Error looking up user: ${e.message}</span>`;
       tripSearchResult = null;
     }
   }, 350);
@@ -4867,10 +4994,4 @@ window.addEventListener('online', () => {
 });
 window.addEventListener('offline', () => {
   showToast('You are offline. Transactions will be saved locally.');
-});
-
-// Add to bottom of app.js
-document.addEventListener('DOMContentLoaded', function () {
-  const savedTheme = localStorage.getItem('spendly_theme') || 'dark';
-  applyTheme(savedTheme);
 });

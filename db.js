@@ -73,7 +73,7 @@ async function dbGetUser() {
 
 // Listen for auth state changes (login / logout / token refresh)
 function dbOnAuthChange(callback) {
-  if (!_sb) return { data: { subscription: { unsubscribe: () => {} } } };
+  if (!_sb) return { data: { subscription: { unsubscribe: () => { } } } };
   return _sb.auth.onAuthStateChange((event, session) => {
     callback(event, session);
   });
@@ -146,17 +146,17 @@ async function _dbInsertTransactionRaw(userId, tx) {
   const { error } = await _sb
     .from('transactions')
     .insert({
-      id:           tx.id,
-      user_id:      userId,
-      type:         tx.type,
-      amount:       tx.amount,
-      description:  tx.description || '',
-      category:     tx.category || '',
-      notes:        tx.notes || '',
-      recur:        tx.recur || 'none',
+      id: tx.id,
+      user_id: userId,
+      type: tx.type,
+      amount: tx.amount,
+      description: tx.description || '',
+      category: tx.category || '',
+      notes: tx.notes || '',
+      recur: tx.recur || 'none',
       recur_parent: tx.recurParent || '',
-      month_key:    tx.monthKey,
-      datetime:     tx.datetime,
+      month_key: tx.monthKey,
+      datetime: tx.datetime,
     });
   if (error) throw error;
 }
@@ -182,15 +182,15 @@ async function _dbUpdateTransactionRaw(userId, txId, updates) {
   const { error } = await _sb
     .from('transactions')
     .update({
-      type:         updates.type,
-      amount:       updates.amount,
-      description:  updates.description || '',
-      category:     updates.category || '',
-      notes:        updates.notes || '',
-      recur:        updates.recur || 'none',
+      type: updates.type,
+      amount: updates.amount,
+      description: updates.description || '',
+      category: updates.category || '',
+      notes: updates.notes || '',
+      recur: updates.recur || 'none',
       recur_parent: updates.recurParent || '',
-      month_key:    updates.monthKey,
-      datetime:     updates.datetime,
+      month_key: updates.monthKey,
+      datetime: updates.datetime,
     })
     .eq('id', txId)
     .eq('user_id', userId);
@@ -201,17 +201,17 @@ async function _dbUpdateTransactionRaw(userId, txId, updates) {
 async function dbBulkInsertTransactions(userId, txList) {
   if (!txList.length) return;
   const rows = txList.map(tx => ({
-    id:           tx.id,
-    user_id:      userId,
-    type:         tx.type,
-    amount:       tx.amount,
-    description:  tx.description || '',
-    category:     tx.category || '',
-    notes:        tx.notes || '',
-    recur:        tx.recur || 'none',
+    id: tx.id,
+    user_id: userId,
+    type: tx.type,
+    amount: tx.amount,
+    description: tx.description || '',
+    category: tx.category || '',
+    notes: tx.notes || '',
+    recur: tx.recur || 'none',
     recur_parent: tx.recurParent || '',
-    month_key:    tx.monthKey,
-    datetime:     tx.datetime,
+    month_key: tx.monthKey,
+    datetime: tx.datetime,
   }));
   const { error } = await _sb
     .from('transactions')
@@ -242,7 +242,7 @@ async function _dbSaveBudgetRaw(userId, monthKey, amount) {
   const { error } = await _sb
     .from('budgets')
     .upsert({ user_id: userId, month_key: monthKey, amount },
-            { onConflict: 'user_id,month_key' });
+      { onConflict: 'user_id,month_key' });
   if (error) throw error;
 }
 
@@ -276,7 +276,7 @@ async function _dbSaveCatBudgetRaw(userId, monthKey, category, amount) {
     const { error } = await _sb
       .from('cat_budgets')
       .upsert({ user_id: userId, month_key: monthKey, category, amount },
-              { onConflict: 'user_id,month_key,category' });
+        { onConflict: 'user_id,month_key,category' });
     if (error) throw error;
   } else {
     const { error } = await _sb
@@ -311,14 +311,14 @@ async function _dbInsertDebtRaw(userId, debt) {
   const { error } = await _sb
     .from('debts')
     .insert({
-      id:      debt.id,
+      id: debt.id,
       user_id: userId,
-      type:    debt.type,
-      person:  debt.person,
-      amount:  debt.amount,
-      note:    debt.note || '',
+      type: debt.type,
+      person: debt.person,
+      amount: debt.amount,
+      note: debt.note || '',
       settled: debt.settled || false,
-      date:    debt.date || new Date().toISOString(),
+      date: debt.date || new Date().toISOString(),
     });
   if (error) throw error;
 }
@@ -470,7 +470,7 @@ async function dbGetInvoices(userId) {
 async function dbUploadInvoiceFile(userId, file) {
   const fileExt = file.name.split('.').pop();
   const fileName = `${userId}/${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
-  
+
   const { data, error } = await _sb.storage
     .from('invoices')
     .upload(fileName, file, { cacheControl: '3600', upsert: true });
@@ -490,7 +490,7 @@ async function dbUploadInvoiceFile(userId, file) {
 async function dbUploadAvatarFile(userId, file) {
   const fileExt = file.name.split('.').pop() || 'png';
   const fileName = `${userId}/avatar_${Date.now()}.${fileExt}`;
-  
+
   const { data, error } = await _sb.storage
     .from('invoices')
     .upload(fileName, file, { cacheControl: '3600', upsert: true });
@@ -693,14 +693,65 @@ async function dbDeleteTripGroup(groupId) {
 async function dbLookupByUsername(username) {
   const handle = username.replace(/^@/, '').trim().toLowerCase();
   if (!handle) return null;
-  const { data, error } = await _sb
-    .from('profiles')
-    .select('id, username, name')
-    .ilike('username', handle)
-    .maybeSingle();
-  if (error) throw error;
-  return data || null;
+  try {
+    const { data, error } = await _sb
+      .from('profiles')
+      .select('id, username, name')
+      .eq('username', handle)  // Changed from ilike to eq for exact match
+      .maybeSingle();
+    if (error) throw error;
+    return data || null;
+  } catch (e) {
+    console.error('Exact username lookup failed:', e);
+    // Fallback to case-insensitive search
+    try {
+      const { data, error } = await _sb
+        .from('profiles')
+        .select('id, username, name')
+        .ilike('username', '^' + handle + '$')  // ^ = start, $ = end for word boundary
+        .maybeSingle();
+      if (error) throw error;
+      return data || null;
+    } catch (e2) {
+      console.error('Case-insensitive lookup failed:', e2);
+      return null;
+    }
+  }
 }
+/** Lookup user by partial username match (for search suggestions). */
+async function dbLookupByUsernamePartial(username) {
+  const handle = username.replace(/^@/, '').trim().toLowerCase();
+  if (!handle || handle.length < 2) return null;
+  try {
+    const { data, error } = await _sb
+      .from('profiles')
+      .select('id, username, name')
+      .ilike('username', handle + '%')  // Prefix match
+      .limit(5);
+    if (error) throw error;
+    // Return first match with non-null username
+    const valid = (data || []).filter(d => d.username);
+    return valid[0] || null;
+  } catch (e) {
+    console.error('Partial username lookup failed:', e);
+    // Fallback: try contains match
+    try {
+      const { data, error } = await _sb
+        .from('profiles')
+        .select('id, username, name')
+        .ilike('username', '%' + handle + '%')
+        .limit(5);
+      if (error) throw error;
+      const valid = (data || []).filter(d => d.username);
+      return valid[0] || null;
+    } catch (e2) {
+      console.error('Contains lookup failed:', e2);
+      return null;
+    }
+  }
+}
+
+
 
 /** Update the username for a user profile. */
 async function dbUpdateUsername(userId, username) {
@@ -714,13 +765,18 @@ async function dbUpdateUsername(userId, username) {
 async function dbGetEmailByUsername(username) {
   const handle = username.replace(/^@/, '').trim().toLowerCase();
   if (!handle) return null;
-  const { data, error } = await _sb
-    .from('profiles')
-    .select('*')
-    .ilike('username', handle)
-    .maybeSingle();
-  if (error) throw error;
-  return data?.email || null;
+  try {
+    const { data, error } = await _sb
+      .from('profiles')
+      .select('email')
+      .eq('username', handle)
+      .maybeSingle();
+    if (error) throw error;
+    return data?.email || null;
+  } catch (e) {
+    console.error('Email lookup failed:', e);
+    return null;
+  }
 }
 
 
@@ -775,4 +831,3 @@ async function dbCountUnreadNotifs(userId) {
   if (error) return 0;
   return count || 0;
 }
-

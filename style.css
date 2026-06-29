@@ -2855,7 +2855,8 @@ body {
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
-  overflow: hidden;
+  /* BUG 3 FIX: Allow wrapping on mobile */
+  flex-wrap: wrap;
 }
 
 .savings-hero-currency {
@@ -2879,9 +2880,11 @@ body {
   font-family: var(--mono);
   line-height: 1.1;
   text-shadow: 0 2px 20px rgba(104, 211, 145, .25);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  /* BUG 3 FIX: Allow text wrapping on mobile */
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  word-break: break-word;
   max-width: 100%;
 }
 
@@ -4274,10 +4277,55 @@ body {
   }
 }
 
-@media (max-width: 480px) {
+/* ═════════════════════════════════════════════════════════
+   BUG 3 FIX: RESPONSIVE SAVINGS DISPLAY FOR MOBILE & TABLETS
+   ═════════════════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+  .savings-hero-amount {
+    gap: 3px;
+    padding: 0 4px;
+    margin-bottom: 8px;
+  }
+
   .savings-hero-num {
-    font-size: clamp(14px, 5.5vw, 24px) !important;
+    font-size: clamp(16px, 6vw, 32px) !important;
+    letter-spacing: 0px;
     white-space: normal;
     word-break: break-word;
+    overflow: visible;
+  }
+
+  .savings-hero-currency {
+    font-size: clamp(12px, 3.5vw, 18px) !important;
+  }
+
+  .savings-hero-sub {
+    font-size: 11px;
+    margin-bottom: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .savings-hero-amount {
+    gap: 2px;
+    margin-bottom: 4px;
+    padding: 0 2px;
+  }
+
+  .savings-hero-num {
+    font-size: clamp(14px, 5.5vw, 24px) !important;
+    letter-spacing: 0;
+    white-space: normal;
+    word-break: break-word;
+  }
+
+  .savings-hero-currency {
+    font-size: clamp(10px, 3vw, 14px) !important;
+  }
+
+  .savings-hero-sub {
+    font-size: 10px;
+    margin-bottom: 8px;
   }
 }
