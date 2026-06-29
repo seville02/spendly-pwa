@@ -732,6 +732,59 @@ body {
   color: var(--text2);
 }
 
+.ai-summary-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+
+  width: 24px;
+  height: 24px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border: none;
+  border-radius: 50%;
+
+  background: var(--red-dim);
+  color: var(--red);
+
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+
+  cursor: pointer;
+  transition: all .15s ease;
+
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.ai-summary-close:hover {
+  background: rgba(252, 129, 129, .18);
+}
+
+.ai-summary-close:active {
+  transform: scale(.92);
+}
+
+[data-theme="light"] .ai-summary-close {
+  background: rgba(224, 83, 83, .12);
+  color: var(--red);
+}
+
+/* Mobile */
+@media (max-width:480px) {
+  .ai-summary-close {
+    width: 22px;
+    height: 22px;
+    top: 8px;
+    right: 8px;
+    font-size: 12px;
+  }
+}
+
 .summary-banner-close {
   align-self: flex-end;
   font-size: 11px;
@@ -743,6 +796,7 @@ body {
 
 /* AI SUMMARY CARD */
 .ai-summary-card {
+  position: relative;
   margin: 0 16px 12px;
   background: linear-gradient(135deg, rgba(183, 148, 244, .12), rgba(99, 179, 237, .08));
   border: 1px solid rgba(183, 148, 244, .25);
