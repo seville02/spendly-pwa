@@ -1214,23 +1214,14 @@ Write in plain conversational text, no markdown, no bullet points.`;
 }
 
 function closeAISummary() {
-  const body = document.getElementById('ai-summary-body');
+  document.getElementById('ai-summary-section').style.display = 'none';
+
+  const card = document.querySelector('.ai-summary-card');
+  if (card) card.classList.remove('has-summary');
+
   const btn = document.getElementById('ai-generate-btn');
-  const closeBtn = document.getElementById('ai-summary-close-btn');
-
-  body.innerHTML = '';
-  btn.style.display = 'flex';
-  if (closeBtn) closeBtn.style.display = 'none';
-
-  // Clear cache for this month
-  const s = getLocalSettings();
-  delete s['aiSummary_' + currentKey()];
-  saveLocalSettings(s);
-
-  aiSummaryExpanded = false;
-  showToast('Summary closed');
+  if (btn) btn.style.display = 'flex';
 }
-
 function loadCachedAISummary() {
   const s = getLocalSettings();
   const cached = s['aiSummary_' + currentKey()];
