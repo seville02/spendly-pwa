@@ -4110,23 +4110,6 @@ body {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
-   DARK MODE PREFERENCE
-═══════════════════════════════════════════════════════════════════════ */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #0a0f1e;
-    --surface: #111827;
-  }
-}
-
-@media (prefers-color-scheme: light) {
-  :root {
-    --bg: #f0f4f8;
-    --surface: #ffffff;
-  }
-}
-
-/* ═══════════════════════════════════════════════════════════════════════
    REDUCED MOTION PREFERENCE (ACCESSIBILITY)
 ═══════════════════════════════════════════════════════════════════════ */
 @media (prefers-reduced-motion: reduce) {
