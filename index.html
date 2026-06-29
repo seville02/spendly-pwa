@@ -271,37 +271,33 @@
       </div>
     </div>
 
-    <!-- AI Generate Button (MOVED OUTSIDE SECTION for stability) -->
-    <div class="ai-generate-btn" id="ai-generate-btn" onclick="generateAISummary()">
-      <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-      </svg>
-      Generate
-    </div>
-
     <!-- AI Summary -->
     <div id="ai-summary-section" style="display:none">
-
       <div class="ai-summary-card">
-
         <button class="ai-summary-close" onclick="closeAISummary()" aria-label="Close AI Summary">
+
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
             stroke-linecap="round">
             <path d="M18 6L6 18M6 6l12 12" />
           </svg>
+
         </button>
 
         <div class="ai-summary-header">
           <div class="ai-summary-title">✨ AI Summary</div>
+
+          <div class="ai-generate-btn" id="ai-generate-btn" onclick="generateAISummary()">
+            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+            </svg>
+            Generate
+          </div>
         </div>
 
         <div class="ai-summary-body" id="ai-summary-body"></div>
-
       </div>
-
     </div>
 
-    <!-- QUICK ACTION ROW (UNCHANGED) -->
     <div class="quick-row">
       <div class="quick-btn" onclick="openAddExpense()">
         <div class="quick-icon" style="background:var(--red-dim);color:var(--red)">📤</div>
@@ -335,6 +331,7 @@
         </div>
       </div>
     </div>
+
     <!-- Category budgets mini -->
     <div id="cat-budget-home" style="display:none; margin-top: 14px;">
       <div class="section-header" style="padding:0 16px;margin-bottom:10px">
