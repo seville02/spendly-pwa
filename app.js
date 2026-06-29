@@ -214,7 +214,6 @@ let debtType = 'owe';
 let charts = { donut: null, bar: null, line: null, compare: null };
 let currentEventId = null;
 let editingEventId = null;
-let aiSummaryExpanded = false;
 let editingEventItemId = null;
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -1129,19 +1128,6 @@ function renderAISummarySection() {
   if (summaryBody) {
     summaryBody.style.display = "block";
   }
-}
-
-function closeAISummary() {
-  aiSummaryOpen = false;
-
-  const section = document.getElementById("ai-summary-section");
-  if (section) section.style.display = "none";
-
-  const card = document.querySelector(".ai-summary-card");
-  if (card) card.classList.remove("has-summary");
-
-  const btn = document.getElementById("ai-generate-btn");
-  if (btn) btn.style.display = "flex";
 }
 
 function generateLocalSummary(txs, totalSpent, budget) {
