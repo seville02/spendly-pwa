@@ -1145,9 +1145,10 @@ async function generateAISummary() {
   const btn = document.getElementById('ai-generate-btn');
   const body = document.getElementById('ai-summary-body');
   btn.style.display = 'none';
-  const closeBtn = document.getElementById('ai-summary-close-btn');
-  if (closeBtn) closeBtn.style.display = 'block';
-
+  const card = document.querySelector('.ai-summary-card');
+  if (card) {
+    card.classList.add('has-summary');
+  }
   body.innerHTML = '<div class="ai-loading"><div class="ai-dot"></div><div class="ai-dot"></div><div class="ai-dot"></div><span>Analysing your spending…</span></div>';
 
   const totalSpent = txs.reduce((s, t) => s + t.amount, 0);
