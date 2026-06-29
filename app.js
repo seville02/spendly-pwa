@@ -1058,17 +1058,10 @@ function renderStreak() {
 }
 
 function closeAISummary() {
-  console.log("CLOSE CLICKED");
+  document.getElementById('ai-summary-section').style.display = 'none';
 
-  const section = document.getElementById('ai-summary-section');
-  console.log("SECTION BEFORE:", section?.innerHTML);
-
-  section.style.display = 'none';
-
-  setTimeout(() => {
-    console.log("SECTION AFTER:", document.getElementById('ai-summary-section')?.innerHTML);
-    console.log("BUTTON EXISTS:", document.getElementById('ai-generate-btn'));
-  }, 500);
+  const card = document.querySelector('.ai-summary-card');
+  if (card) card.classList.remove('has-summary');
 }
 
 function renderCatBudgetHome(txs) {
