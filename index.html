@@ -844,8 +844,7 @@
           </svg>
           Add Account
         </button>
-        <button onclick="openAddSavingsFDModal()" class="savings-add-btn" id="savings-add-fd-btn"
-          style="flex:1">
+        <button onclick="openAddSavingsFDModal()" class="savings-add-btn" id="savings-add-fd-btn" style="flex:1">
           <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" width="14" height="14">
             <line x1="12" y1="5" x2="12" y2="19" />
             <line x1="5" y1="12" x2="19" y2="12" />
@@ -1199,8 +1198,7 @@
 
         <div class="form-group">
           <label class="form-label">Bill Name</label>
-          <input class="form-input" type="text" id="bs-bill-name" placeholder="e.g. Cafe Dinner, Goa Resort..."
-            value="Dinner Split">
+          <input class="form-input" type="text" id="bs-bill-name" placeholder="e.g. Cafe, Dinner, Malls...">
         </div>
 
         <div class="form-group">
@@ -1911,9 +1909,13 @@
           <span style="font-size:10px;color:var(--text3);margin-top:2px">Supports Images, HEIC, PDF, Excel, Word</span>
         </div>
         <!-- PREVIEW CONTAINER -->
-        <div id="invoice-preview-container" style="display:none; margin-top: 10px; text-align: center; border: 1px dashed var(--border2); padding: 10px; border-radius: 12px; background: var(--surface2)">
-          <img id="invoice-preview-img" style="max-width: 100%; max-height: 150px; border-radius: 8px; display: none;" />
-          <div id="invoice-preview-fileinfo" style="font-size: 12px; color: var(--text2); display: flex; align-items: center; justify-content: center; gap: 6px;"></div>
+        <div id="invoice-preview-container"
+          style="display:none; margin-top: 10px; text-align: center; border: 1px dashed var(--border2); padding: 10px; border-radius: 12px; background: var(--surface2)">
+          <img id="invoice-preview-img"
+            style="max-width: 100%; max-height: 150px; border-radius: 8px; display: none;" />
+          <div id="invoice-preview-fileinfo"
+            style="font-size: 12px; color: var(--text2); display: flex; align-items: center; justify-content: center; gap: 6px;">
+          </div>
         </div>
         <input type="file" id="invoice-file-input" style="display:none" onchange="handleInvoiceFileSelected(event)"
           accept="image/*,.heic,.pdf,.xls,.xlsx,.doc,.docx">
