@@ -760,6 +760,10 @@ body {
   touch-action: manipulation;
 }
 
+.ai-summary-card.has-summary .ai-summary-close {
+  display: flex;
+}
+
 .ai-summary-close:hover {
   background: rgba(252, 129, 129, .18);
 }
