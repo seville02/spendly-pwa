@@ -1553,7 +1553,7 @@ function renderStats() {
     document.getElementById('insight-text').innerHTML = insight;
     const sorted = Object.entries(catTotals).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]);
     destroyChart('donut');
-    if (sorted.length > 0) { charts.donut = new Chart(document.getElementById('donut-chart').getContext('2d'), { type: 'doughnut', data: { labels: sorted.map(([k]) => k), datasets: [{ data: sorted.map(([, v]) => v), backgroundColor: sorted.map(([k]) => CATEGORIES.find(c => c.id === k)?.color || '#8896b3'), borderWidth: 0, spacing: 2 }] }, options: { responsive: true, maintainAspectRatio: false, cutout: '68%', plugins: { legend: { position: 'bottom', labels: { color: 'var(--text2)', font: { size: 10 }, padding: 8, boxWidth: 8 } }, tooltip: { callbacks: { label: c => ` ${c.label}: ${fmt(c.raw)}` } } } } }); }
+    if (sorted.length > 0) { charts.donut = new Chart(document.getElementById('donut-chart').getContext('2d'), { type: 'doughnut', data: { labels: sorted.map(([k]) => k), datasets: [{ data: sorted.map(([, v]) => v), backgroundColor: sorted.map(([k]) => CATEGORIES.find(c => c.id === k)?.color || '#8896b3'), borderWidth: 0, spacing: 2 }] }, options: { responsive: true, maintainAspectRatio: false, cutout: '68%', plugins: { legend: { position: 'bottom', labels: { color: getComputedStyle(document.body).getPropertyValue('--text2').trim() || '#a0aec0', font: { size: 10 }, padding: 8, boxWidth: 8 } }, tooltip: { callbacks: { label: c => ` ${c.label}: ${fmt(c.raw)}` } } } } }); }
   }
   if (activeStatsTab === 'categories') {
     const isIncome = activeStatsCatTab === 'income';
@@ -4682,15 +4682,46 @@ function closeTripDetails() {
 
 function renderTripExpenses() {
   const container = document.getElementById('trip-expenses-list');
+  const addBtnContainer = document.getElementById('trip-add-expense-container');
+  const completeBtn = document.getElementById('trip-complete-btn');
+  const titleEl = document.getElementById('selected-trip-name');
   if (!container) return;
 
   const expenses = currentTripData.expenses || [];
-  if (expenses.length === 0) {
+  const completedExp = expenses.find(e => e.description === '__SYSTEM_TRIP_COMPLETED__');
+  const isCompleted = !!completedExp;
+
+  if (isCompleted) {
+    if (addBtnContainer) addBtnContainer.style.display = 'none';
+    if (completeBtn) {
+      completeBtn.innerHTML = '↩️ Reopen';
+      completeBtn.title = 'Reopen Trip';
+      completeBtn.style.background = 'rgba(246, 166, 80, 0.12)';
+      completeBtn.style.color = 'var(--orange)';
+    }
+    if (titleEl && !titleEl.innerHTML.includes('(Completed)')) {
+      titleEl.innerHTML += ' <span style="font-size:12px;color:var(--green);background:rgba(104,211,145,.2);padding:2px 6px;border-radius:4px;vertical-align:middle;margin-left:8px">Completed</span>';
+    }
+  } else {
+    if (addBtnContainer) addBtnContainer.style.display = 'block';
+    if (completeBtn) {
+      completeBtn.innerHTML = '✅';
+      completeBtn.title = 'Mark Completed';
+      completeBtn.style.background = 'rgba(79, 209, 197, 0.12)';
+      completeBtn.style.color = 'var(--green)';
+    }
+    if (titleEl) {
+      titleEl.innerHTML = escapeHtml(currentTripData.group.name);
+    }
+  }
+
+  const visibleExpenses = expenses.filter(e => e.description !== '__SYSTEM_TRIP_COMPLETED__');
+  if (visibleExpenses.length === 0) {
     container.innerHTML = `<div style="text-align:center;padding:12px;color:var(--text3);font-size:12px">No expenses logged yet.</div>`;
     return;
   }
 
-  container.innerHTML = expenses.map(exp => {
+  container.innerHTML = visibleExpenses.map(exp => {
     const dateStr = new Date(exp.date).toLocaleDateString('en-IN', {
       day: 'numeric', month: 'short'
     });
@@ -4714,7 +4745,7 @@ function renderTripExpenses() {
         </div>
         <div style="display:flex;align-items:center;gap:10px">
           <span style="font-family:var(--mono);font-size:14px;font-weight:700;color:var(--text)">₹${parseFloat(exp.amount).toLocaleString('en-IN')}</span>
-          <button onclick="deleteTripExpense('${exp.id}')" style="background:none;border:none;color:var(--text3);cursor:pointer;padding:4px;font-size:12px">✕</button>
+          ${!isCompleted ? `<button onclick="deleteTripExpense('${exp.id}')" style="background:none;border:none;color:var(--text3);cursor:pointer;padding:4px;font-size:12px">✕</button>` : ''}
         </div>
       </div>
     `;
@@ -4902,6 +4933,8 @@ function calculateTripBalances() {
     html += `<div style="background:var(--surface2);color:var(--text3);padding:10px;border-radius:10px;font-size:12px;margin-bottom:12px;text-align:center">You are all settled! 🤝</div>`;
   }
 
+  const isCompleted = currentTripData.expenses?.some(e => e.description === '__SYSTEM_TRIP_COMPLETED__');
+
   if (transactions.length === 0) {
     html += `<div style="font-size:12px;color:var(--text3);text-align:center;padding:10px 0">No settlements needed.</div>`;
   } else {
@@ -4921,7 +4954,7 @@ function calculateTripBalances() {
           </div>
           <div style="display:flex;align-items:center;gap:12px">
             <span style="font-family:var(--mono);font-weight:700;color:var(--accent)">₹${Math.round(tx.amount).toLocaleString('en-IN')}</span>
-            ${tx.key === currentUser.id ? `<button onclick="settleTripDebt('${tx.key}', '${tx.toKey}', ${tx.amount})" style="background:var(--green-dim);color:var(--green);border:1px solid var(--green);border-radius:6px;padding:4px 8px;font-size:10px;font-weight:700;cursor:pointer">Settle</button>` : ''}
+            ${(!isCompleted && tx.key === currentUser.id) ? `<button onclick="settleTripDebt('${tx.key}', '${tx.toKey}', ${tx.amount})" style="background:var(--green-dim);color:var(--green);border:1px solid var(--green);border-radius:6px;padding:4px 8px;font-size:10px;font-weight:700;cursor:pointer">Settle</button>` : ''}
           </div>
         </div>
       `;
@@ -4931,6 +4964,35 @@ function calculateTripBalances() {
   }
 
   settlementsContainer.innerHTML = html;
+}
+
+async function toggleTripCompleted() {
+  if (!currentTripData) return;
+  setSyncing('syncing');
+  try {
+    const expenses = currentTripData.expenses || [];
+    const completedExp = expenses.find(e => e.description === '__SYSTEM_TRIP_COMPLETED__');
+
+    if (completedExp) {
+      // Reopen trip by deleting the completion expense
+      await dbDeleteTripExpense(completedExp.id);
+      showToast('Trip reopened');
+    } else {
+      // Complete trip by adding a completion expense
+      const dStr = new Date().toISOString().slice(0, 10);
+      await dbAddTripExpense(currentTripData.group.id, '__SYSTEM_TRIP_COMPLETED__', 0, currentUser.id, dStr);
+      showToast('Trip marked as completed! ✅');
+    }
+
+    currentTripData = await dbGetTripDetails(currentTripData.group.id);
+    calculateTripBalances();
+    renderTripExpenses();
+    setSyncing('ok');
+  } catch (e) {
+    console.error(e);
+    setSyncing('error');
+    showToast('Failed to change trip status');
+  }
 }
 
 async function settleTripDebt(debtorId, creditorId, amount) {

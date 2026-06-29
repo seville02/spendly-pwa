@@ -943,7 +943,7 @@
       <div class="form-group">
         <label class="form-label">Account Name</label>
         <input class="form-input" type="text" id="savings-acc-name-input"
-          placeholder="e.g. HDFC Savings, Jio Payments Bank...">
+          placeholder="e.g. Primary Savings, Emergency Fund...">
       </div>
       <div class="form-group">
         <label class="form-label">Current Balance</label>
@@ -1154,6 +1154,9 @@
           <div style="display:flex;gap:6px">
             <button onclick="closeTripDetails()"
               style="background:var(--surface2);border:none;border-radius:8px;padding:6px 12px;font-size:12px;color:var(--text2);cursor:pointer">Back</button>
+            <button id="trip-complete-btn" onclick="toggleTripCompleted()"
+              style="background:rgba(79, 209, 197, 0.12);border:none;border-radius:8px;padding:6px 10px;color:var(--green);cursor:pointer;margin-right:4px"
+              title="Mark Completed">✅</button>
             <button id="trip-delete-btn" onclick="deleteCurrentTrip()"
               style="background:rgba(239, 68, 68, 0.12);border:none;border-radius:8px;padding:6px 10px;color:#ef4444;cursor:pointer"
               title="Delete Trip">🗑️</button>
@@ -1161,7 +1164,7 @@
         </div>
 
         <!-- Add Expense Card Button -->
-        <div style="margin-bottom:16px">
+        <div style="margin-bottom:16px" id="trip-add-expense-container">
           <button class="submit-btn" onclick="openAddTripExpenseModal()"
             style="background:linear-gradient(90deg, var(--accent), var(--blue));color:#0a0f1e;font-weight:700">+ Add
             Trip Expense</button>
