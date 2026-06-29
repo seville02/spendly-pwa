@@ -693,29 +693,19 @@ async function dbDeleteTripGroup(groupId) {
 async function dbLookupByUsername(username) {
   const handle = username.replace(/^@/, '').trim().toLowerCase();
   if (!handle) return null;
-  try {
-    const { data, error } = await _sb
-      .from('profiles')
-      .select('id, username, name')
-      .eq('username', handle)  // Changed from ilike to eq for exact match
-      .maybeSingle();
-    if (error) throw error;
-    return data || null;
-  } catch (e) {
-    console.error('Exact username lookup failed:', e);
-    // Fallback to case-insensitive search
-    try {
-      const { data, error } = await _sb
-        .from('profiles')
-        .select('id, username, name')
-        .maybeSingle();
-      if (error) throw error;
-      return data || null;
-    } catch (e2) {
-      console.error('Case-insensitive lookup failed:', e2);
-      return null;
-    }
+
+  const { data, error } = await _sb
+    .from('profiles')
+    .select('id, username, name')
+    .eq('username', handle)
+    .maybeSingle();
+
+  if (error) {
+    console.error(error);
+    return null;
   }
+
+  return data;
 }
 /** Lookup user by partial username match (for search suggestions). */
 async function dbLookupByUsernamePartial(username) {
