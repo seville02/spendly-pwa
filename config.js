@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════
-// Centy CONFIG
+// BudgieMaxx CONFIG
 // Update these values if you change your Supabase project
 // ═══════════════════════════════════════════════════════
 

@@ -1,12 +1,12 @@
 // ═══════════════════════════════════════════════════════
-// app.js — Centy v4.56.0
+// app.js — BudgieMaxx v4.56.0
 // ═══════════════════════════════════════════════════════
 
 
 // ── Clean up legacy local storage to fulfill request to "erase local data" ──
 try {
   Object.keys(localStorage).forEach(key => {
-    if (key.startsWith('Centy_') && !key.startsWith('Centy_trash_') && key !== 'Centy_theme') {
+    if (key.startsWith('BudgieMaxx_') && !key.startsWith('BudgieMaxx_trash_') && key !== 'BudgieMaxx_theme') {
       localStorage.removeItem(key);
     }
   });
@@ -113,8 +113,8 @@ const XP_RANKS = [
   { label: 'Mythic', badge: '🌟', min: 3200, max: 7000 },
   { label: 'Legend', badge: '👑', min: 7000, max: 10000 },
 ];
-const XP_KEY = () => `Centy_xp_${currentUser?.id || 'local'}`;
-const XP_LASTMONTH_KEY = () => `Centy_xp_lastmonth_${currentUser?.id || 'local'}`;
+const XP_KEY = () => `BudgieMaxx_xp_${currentUser?.id || 'local'}`;
+const XP_LASTMONTH_KEY = () => `BudgieMaxx_xp_lastmonth_${currentUser?.id || 'local'}`;
 
 function getXP() { return parseInt(localStorage.getItem(XP_KEY()) || '0'); }
 function setXP(v) { localStorage.setItem(XP_KEY(), Math.max(0, v)); }
@@ -222,20 +222,20 @@ const MONTHS_FULL = ['January', 'February', 'March', 'April', 'May', 'June', 'Ju
 // Settings (UI preferences only — theme is stored locally, data is in Supabase)
 function getLocalSettings() {
   try {
-    const theme = localStorage.getItem('Centy_theme') || 'dark';
+    const theme = localStorage.getItem('BudgieMaxx_theme') || 'dark';
     return { ...localSettings, theme };
   } catch (e) { return localSettings; }
 }
 function saveLocalSettings(s) {
   try {
-    if (s.theme) localStorage.setItem('Centy_theme', s.theme);
+    if (s.theme) localStorage.setItem('BudgieMaxx_theme', s.theme);
   } catch (e) { /* ignore */ }
 }
 
 // ─────────────────────────────────────────────────────
 // HIDE AMOUNTS TOGGLE
 // ─────────────────────────────────────────────────────
-const HIDE_KEY = 'Centy_hide_amounts';
+const HIDE_KEY = 'BudgieMaxx_hide_amounts';
 let isAmountsHidden = (() => {
   try { return localStorage.getItem(HIDE_KEY) === 'true'; } catch (e) { return false; }
 })();
@@ -358,11 +358,11 @@ function getCurrencyCode(locale) {
   };
   return map[locale] || map[locale.split('-')[0]] || 'INR';
 }
-function getCurrencySymbol() { 
+function getCurrencySymbol() {
   if (appData && appData.profile && appData.profile.currency) {
     return appData.profile.currency;
   }
-  return localSettings.currency || detectCurrency(); 
+  return localSettings.currency || detectCurrency();
 }
 
 // ─────────────────────────────────────────────────────
@@ -482,7 +482,7 @@ function applyTheme(t) {
 
   // Store in localStorage to persist
   try {
-    localStorage.setItem('Centy_theme', t);
+    localStorage.setItem('BudgieMaxx_theme', t);
   } catch (e) { }
 
   // Trigger any theme-dependent elements to re-render
@@ -491,7 +491,7 @@ function applyTheme(t) {
   }, 0);
 }
 function toggleTheme() {
-  const currentTheme = document.documentElement.getAttribute('data-theme') || localStorage.getItem('Centy_theme') || 'dark';
+  const currentTheme = document.documentElement.getAttribute('data-theme') || localStorage.getItem('BudgieMaxx_theme') || 'dark';
   const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
 
   applyTheme(newTheme);
@@ -627,7 +627,7 @@ function setAuthTab(mode) {
     btn.textContent = isForgot ? 'Send Reset Link' : mode === 'signup' ? 'Create Account' : 'Sign In';
   }
   document.getElementById('auth-title').textContent = isForgot ? 'Reset Password' : mode === 'signup' ? 'Create account' : 'Welcome back';
-  document.getElementById('auth-sub').textContent = isForgot ? 'Enter your email to receive a reset link' : mode === 'signup' ? 'Start tracking your money' : 'Sign in to your Centy account';
+  document.getElementById('auth-sub').textContent = isForgot ? 'Enter your email to receive a reset link' : mode === 'signup' ? 'Start tracking your money' : 'Sign in to your BudgieMaxx account';
   document.getElementById('auth-error').textContent = '';
 }
 
@@ -673,18 +673,19 @@ async function handleAuth() {
       await dbSignUp(email, password, name, authSelectedCurrency);
       btn.disabled = false;
       btn.textContent = 'Create Account';
+      await dbSignOut()
       showToast('Account successfully created! Please sign in. 🎉');
       setAuthTab('signin');
       // Clear password field for safety
       document.getElementById('auth-password').value = '';
-      
+
       // Save currency choice so it applies upon login
       const s = getLocalSettings();
       s.currency = authSelectedCurrency;
       saveLocalSettings(s);
       localSettings = s;
       updateCurrencyUI();
-      
+
       return;
     } else {
       let loginEmail = email.trim();
@@ -717,7 +718,7 @@ function friendlyAuthError(msg) {
 }
 
 async function signOut() {
-  if (!confirm('Sign out of Centy?')) return;
+  if (!confirm('Sign out of BudgieMaxx?')) return;
   await dbSignOut();
   currentUser = null;
   appData = { transactions: [], budgets: {}, catBudgets: {}, debts: [], profile: {} };
@@ -733,7 +734,7 @@ async function clearAllTransactions() {
   // ── Snapshot for 30-day recovery ──
   try {
     const snap = { ts: Date.now(), transactions: JSON.parse(JSON.stringify(appData.transactions)) };
-    localStorage.setItem(`Centy_trash_${currentUser.id}`, JSON.stringify(snap));
+    localStorage.setItem(`BudgieMaxx_trash_${currentUser.id}`, JSON.stringify(snap));
   } catch (e) { console.warn('Could not save recovery snapshot', e); }
 
   setSyncing('syncing');
@@ -754,12 +755,12 @@ async function clearAllTransactions() {
 
 async function recoverTransactions() {
   try {
-    const raw = localStorage.getItem(`Centy_trash_${currentUser.id}`);
+    const raw = localStorage.getItem(`BudgieMaxx_trash_${currentUser.id}`);
     if (!raw) { showToast('No recovery snapshot found'); return; }
     const snap = JSON.parse(raw);
     const ageMs = Date.now() - snap.ts;
     if (ageMs > 30 * 24 * 60 * 60 * 1000) {
-      localStorage.removeItem(`Centy_trash_${currentUser.id}`);
+      localStorage.removeItem(`BudgieMaxx_trash_${currentUser.id}`);
       showToast('Recovery window expired (30 days)');
       return;
     }
@@ -777,7 +778,7 @@ async function recoverTransactions() {
       snap.transactions.forEach(t => { if (!existingIds.has(t.id)) appData.transactions.push(t); });
 
       // Clear the snapshot so it can't be restored twice
-      localStorage.removeItem(`Centy_trash_${currentUser.id}`);
+      localStorage.removeItem(`BudgieMaxx_trash_${currentUser.id}`);
 
       renderHome();
       renderTransactions();
@@ -891,6 +892,7 @@ function navigate(screen) {
   if (screen === 'bill-splitter') renderBillSplitter();
   if (screen === 'savings') renderSavingsScreen();
   if (screen === 'invoices') renderInvoicesScreen();
+  if (screen === 'cat-budget-overview') renderCatBudgetOverview();
   // Track for Android back
   if (_screenHistory[_screenHistory.length - 1] !== screen) {
     _screenHistory.push(screen);
@@ -1097,7 +1099,7 @@ function renderCatBudgetHome(txs) {
   if (!has) return;
   const spent = {};
   txs.filter(t => t.type === 'expense').forEach(t => { spent[t.category] = (spent[t.category] || 0) + t.amount; });
-  
+
   const displayLimit = entries.length <= 4 ? entries.length : 3;
   let html = entries.slice(0, displayLimit).map(([cat, limit]) => {
     const s = spent[cat] || 0, pct = Math.min((s / limit) * 100, 100);
@@ -1122,11 +1124,11 @@ function renderCatBudgetHome(txs) {
 
   if (entries.length > displayLimit) {
     const moreCount = entries.length - displayLimit;
-    html += `<div class="cat-budget-row" onclick="openCatBudgetModal()" style="cursor:pointer; justify-content:center; padding: 12px; background: var(--surface2); border-radius: 12px; margin-top: 4px; color: var(--accent); font-weight: 600; text-align: center; border: 1px dashed var(--border);">
-      See ${moreCount} more...
+    html += `<div class="cat-budget-row" onclick="openCatBudgetOverview()" style="cursor:pointer; justify-content:center; padding: 12px; background: var(--surface2); border-radius: 12px; margin-top: 4px; color: var(--accent); font-weight: 600; text-align: center; border: 1px dashed var(--border);">
+  See ${moreCount} more...
     </div>`;
   }
-  
+
   document.getElementById('cat-budget-home-list').innerHTML = html;
 }
 
@@ -1479,7 +1481,7 @@ function renderTransactions() {
     // Check for a recoverable snapshot within 30 days
     let recoverBanner = '';
     try {
-      const raw = localStorage.getItem(`Centy_trash_${currentUser.id}`);
+      const raw = localStorage.getItem(`BudgieMaxx_trash_${currentUser.id}`);
       if (raw) {
         const snap = JSON.parse(raw);
         const ageMs = Date.now() - snap.ts;
@@ -2540,7 +2542,7 @@ function selectCurrency(symbol, name) {
     closeModal('modal-currency');
     return;
   }
-  
+
   if (window._authCurrencyPickerMode) {
     authSelectedCurrency = symbol;
     document.getElementById('auth-currency-display').innerHTML = `${symbol.trim()} ${name.trim()}`;
@@ -2553,7 +2555,7 @@ function selectCurrency(symbol, name) {
   s.currency = symbol;
   saveLocalSettings(s);
   localSettings = s;
-  
+
   // also save to profile
   if (appData && appData.profile && currentUser) {
     const oldProfile = { ...appData.profile };
@@ -2605,7 +2607,88 @@ async function saveCatBudget(cat, val) {
     showToast('Failed to save category budget: ' + e.message);
   }
 }
+function openCatBudgetOverview() {
+  navigate('cat-budget-overview');
+  renderCatBudgetOverview();
+}
 
+function renderCatBudgetOverview() {
+  console.log("🚨 renderCatBudgetOverview CALLED");
+
+  const listEl = document.getElementById("cat-budget-overview-list");
+  if (!listEl) {
+    console.error("Missing #cat-budget-overview-list element");
+    return;
+  }
+
+  const key = currentKey();
+  const cb = (appData.catBudgets || {})[key] || {};
+
+  console.log("catBudgets raw:", appData.catBudgets);
+  console.log("currentKey:", key);
+  console.log("cb:", cb);
+
+  const entries = Object.entries(cb);
+
+  console.log("entries:", entries);
+
+  if (entries.length === 0) {
+    listEl.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">📊</div>
+        <div class="empty-title">No category budgets set</div>
+        <div class="empty-sub">Add budgets from the home screen or category settings</div>
+      </div>
+    `;
+    return;
+  }
+
+  const spent = {};
+
+  (appData.transactions || [])
+    .filter(t => t.type === "expense")
+    .forEach(t => {
+      spent[t.category] = (spent[t.category] || 0) + Number(t.amount || 0);
+    });
+
+  let html = "";
+
+  entries.forEach(([cat, limit]) => {
+    const s = spent[cat] || 0;
+    const pct = limit > 0 ? Math.min((s / limit) * 100, 100) : 0;
+
+    const rawPct = limit > 0 ? (s / limit) * 100 : 0;
+    const isOver = rawPct >= 100;
+    const isWarn = !isOver && rawPct >= 80;
+
+    const color =
+      isOver ? "var(--red)" :
+        isWarn ? "#ed8936" :
+          "var(--accent)";
+
+    html += `
+      <div class="cat-budget-row">
+        <div class="cat-budget-info">
+          <div class="cat-budget-name">${cat}</div>
+          <div class="cat-budget-progress">
+            <div class="cat-budget-bar" style="width:${pct}%; background:${color}"></div>
+          </div>
+        </div>
+
+        <div class="cat-budget-right">
+          <div class="cat-budget-amt" style="color:${isOver ? "var(--red)" : "var(--text)"}">
+            ${fmt(s)}
+          </div>
+          <div class="cat-budget-limit">
+            of ${fmt(limit)}
+          </div>
+        </div>
+      </div>
+    `;
+  });
+
+  listEl.innerHTML = html;
+}
 // ─────────────────────────────────────────────────────
 // ADD TRANSACTION
 // ─────────────────────────────────────────────────────
@@ -2663,7 +2746,7 @@ function renderCatGrid() {
   const displayCats = showAllCats ? cats : cats.slice(0, 5);
   let html = displayCats.map(c =>
     `<div class="cat-option ${c.id === selectedCat ? 'selected' : ''}" onclick="selectCat('${c.id}')"><div class="cat-option-icon">${c.icon}</div><div class="cat-option-label">${c.id}</div></div>`).join('');
-  
+
   if (!showAllCats && cats.length > 5) {
     html += `<div class="cat-option" onclick="toggleShowAllCats()"><div class="cat-option-icon">➕</div><div class="cat-option-label">More</div></div>`;
   } else if (showAllCats && cats.length > 5) {
@@ -2748,7 +2831,7 @@ async function submitTransaction() {
   } catch (e) {
     const isOffline = e.message === 'offline' || e.message?.includes('fetch') || e.status === 0 || !navigator.onLine;
     if (isOffline) {
-      const pendingKey = `Centy_pending_tx_${currentUser.id}`;
+      const pendingKey = `BudgieMaxx_pending_tx_${currentUser.id}`;
       let pending = [];
       try {
         pending = JSON.parse(localStorage.getItem(pendingKey) || '[]');
@@ -3118,16 +3201,16 @@ async function executeExportAction(action) {
 
     // 2. Open mailto: pre-filled with the user's registered email
     const toEmail = currentUser?.email || '';
-    const subject = encodeURIComponent('Centy Expense Report');
-    
-    let bodyText = `Hi,\n\nPlease find my Centy expense report attached (${filename}).\n\n`;
+    const subject = encodeURIComponent('BudgieMaxx Expense Report');
+
+    let bodyText = `Hi,\n\nPlease find my BudgieMaxx expense report attached (${filename}).\n\n`;
     if (fileUrl) {
       bodyText += `Download your secure file here: ${fileUrl}\n\n`;
     } else {
       bodyText += `Note: Due to browser limitations, the file was downloaded to your device. Please attach it manually to this email.\n\n`;
     }
-    bodyText += `Generated on ${new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}.\n\n— Sent via Centy`;
-    
+    bodyText += `Generated on ${new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}.\n\n— Sent via BudgieMaxx`;
+
     const body = encodeURIComponent(bodyText);
 
     setTimeout(() => {
@@ -3175,11 +3258,11 @@ function triggerExportCSV(exportAll) {
   closeModal('modal-export-csv');
   const curMonthLabel = getMonthLabel();
   let txs = appData.transactions;
-  let filename = `Centy-all-${new Date().toISOString().slice(0, 10)}.csv`;
+  let filename = `BudgieMaxx-all-${new Date().toISOString().slice(0, 10)}.csv`;
 
   if (!exportAll) {
     txs = txs.filter(t => t.monthKey === currentKey());
-    filename = `Centy-${currentKey()}-${new Date().toISOString().slice(0, 10)}.csv`;
+    filename = `BudgieMaxx-${currentKey()}-${new Date().toISOString().slice(0, 10)}.csv`;
   }
 
   const rows = [['Date', 'Time', 'Type', 'Amount', 'Category', 'Description', 'Notes', 'Recurring', 'Month']];
@@ -3192,7 +3275,7 @@ function triggerExportCSV(exportAll) {
   const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
   const blob = new Blob([csv], { type: 'text/csv' });
   const successMsg = exportAll ? 'All-time CSV downloaded' : `${curMonthLabel} CSV downloaded`;
-  handleFileExport(blob, filename, 'Centy Expense Report CSV', 'Here is my Centy expense report.', successMsg);
+  handleFileExport(blob, filename, 'BudgieMaxx Expense Report CSV', 'Here is my BudgieMaxx expense report.', successMsg);
 }
 async function importData(e) {
   const file = e.target.files[0]; if (!file) return;
@@ -3358,8 +3441,32 @@ function showToast(msg) {
   dbOnAuthChange(async (event, session) => {
     if (session) {
       currentUser = session.user;
+
       if (!isSplitRoute) {
         hideAuthScreen();
+
+        // Welcome toast
+        const s = getLocalSettings();
+        const userName =
+          session.user.user_metadata?.name ||
+          appData?.profile?.name ||
+          "there";
+
+        const hour = new Date().getHours();
+        let greeting = "Hello";
+
+        if (hour < 12) greeting = "Good morning";
+        else if (hour < 17) greeting = "Good afternoon";
+        else greeting = "Good evening";
+
+        if (s.firstLoginWelcome) {
+          showToast(`🎉 Welcome to BudgieMaxx, ${userName}!`);
+          s.firstLoginWelcome = false;
+          saveLocalSettings(s);
+        } else {
+          showToast(`${greeting}, ${userName}! 👋`);
+        }
+
         await loadAllData(currentUser.id);
         await processRecurring();
         updateMonthLabels();
@@ -3372,11 +3479,14 @@ function showToast(msg) {
           openChangePassword();
           showToast('Please set your new password 🔑');
         }
+
       } else {
         await loadAllData(currentUser.id);
       }
+
     } else {
       currentUser = null;
+
       if (!isSplitRoute) {
         showAuthScreen();
       }
@@ -3391,7 +3501,6 @@ function showToast(msg) {
 
   updateMonthLabels();
 })();
-
 // ═══════════════════════════════════════════════════════
 // EVENT PLANNER MODULE
 // ═══════════════════════════════════════════════════════
@@ -4204,7 +4313,7 @@ function copyGsSummary() {
   const total = document.getElementById('gs-share-total').textContent;
   const selectedNames = Array.from(selectedItemIndices).map(idx => guestBillData.i[idx].n).join(', ');
 
-  const msg = `Hi ${guestBillData.p}, I've split the bill "${guestBillData.n}" on Centy. My share for: [${selectedNames}] is ₹${total}. Paid you via UPI! (From: ${guestName})`;
+  const msg = `Hi ${guestBillData.p}, I've split the bill "${guestBillData.n}" on BudgieMaxx. My share for: [${selectedNames}] is ₹${total}. Paid you via UPI! (From: ${guestName})`;
 
   navigator.clipboard.writeText(msg).then(() => {
     showToast('Payment confirmation text copied! 📋');
@@ -4936,7 +5045,7 @@ function calculateTripBalances() {
       const legacyMember = members.find(m => m.email === exp.paid_by);
       if (legacyMember) paidByKey = memberKey(legacyMember);
     }
-    
+
     if (balances[paidByKey] !== undefined) {
       if (exp.description.startsWith('Settlement:')) {
         const creditorId = exp.description.replace('Settlement:', '').trim();
@@ -5197,13 +5306,13 @@ async function updateNotifBellCount() {
 
 function saveAppDataLocally() {
   if (currentUser) {
-    localStorage.setItem(`Centy_appdata_${currentUser.id}`, JSON.stringify(appData));
+    localStorage.setItem(`BudgieMaxx_appdata_${currentUser.id}`, JSON.stringify(appData));
   }
 }
 
 function loadAppDataLocally() {
   if (currentUser) {
-    const raw = localStorage.getItem(`Centy_appdata_${currentUser.id}`);
+    const raw = localStorage.getItem(`BudgieMaxx_appdata_${currentUser.id}`);
     if (raw) {
       try {
         appData = JSON.parse(raw);
@@ -5217,7 +5326,7 @@ function loadAppDataLocally() {
 async function syncPendingTransactions() {
   if (isSyncingPending) return;
   if (!navigator.onLine || !currentUser) return;
-  const pendingKey = `Centy_pending_tx_${currentUser.id}`;
+  const pendingKey = `BudgieMaxx_pending_tx_${currentUser.id}`;
   let pending = [];
   try {
     const raw = localStorage.getItem(pendingKey);

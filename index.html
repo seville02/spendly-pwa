@@ -7,8 +7,8 @@
   <meta name="theme-color" content="#0a0f1e" id="theme-meta">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Centy">
-  <title>Centy</title>
+  <meta name="apple-mobile-web-app-title" content="BudgieMaxx">
+  <title>BudgieMaxx</title>
   <link rel="manifest" href="manifest.json">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -35,34 +35,16 @@
   <div id="auth-screen">
     <div class="auth-logo-wrap">
       <!-- S mark logo -->
-      <svg class="auth-logo-svg" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path
-          d="M75 25 A 35 35 0 0 0 75 75"
-          stroke="url(#sg1)" stroke-width="14" stroke-linecap="round" />
-        <defs>
-          <linearGradient id="sg1" x1="25" y1="10" x2="75" y2="90" gradientUnits="userSpaceOnUse">
-            <stop offset="0%" stop-color="#4fd1c5" />
-            <stop offset="50%" stop-color="#e8533a" />
-            <stop offset="100%" stop-color="#f6a650" />
-          </linearGradient>
-        </defs>
-      </svg>
+      <img src="BudgieMaxx logo.png" class="auth-logo" alt="BudgieMaxx Logo">
       <div class="auth-wordmark">
-        <!-- Text logo: Centy wordmark with dot and arrow -->
-        <svg viewBox="0 0 180 40" width="160" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <text x="0" y="30" font-family="DM Sans, sans-serif" font-weight="600" font-size="28"
-            fill="var(--text)">Centy</text>
-          <circle cx="13" cy="37" r="3.5" fill="#e8533a" />
-          <line x1="95" y1="8" x2="108" y2="2" stroke="#e8533a" stroke-width="2.5" stroke-linecap="round" />
-          <line x1="108" y1="2" x2="103" y2="9" stroke="#e8533a" stroke-width="2.5" stroke-linecap="round" />
-          <line x1="108" y1="2" x2="101" y2="4" stroke="#e8533a" stroke-width="2.5" stroke-linecap="round" />
-        </svg>
+        <!-- Text logo: BudgieMaxx wordmark with dot and arrow -->
+
       </div>
       <div class="auth-tagline">Smart expense tracking</div>
     </div>
     <div class="auth-card">
       <div class="auth-title" id="auth-title">Welcome back</div>
-      <div class="auth-sub" id="auth-sub">Sign in to your Centy account</div>
+      <div class="auth-sub" id="auth-sub">Sign in to your BudgieMaxx account</div>
       <div class="auth-tabs" id="auth-tabs-container">
         <div class="auth-tab active" id="auth-tab-signin" onclick="setAuthTab('signin')">Sign In</div>
         <div class="auth-tab" id="auth-tab-signup" onclick="setAuthTab('signup')">Sign Up</div>
@@ -73,8 +55,9 @@
       <div id="auth-name-wrap" style="display:none">
         <input class="auth-input" type="text" id="auth-name" placeholder="Your name"
           onkeydown="if(event.key==='Enter')document.getElementById('auth-email').focus()">
-        
-        <div class="auth-input" id="auth-currency-btn" onclick="openAuthCurrencyPicker()" style="margin-top: 10px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; color: var(--text3)">
+
+        <div class="auth-input" id="auth-currency-btn" onclick="openAuthCurrencyPicker()"
+          style="margin-top: 10px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; color: var(--text3)">
           <span>Select Currency <span style="color:var(--red)">*</span></span>
           <span id="auth-currency-display" style="font-weight: 600;">Not set</span>
         </div>
@@ -151,19 +134,7 @@
       <div class="header-row">
         <!-- SVG wordmark logo in header -->
         <div class="header-logo">
-          <svg class="header-logo-mark" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path
-              d="M75 28C75 18 66 10 50 10C34 10 25 18 25 28C25 38 33 43 50 48C67 53 75 58 75 70C75 82 66 90 50 90C34 90 25 82 25 70"
-              stroke="url(#hg1)" stroke-width="14" stroke-linecap="round" />
-            <defs>
-              <linearGradient id="hg1" x1="25" y1="10" x2="75" y2="90" gradientUnits="userSpaceOnUse">
-                <stop offset="0%" stop-color="#4fd1c5" />
-                <stop offset="50%" stop-color="#e8533a" />
-                <stop offset="100%" stop-color="#f6a650" />
-              </linearGradient>
-            </defs>
-          </svg>
-          <span class="header-logo-name">spend<em>ly</em></span>
+          <span class="header-logo-name">Budgie<em>Maxx</em></span>
         </div>
         <div class="header-right">
           <div class="month-pill" onclick="openMonthSelector()">
@@ -380,7 +351,7 @@
                 </linearGradient>
               </defs>
             </svg>
-            <span class="header-logo-name">spend<em>ly</em></span>
+            <span class="header-logo-name">Budgie<em>Maxx</em></span>
           </div>
           <div class="month-pill" onclick="openMonthSelector()">
             <span id="nav-month-label-2">May 2026</span>
@@ -413,7 +384,22 @@
     </div>
     <div id="all-tx-list" style="padding-top:8px"></div>
   </div>
+  <!-- ══════════ CATEGORY BUDGET OVERVIEW ══════════ -->
+  <div class="screen" id="screen-cat-budget-overview">
+    <div class="header">
+      <div class="header-row">
+        <div class="header-logo">
+          <span class="header-logo-name">Category Budgets</span>
+        </div>
 
+        <div class="back-btn" onclick="navigate('home')">
+          ← Back
+        </div>
+      </div>
+    </div>
+
+    <div id="cat-budget-overview-list"></div>
+  </div>
   <!-- ══════════ STATS ══════════ -->
   <div class="screen" id="screen-stats">
     <div class="header">
@@ -431,7 +417,7 @@
               </linearGradient>
             </defs>
           </svg>
-          <span class="header-logo-name">spend<em>ly</em></span>
+          <span class="header-logo-name">Budgie<em>Maxx</em></span>
         </div>
         <div class="month-pill" onclick="openMonthSelector()">
           <span id="nav-month-label-3">May 2026</span>
@@ -774,7 +760,7 @@
     </div>
     <input type="file" id="import-file" accept=".csv" style="display:none" onchange="importData(event)">
     <div style="height:10px"></div>
-    <div style="padding:0 16px;font-size:11px;color:var(--text3);text-align:center;line-height:1.7">Centy v4.0 ·
+    <div style="padding:0 16px;font-size:11px;color:var(--text3);text-align:center;line-height:1.7">BudgieMaxx v4.0 ·
       Synced via Supabase · Data encrypted</div>
   </div>
 
@@ -1289,7 +1275,7 @@
       <div class="header-row" style="justify-content:center">
         <div style="display:flex;align-items:center;gap:8px">
           <div class="ev-icon-wrapper" style="width:30px;height:30px;font-size:14px">🧾</div>
-          <span style="font-size:17px;font-weight:700">Centy Bill Splitter</span>
+          <span style="font-size:17px;font-weight:700">BudgieMaxx Bill Splitter</span>
         </div>
       </div>
     </div>
@@ -1381,7 +1367,7 @@
       <div style="height:30px"></div>
       <div style="display:flex;justify-content:center;gap:12px">
         <button onclick="window.location.hash=''; window.location.reload();" class="ev-add-item-btn"
-          style="font-size:11px;padding:6px 14px">Go to Centy Homepage</button>
+          style="font-size:11px;padding:6px 14px">Go to BudgieMaxx Homepage</button>
       </div>
     </div>
   </div>
@@ -1669,7 +1655,8 @@
       <div class="sheet-handle"></div>
       <div class="sheet-title">📥 Import Backup</div>
       <div style="font-size:13px;color:var(--text2);line-height:1.65;margin-bottom:20px">
-        This will import transactions from a <strong style="color:var(--text)">Centy CSV export</strong> file and add
+        This will import transactions from a <strong style="color:var(--text)">BudgieMaxx CSV export</strong> file and
+        add
         them to your existing data.
         <br><br>
         ℹ️ Your current data will <strong style="color:var(--text)">not</strong> be deleted — imported entries are added
@@ -1979,7 +1966,7 @@
         <!-- Added members list -->
         <div id="trip-added-members" style="display:flex;flex-wrap:wrap;gap:6px"></div>
         <span style="font-size:10px;color:var(--text3);margin-top:6px;display:block">You are added automatically.
-          Friends must have a Centy account with an @username set.</span>
+          Friends must have a BudgieMaxx account with an @username set.</span>
       </div>
 
       <button class="submit-btn" onclick="submitCreateTrip()">Create Group</button>
