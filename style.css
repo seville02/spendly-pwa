@@ -82,7 +82,7 @@
 }
 
 .auth-logo {
-  width: clamp(110px, 18vw, 180px);
+  width: auto;
   height: auto;
   display: block;
   margin: 0 auto 20px auto;
