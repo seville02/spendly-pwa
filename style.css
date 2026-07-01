@@ -101,6 +101,10 @@
   mix-blend-mode: screen;
 }
 
+[data-theme="light"] .auth-logo {
+  mix-blend-mode: multiply;
+}
+
 html,
 body {
   height: 100%;
@@ -122,6 +126,8 @@ body {
 
 
 }
+
+
 
 /* ═══════════════════════════════════════
    AUTH SCREEN
@@ -476,11 +482,19 @@ body {
 }
 
 .header-logo-img {
-  width: 30px;
-  height: 30px;
+  width: auto;
+  height: 200px;
   object-fit: contain;
   flex-shrink: 0;
-  border-radius: 6px;
+}
+
+[data-theme="dark"] .header-logo-img {
+  filter: invert(1) hue-rotate(180deg) brightness(1.1) saturate(1.3);
+  mix-blend-mode: screen;
+}
+
+[data-theme="light"] .header-logo-img {
+  mix-blend-mode: multiply;
 }
 
 .header-logo-mark {

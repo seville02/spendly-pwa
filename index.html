@@ -84,17 +84,15 @@
 
   <!-- ══════════ PIN LOCK ══════════ -->
   <div id="lock-screen">
-    <svg viewBox="0 0 100 100" width="52" height="52" style="margin-bottom:16px">
-      <path
-        d="M75 28C75 18 66 10 50 10C34 10 25 18 25 28C25 38 33 43 50 48C67 53 75 58 75 70C75 82 66 90 50 90C34 90 25 82 25 70"
-        stroke="url(#slg)" stroke-width="14" stroke-linecap="round" />
-      <defs>
-        <linearGradient id="slg" x1="25" y1="10" x2="75" y2="90" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stop-color="#4fd1c5" />
-          <stop offset="50%" stop-color="#e8533a" />
-          <stop offset="100%" stop-color="#f6a650" />
-        </linearGradient>
-      </defs>
+    <img src="BudgieMaxx logo.png" class="header-logo-img" alt="BudgieMaxx" width="52" height="52"
+      style="margin-bottom:16px;">
+    <defs>
+      <linearGradient id="slg" x1="25" y1="10" x2="75" y2="90" gradientUnits="userSpaceOnUse">
+        <stop offset="0%" stop-color="#4fd1c5" />
+        <stop offset="50%" stop-color="#e8533a" />
+        <stop offset="100%" stop-color="#f6a650" />
+      </linearGradient>
+    </defs>
     </svg>
     <div class="lock-sub">Enter your PIN to continue</div>
     <div class="pin-dots">
@@ -338,18 +336,8 @@
         style="position:relative;padding-top:calc(var(--safe-top) + 12px);padding-bottom:10px;background:var(--bg)">
         <div class="header-row">
           <div class="header-logo">
-            <svg class="header-logo-mark" viewBox="0 0 100 100" fill="none">
-              <path
-                d="M75 28C75 18 66 10 50 10C34 10 25 18 25 28C25 38 33 43 50 48C67 53 75 58 75 70C75 82 66 90 50 90C34 90 25 82 25 70"
-                stroke="url(#hg2)" stroke-width="14" stroke-linecap="round" />
-              <defs>
-                <linearGradient id="hg2" x1="25" y1="10" x2="75" y2="90" gradientUnits="userSpaceOnUse">
-                  <stop offset="0%" stop-color="#4fd1c5" />
-                  <stop offset="50%" stop-color="#e8533a" />
-                  <stop offset="100%" stop-color="#f6a650" />
-                </linearGradient>
-              </defs>
-            </svg>
+            <img src="BudgieMaxx logo.png" class="header-logo-img" alt="BudgieMaxx">
+
             <span class="header-logo-name">Budgie<em>Maxx</em></span>
           </div>
           <div class="month-pill" onclick="openMonthSelector()">
@@ -404,18 +392,8 @@
     <div class="header">
       <div class="header-row">
         <div class="header-logo">
-          <svg class="header-logo-mark" viewBox="0 0 100 100" fill="none">
-            <path
-              d="M75 28C75 18 66 10 50 10C34 10 25 18 25 28C25 38 33 43 50 48C67 53 75 58 75 70C75 82 66 90 50 90C34 90 25 82 25 70"
-              stroke="url(#hg3)" stroke-width="14" stroke-linecap="round" />
-            <defs>
-              <linearGradient id="hg3" x1="25" y1="10" x2="75" y2="90" gradientUnits="userSpaceOnUse">
-                <stop offset="0%" stop-color="#4fd1c5" />
-                <stop offset="50%" stop-color="#e8533a" />
-                <stop offset="100%" stop-color="#f6a650" />
-              </linearGradient>
-            </defs>
-          </svg>
+          <img src="BudgieMaxx logo.png" class="header-logo-img" alt="BudgieMaxx">
+
           <span class="header-logo-name">Budgie<em>Maxx</em></span>
         </div>
         <div class="month-pill" onclick="openMonthSelector()">
@@ -527,18 +505,8 @@
             </svg>
           </div>
           <div class="header-logo">
-            <svg class="header-logo-mark" viewBox="0 0 100 100" fill="none">
-              <path
-                d="M75 28C75 18 66 10 50 10C34 10 25 18 25 28C25 38 33 43 50 48C67 53 75 58 75 70C75 82 66 90 50 90C34 90 25 82 25 70"
-                stroke="url(#hg4)" stroke-width="14" stroke-linecap="round" />
-              <defs>
-                <linearGradient id="hg4" x1="25" y1="10" x2="75" y2="90" gradientUnits="userSpaceOnUse">
-                  <stop offset="0%" stop-color="#4fd1c5" />
-                  <stop offset="50%" stop-color="#e8533a" />
-                  <stop offset="100%" stop-color="#f6a650" />
-                </linearGradient>
-              </defs>
-            </svg>
+            <img src="BudgieMaxx logo.png" class="header-logo-img" alt="BudgieMaxx">
+
             <span class="header-logo-name" style="font-size:15px">Debts</span>
           </div>
         </div>
@@ -764,6 +732,7 @@
   </div>
 
   <!-- ═══ SCREEN: SAVINGS ═══ -->
+
   <div class="screen" id="screen-savings">
     <div class="header">
       <div class="header-row">
@@ -2034,7 +2003,7 @@
               installingWorker.onstatechange = () => {
                 if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
                   // Automatically reload to apply the update immediately
-                  window.location.reload();
+                  window.location.reload(true);
                 }
               };
             }
@@ -2042,6 +2011,30 @@
         })
         .catch(err => console.warn('SW registration failed:', err));
     }
+
+    // Auto-hard-refresh on push changes
+    function checkForPushUpdates() {
+      fetch(window.location.pathname + '?_cb=' + Date.now(), { method: 'HEAD', cache: 'no-store' })
+        .then(res => {
+          const newEtag = res.headers.get('ETag') || res.headers.get('Last-Modified');
+          if (!newEtag) return;
+          const oldEtag = localStorage.getItem('BudgieMaxx_app_version');
+          if (oldEtag && oldEtag !== newEtag) {
+            localStorage.setItem('BudgieMaxx_app_version', newEtag);
+            window.location.reload(true);
+          } else if (!oldEtag) {
+            localStorage.setItem('BudgieMaxx_app_version', newEtag);
+          }
+        })
+        .catch(e => { /* offline or failed, ignore */ });
+    }
+
+    // Check immediately, then every 30 seconds
+    setTimeout(checkForPushUpdates, 2000);
+    setInterval(checkForPushUpdates, 30000);
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') checkForPushUpdates();
+    });
   </script>
 
   <!-- ═══ NOTIFICATION PANEL ═══ -->

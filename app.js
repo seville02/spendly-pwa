@@ -4203,8 +4203,10 @@ function handleSplitBillRouting() {
     const query = hash.split('?')[1];
     if (query) {
       const params = new URLSearchParams(query);
-      const billDataB64 = params.get('b');
+      let billDataB64 = params.get('b');
       if (billDataB64) {
+        // Fix for messaging apps (like WhatsApp) aggressive URL decoding that breaks base64
+        billDataB64 = billDataB64.replace(/ /g, '+');
         try {
           const jsonStr = decodeURIComponent(escape(atob(billDataB64)));
           const billData = JSON.parse(jsonStr);
