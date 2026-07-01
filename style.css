@@ -134,10 +134,11 @@ body {
   display: none;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   padding: 32px 28px;
   gap: 0;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 #auth-screen::before {
@@ -185,6 +186,7 @@ body {
   flex-direction: column;
   align-items: center;
 
+  margin-top: auto;
   margin-bottom: 20px;
 
   flex-shrink: 0;
@@ -214,6 +216,8 @@ body {
   border: 1px solid var(--border2);
   border-radius: 24px;
   padding: 28px 24px;
+  margin-bottom: auto;
+  flex-shrink: 0;
 }
 
 .auth-title {

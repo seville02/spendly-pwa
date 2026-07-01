@@ -3,14 +3,6 @@
 // ═══════════════════════════════════════════════════════
 
 
-// ── Clean up legacy local storage to fulfill request to "erase local data" ──
-try {
-  Object.keys(localStorage).forEach(key => {
-    if (key.startsWith('BudgieMaxx_') && !key.startsWith('BudgieMaxx_trash_') && key !== 'BudgieMaxx_theme') {
-      localStorage.removeItem(key);
-    }
-  });
-} catch (e) { console.warn('Local storage cleanup failed', e); }
 const CATEGORIES = [
   { id: 'Food', icon: '🍽️', color: '#f6ad55' }, { id: 'Groceries', icon: '🛒', color: '#68d391' },
   { id: 'Transport', icon: '🚌', color: '#63b3ed' }, { id: 'Fuel', icon: '⛽', color: '#e8a030' },
@@ -222,12 +214,15 @@ const MONTHS_FULL = ['January', 'February', 'March', 'April', 'May', 'June', 'Ju
 // Settings (UI preferences only — theme is stored locally, data is in Supabase)
 function getLocalSettings() {
   try {
-    const theme = localStorage.getItem('BudgieMaxx_theme') || 'dark';
-    return { ...localSettings, theme };
+    const raw = localStorage.getItem('BudgieMaxx_settings');
+    const parsed = raw ? JSON.parse(raw) : {};
+    const theme = localStorage.getItem('BudgieMaxx_theme') || parsed.theme || 'dark';
+    return { ...localSettings, ...parsed, theme };
   } catch (e) { return localSettings; }
 }
 function saveLocalSettings(s) {
   try {
+    localStorage.setItem('BudgieMaxx_settings', JSON.stringify(s));
     if (s.theme) localStorage.setItem('BudgieMaxx_theme', s.theme);
   } catch (e) { /* ignore */ }
 }
@@ -1055,6 +1050,7 @@ function dismissSummaryBanner() {
   const s = getLocalSettings();
   s.summaryDismissed = monthKey(pm.getFullYear(), pm.getMonth());
   saveLocalSettings(s);
+  localSettings = s;
   document.getElementById('summary-banner').classList.remove('show');
 }
 
@@ -3445,26 +3441,28 @@ function showToast(msg) {
       if (!isSplitRoute) {
         hideAuthScreen();
 
-        // Welcome toast
-        const s = getLocalSettings();
-        const userName =
-          session.user.user_metadata?.name ||
-          appData?.profile?.name ||
-          "there";
+        // Welcome toast (only on explicit sign in)
+        if (event === 'SIGNED_IN') {
+          const s = getLocalSettings();
+          const userName =
+            session.user.user_metadata?.name ||
+            appData?.profile?.name ||
+            "there";
 
-        const hour = new Date().getHours();
-        let greeting = "Hello";
+          const hour = new Date().getHours();
+          let greeting = "Hello";
 
-        if (hour < 12) greeting = "Good morning";
-        else if (hour < 17) greeting = "Good afternoon";
-        else greeting = "Good evening";
+          if (hour < 12) greeting = "Good morning";
+          else if (hour < 17) greeting = "Good afternoon";
+          else greeting = "Good evening";
 
-        if (s.firstLoginWelcome) {
-          showToast(`🎉 Welcome to BudgieMaxx, ${userName}!`);
-          s.firstLoginWelcome = false;
-          saveLocalSettings(s);
-        } else {
-          showToast(`${greeting}, ${userName}! 👋`);
+          if (s.firstLoginWelcome) {
+            showToast(`🎉 Welcome to BudgieMaxx, ${userName}!`);
+            s.firstLoginWelcome = false;
+            saveLocalSettings(s);
+          } else {
+            showToast(`${greeting}, ${userName}! 👋`);
+          }
         }
 
         await loadAllData(currentUser.id);
