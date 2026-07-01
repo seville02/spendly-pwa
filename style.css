@@ -82,15 +82,16 @@
 }
 
 .auth-logo {
-  width: 70%;
-  max-width: 240px;
+  width: 90%;
+  max-width: 300px;
   height: auto;
   display: block;
   margin: 0 auto 12px;
 }
 
 [data-theme="dark"] .auth-logo {
-  filter: invert(1) hue-rotate(180deg) brightness(1.05) saturate(1.2);
+  filter: invert(1) hue-rotate(180deg) brightness(1.1) saturate(1.3);
+  mix-blend-mode: screen;
 }
 
 html,
@@ -137,13 +138,14 @@ body {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: clamp(320px, 85vw, 600px);
-  height: clamp(320px, 85vw, 600px);
+  width: clamp(500px, 120vw, 900px);
+  height: clamp(500px, 120vw, 900px);
   background: url('BudgieMaxx logo.png') center/contain no-repeat;
-  opacity: 0.055;
+  opacity: 0.09;
   pointer-events: none;
-  z-index: 0;
+  z-index: -1;
   filter: invert(1) hue-rotate(180deg);
+  mix-blend-mode: screen;
 }
 
 [data-theme="light"] #auth-screen::before {
@@ -163,11 +165,6 @@ body {
   }
 }
 
-#auth-screen > * {
-  position: relative;
-  z-index: 1;
-}
-
 #auth-screen.show {
   display: flex;
 }
@@ -176,8 +173,8 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-bottom: 36px;
-  gap: 12px;
+  margin-bottom: 2px;
+  gap: 0px;
 }
 
 .auth-logo-svg {
